@@ -1,0 +1,8 @@
+*.pem
+*.cert
+database
+serial
+*.old
+database.attr
+*.req
+certs
