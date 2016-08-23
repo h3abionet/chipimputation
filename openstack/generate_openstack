@@ -1,0 +1,21 @@
+#!/bin/bash
+
+set -x 
+# create the consul1 server
+nova boot --flavor m1.small --image 'Ubuntu 16.04' --security-groups \
+     'default,remote SSH' --user-data \
+     <(cat consul_config general_config ssh_keys_config ) \
+     --key-name 'don h3abionet' --poll \
+     consul1;
+CONSUL_IP=$(nova show --minimal consul1| \
+                   grep network |cut -d '|' -f 3|cut -d, -f 1)
+## You can use this to associate a floating ip with the consul
+nova floating-ip-associate consul1 141.142.209.31
+
+# create the manager servers
+
+# nova boot --flavor m1.small --image 'Ubuntu 16.04' --security-groups \
+#      'default,remote SSH' --user-data \
+#      <(cat _config general_config ssh_keys_config ) \
+#      --key-name 'don h3abionet' --poll \
+#      consul1;

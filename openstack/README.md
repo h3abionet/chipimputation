@@ -16,3 +16,8 @@ the following steps:
    generate an RSA key, and you can then add the contents of
    `nebula_key.pub` to the "key pairs" pane of the "Access and
    Security" section of the compute menu in OpenStack.
+2. Generate two instances using the "Ubuntu 16.04" base image which
+   are at least m1.medium in size. These will be the swarm primary and
+   secondary manager servers
+3. Generate one instance using same base image which is at least
+   m1.medium in size; this will be the discovery backend.

@@ -1,0 +1,8 @@
+#cloud-config
+# -*- yaml -*-
+# vim: syntax=yaml
+package_upgrade: true
+packages:
+  - docker.io
+# runcmd:
+#   - # adduser ubuntu docker
