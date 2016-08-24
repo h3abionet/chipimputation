@@ -1,9 +1,10 @@
 #cloud-config
 # vim: syntax=yaml
 runcmd:
-  - >
-    docker run -d -p 8500:8500 --name=consul progrium/consul
-    -server -bootstrap
+  - dpkg --configure -a
+  - systemctl start docker
+  - docker run -d -p 8500:8500 --name=consul progrium/consul -server -bootstrap
+merge_type: 'list(append)+dict(recurse_array)+str()'
 # Local Variables:
 # mode: yaml
 # End:
