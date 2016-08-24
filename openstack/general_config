@@ -4,5 +4,6 @@
 package_upgrade: true
 packages:
   - docker.io
-# runcmd:
-#   - # adduser ubuntu docker
+runcmd:
+   - adduser ubuntu docker
+merge_type: 'list(append)+dict(recurse_array)+str()'
