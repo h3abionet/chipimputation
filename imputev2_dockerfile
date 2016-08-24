@@ -18,10 +18,10 @@ MAINTAINER Fourie Joubert <fourie.joubert@up.ac.za>
 RUN apt-get update && apt-get install -y wget && apt-get clean
 RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
     tar -zxvf impute_v2.3.2_x86_64_static.tgz && \
-        mv impute_v2.3.2_x86_64/impute2 /usr/bin/impute2 && \
+        mv impute_v2.3.2_x86_64_static/impute2 /usr/bin/impute2 && \
            mkdir /opt/impute2/example -p && \
-                 mv impute_v2.3.2_x86_64/Example/* /opt/impute2/example && \
-                    rm -rf impute_v2.3.2_x86_64 impute_v2.3.2_x86_64_static.tgz
+                 mv impute_v2.3.2_x86_64_static/Example/* /opt/impute2/example && \
+                    rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
 
 # Run impute on the included sample data
 
