@@ -38,3 +38,12 @@ for a in $(seq 0 4); do
          node$a;
     associate_ip node$a;
 done;
+
+cat - <<EOF
+After waiting for the nodes to be created, you should be
+able to connect to one of the two manager nodes and check
+the status of the build:
+
+nova ssh -i ssh_identity_file manager0 --login ubuntu \
+   --extra-opts='-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+EOF
