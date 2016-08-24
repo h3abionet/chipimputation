@@ -23,3 +23,23 @@ the following steps:
    to be generated
 5. When they have completed, you can log into one of the two manager
    nodes to start jobs on the docker swarm.
+
+# Installing nextflow
+
+
+# Running jobs using docker
+
+To run a job using docker, ssh into one of the manager nodes. You can
+do this using:
+
+`nova ssh -i ssh_identity manager0 --login ubuntu
+--extra-opts='-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'`
+
+which will log into the manager node manager0.
+
+You can then run docker containers like the following, which starts a
+busybox shell, while mounting the /srv/imputation directory which is
+shared between all nodes:
+
+`docker -H :4000 run -i -u 1000 -P -v
+/srv/imputation:/srv/imputation:Z busybox sh`
