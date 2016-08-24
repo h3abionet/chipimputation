@@ -16,7 +16,9 @@ associate_ip() {
 nova_opts=(--image "$ubuntu_version" --security-groups "default,remote SSH"  --key-name "$key_name")
 
 # create the consul1 server
-nova boot --flavor m1.small "${nova_opts[@]}" --user-data \
+nova boot --flavor m1.small "${nova_opts[@]}" \
+     --block-device "source=volume,id=d5850179-7883-4cea-8cc6-b76f568fdf73,dest=volume,shutdown=preserve" \
+     --user-data \
      <(write-mime-multipart general_config consul_config \
                             ssh_keys_config ) \
      --poll \
