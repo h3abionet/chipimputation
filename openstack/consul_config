@@ -1,9 +1,14 @@
 #cloud-config
 # vim: syntax=yaml
+packages:
+  - nfs-kernel-server
 runcmd:
   - dpkg --configure -a
   - systemctl start docker
   - docker run -d -p 8500:8500 --name=consul progrium/consul -server -bootstrap
+  - mkdir -p /srv/imputation; mount /dev/vdb /srv/imputation
+  - echo "/srv/imputation 192.168.100.0/24(rw,sync,no_subtree_check)" > /etc/exports
+  - systemctl restart nfs-kernel-server
 merge_type: 'list(append)+dict(recurse_array)+str()'
 # Local Variables:
 # mode: yaml

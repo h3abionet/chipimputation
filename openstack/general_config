@@ -4,6 +4,7 @@
 package_upgrade: true
 packages:
   - docker.io
+  - nfs-common
 runcmd:
    - adduser ubuntu docker
 merge_type: 'list(append)+dict(recurse_array)+str()'
