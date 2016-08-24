@@ -1,13 +1,19 @@
 #!/bin/bash
 set -x 
 
+# this is the name of the image to build the contains with
+ubuntu_version="Ubuntu 16.04"
+
+# this is the name of the key to use for the images
+key_name="don h3abionet"
+
 associate_ip() {
     nova floating-ip-associate $1 \
          $(nova floating-ip-list|grep ' - '|
                   head -n 1|awk -F'|' '{print $3}');
 }
 
-nova_opts=(--image "Ubuntu 16.04" --security-groups "default,remote SSH"  --key-name "don h3abionet")
+nova_opts=(--image "$ubuntu_version" --security-groups "default,remote SSH"  --key-name "$key_name")
 
 # create the consul1 server
 nova boot --flavor m1.small "${nova_opts[@]}" --user-data \
