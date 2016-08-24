@@ -1,27 +1,40 @@
 #!/bin/bash
-
 set -x 
+
 associate_ip() {
     nova floating-ip-associate $1 \
          $(nova floating-ip-list|grep ' - '|
                   head -n 1|awk -F'|' '{print $3}');
 }
 
+nova_opts=(--image "Ubuntu 16.04" --security-groups "default,remote SSH"  --key-name "don h3abionet")
+
 # create the consul1 server
-nova boot --flavor m1.small --image 'Ubuntu 16.04' --security-groups \
-     'default,remote SSH' --user-data \
-     <(cat consul_config general_config ssh_keys_config ) \
-     --key-name 'don h3abionet' --poll \
-     consul1;
-CONSUL_IP=$(nova show --minimal consul1| \
-                   grep network |cut -d '|' -f 3|cut -d, -f 1)
+nova boot --flavor m1.small "${nova_opts[@]}" --user-data \
+     <(write-mime-multipart general_config consul_config \
+                            ssh_keys_config ) \
+     --poll \
+     consul0;
+CONSUL_IP=$(nova show --minimal consul0|
+                   grep network |cut -d '|' -f 3|cut -d, -f 1|
+                   sed 's/ *//g')
 ## You can use this to associate a floating ip with the consul
 associate_ip consul0
 
 # create the manager servers
 
-# nova boot --flavor m1.small --image 'Ubuntu 16.04' --security-groups \
-#      'default,remote SSH' --user-data \
-#      <(cat _config general_config ssh_keys_config ) \
-#      --key-name 'don h3abionet' --poll \
-#      consul1;
+for a in 0 1; do
+    nova boot --flavor m1.small "${nova_opts[@]}" --user-data \
+         <(write-mime-multipart general_config manager_config \
+           ssh_keys_config |sed "s/___CONSUL_IP___/$CONSUL_IP/") \
+         manager$a;
+    associate_ip manager$a;
+done;
+
+for a in 0 4; do
+    nova boot --flavor m1.xlarge "${nova_opts[@]}" --user-data \
+         <(write-mime-multipart general_config node_config \
+           ssh_keys_config |sed "s/___CONSUL_IP___/$CONSUL_IP/") \
+         node$a;
+    associate_ip node$a;
+done;
