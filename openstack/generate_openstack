@@ -37,6 +37,7 @@ for a in 0 1; do
     associate_ip manager$a;
 done;
 
+# create the nodes
 for a in $(seq 0 4); do
     nova boot --flavor m1.xlarge "${nova_opts[@]}" --user-data \
          <(write-mime-multipart general_config node_config \
