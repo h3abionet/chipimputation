@@ -1,6 +1,12 @@
 #!/bin/bash
 
 set -x 
+associate_ip() {
+    nova floating-ip-associate $1 \
+         $(nova floating-ip-list|grep ' - '|
+                  head -n 1|awk -F'|' '{print $3}');
+}
+
 # create the consul1 server
 nova boot --flavor m1.small --image 'Ubuntu 16.04' --security-groups \
      'default,remote SSH' --user-data \
@@ -10,7 +16,7 @@ nova boot --flavor m1.small --image 'Ubuntu 16.04' --security-groups \
 CONSUL_IP=$(nova show --minimal consul1| \
                    grep network |cut -d '|' -f 3|cut -d, -f 1)
 ## You can use this to associate a floating ip with the consul
-nova floating-ip-associate consul1 141.142.209.31
+associate_ip consul0
 
 # create the manager servers
 
