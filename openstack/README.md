@@ -18,11 +18,15 @@ the following steps:
 2. Get the OpenStack RC file from the "API Access" pane of the "Access
    and Security" section mentioned above, source it in your shell, and
    enter your password.
-3. Write your ssh-key *TO BE FINISHED*
+3. Write your `ssh_keys_config` file which contains the ssh keys that
+   should be allowed to log into the system, and also the `ca.pem`
+   which will be trusted by the swarm (once we actually have TLS
+   working).
 4. Run `./generate_openstack` in this directory and wait for the VMs
    to be generated
 5. When they have completed, you can log into one of the two manager
-   nodes to start jobs on the docker swarm.
+   nodes to start jobs on the docker swarm. (See Running jobs using
+   docker below).
 
 # Installing nextflow
 
