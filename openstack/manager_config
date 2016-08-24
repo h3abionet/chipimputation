@@ -1,5 +1,7 @@
 #cloud-config
 # vim: syntax=yaml
+packages:
+  - openjdk-8-jdk
 runcmd:
   - dpkg --configure -a
   - systemctl start docker
