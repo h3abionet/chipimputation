@@ -23,31 +23,56 @@ process prePhase {
     echo ${chunkname}.map
     echo ${chunkname}.study.gens
 
-    impute2 -prephase_g \
-        -m ${chunkname}.map \
-        -g ${chunkname}.study.gens \
-        -int 20.4e6 20.5e6 \
-        -Ne 20000 \
-        -o ${chunkname}.prephasing.impute2
+    #impute2 -prephase_g \
+    #    -m ${chunkname}.map \
+    #    -g ${chunkname}.study.gens \
+    #    -int 20.4e6 20.5e6 \
+    #    -Ne 20000 \
+    #    -o ${chunkname}.prephasing.impute2
+
+    touch ${chunkname}.prephasing.impute2
 
     """
 }
- 
+
+
+
 /*
  * impute using the prephased genotypes
  */
 process imputeStudyWithPrephased {
  
     input:
-        file phasedchunkname from prePhased
+        file(chunkname) from prePhased
      
     output:
         stdout result
  
+
+    script:
+        filename = file(chunkname).name
+        basename = filename.replaceAll("\\.prephasing\\.impute2","")
+        parentname = file(chunkname).parent
+        println "---${chunkname}---\n----filename: ${filename}\n----parentname: ${parentname}" 
+        println "-----BASENAME: ${basename}"
     """
     echo "Running imputeStudyWithPrephased on..." 
-    echo ${phasedchunkname}
-    echo ${phasedchunkname}
+    echo ${chunkname}
+    echo ${filename}
+    echo ${parentname}
+
+
+#impute2 \
+# -use_prephased_g \
+# -m ${chunkname}.map \
+
+# -h ./refs/example.chr22.1kG.haps \
+# -l ./refs/example.chr22.1kG.legend \
+# -known_haps_g ${chunkname}.prephasing.im" "g ${chunkname}\\..study.str\\.and \
+# -int 20.4e6 20.5e6 \
+# -Ne 20000 \
+# -o ${chunkname}.one.phae2 \
+# -phase
 
     """
 
