@@ -28,5 +28,3 @@ RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz &&
 # Run impute on the included sample data
 
 USER ubuntu
-
-CMD ["/bin/bash","-i"]
