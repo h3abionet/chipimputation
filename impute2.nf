@@ -7,32 +7,33 @@ params.refdir = "/srv/imputation/refdata/1000GP_Phase3"
 
 // currently we only support working on a single chromosome at a time,
 // but we should eventually support more than that
-params.chr=chr22
+params.chr = "chr22"
 // this is the starting position on the chromosome that we should look
 // at
-params.begin = 20e6
+params.begin = (long)20e6
 // this is the ending position on the chromosome that we should be
 // looking at
-params.end = 21e6
+params.end = (long)21e6
 // this is the size of imputation blocks that we should be analyzing
-params.range = 5e5
+params.range = (long)5e5
 
 params.populationsize = 2000
 params.reference_hap = "${params.refdir}/1000GP_Phase3_${params.chr}.hap.gz"
 params.reference_legend = "${params.refdir}/1000GP_Phase3_${params.chr}.legend.gz"
 params.reference_map = "${params.refdir}/genetic_map_${params.chr}_combined_b37.txt"
 
+// these are the chromosome segments to iterate over
+chr_segments = (params.begin .. params.end).step((int)params.range+1).each({[it,it+params.range > params.end?params.end:it+params.range]})
 
-chr_segments = chrRegionPairs(params.begin..params.end).step(params.range)
-
+// this is the channel which contains the regions to iterate over
+Channel
+.from(chr_segments).set { chr_segment }
 
 
 Channel
     .fromFilePairs( params.study)                              
     .set { input_study }
 
-Channel
-    .from
 
 
 /*
@@ -79,7 +80,7 @@ process imputeStudyWithPrephased {
         -h ${INPUT}/pilot1.jun2010.b36.CEU.chr10.snpfilt.haps \
         -l ${INPUT}/pilot1.jun2010.b36.CEU.chr10.snpfilt.legend \
         -m ${INPUT}/genetic_map_chr10_combined_b36.txt \
-        -int 20000000 25000000 \ 
+        -int 20000000 25000000 \
         -Ne 15000 \
         -buffer 250 \
         -o ${OUTPUT}/gwas_data_chr10_imputed.20-25Mb.gen
