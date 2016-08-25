@@ -3,8 +3,6 @@
 packages:
   - openjdk-8-jdk
 runcmd:
-  - dpkg --configure -a
-  - systemctl start docker
   - docker run -d -p 4000:4000 swarm manage -H :4000 --replication --advertise "$(ip addr show $(ip route show match 0.0.0.0|sed 's/.*dev *\([^ ]*\).*/\1/') |grep 'inet '|sed 's/.*inet \([^\/]*\)\/.*/\1/')":4000 "consul://___CONSUL_IP___:8500"
   - mkdir -p /srv/imputation; mount -o sec=sys ___CONSUL_IP___:/srv/imputation /srv/imputation
 merge_type: 'list(append)+dict(recurse_array)+str()'

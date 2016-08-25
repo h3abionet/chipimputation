@@ -6,5 +6,8 @@ packages:
   - docker.io
   - nfs-common
 runcmd:
-   - adduser ubuntu docker
+  - dpkg --configure -a
+  - systemctl start docker
+  - echo "DOCKER_OPTS=\"--mtu=1450 -H tcp://0.0.0.0:2375\"" > /etc/default/docker; systemctl restart docker
+  - adduser ubuntu docker
 merge_type: 'list(append)+dict(recurse_array)+str()'
