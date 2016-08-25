@@ -1,0 +1,6 @@
+docker {
+       enabled = true
+       runOptions = -u 1000 -v /srv/imputation:/srv/imputation:Z
+       engineOptions = -H :4000
+       fixOwnership = true
+};
