@@ -29,4 +29,4 @@ RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz &&
 
 USER ubuntu
 
-CMD ["/bin/bash	"] 
+CMD ["/bin/bash","-i"]
