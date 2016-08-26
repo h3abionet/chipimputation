@@ -43,7 +43,7 @@ Channel
 process prePhase {
  
     input:
-    set val(chunkname), file(studybase),val(begin),val(end) from input_study
+    set val(chunkname), file(map),file(genotypes),val(begin),val(end) from input_study
  
     output:
     set file("prephased.impute2"),val(begin),val(end) into prePhased
@@ -55,10 +55,10 @@ process prePhase {
     echo ${chunkname}.study.gens
 
     impute2 -prephase_g \
-        -m ${chunkname}.map \
-        -g ${chunkname}.study.gens \
+        -m ${map} \
+        -g ${genotypes} \
         -int ${begin} ${end} \
-        -Ne 20000 \
+        -Ne ${params.populationsize} \
         -o prephased.impute2
 
     """
