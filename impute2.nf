@@ -90,8 +90,12 @@ process imputeStudyWithPrephased {
 
 }
 
-// combine the imputed segments
-
+/*
+ *  combine the imputed segments
+ * 
+ * This particular combination is pretty naive, and a better
+ * implementation is probably necessary
+ */
 process imputeCombine {
   publishDir "./results/imputation"
   input:
