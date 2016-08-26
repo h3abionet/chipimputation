@@ -23,7 +23,7 @@ params.reference_legend = "${params.refdir}/1000GP_Phase3_${params.chr}.legend.g
 params.reference_map = "${params.refdir}/genetic_map_${params.chr}_combined_b37.txt"
 
 // these are the chromosome segments to iterate over
-chr_segments = (params.begin .. params.end).step((int)params.range+1).each({[it,it+params.range > params.end?params.end:it+params.range]})
+chr_segments = (params.begin .. params.end).step((int)params.range+1).collect({[it,it+params.range > params.end?params.end:it+params.range]})
 
 // this is the channel which contains the regions to iterate over
 Channel
