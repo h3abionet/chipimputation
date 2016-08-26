@@ -103,7 +103,7 @@ imputation (or any other nextflow based workflow) with
 
      NXF_EXECUTOR_CPUS=100 /srv/imputation/nextflow/nextflow run -qs \
      1000 -ps 1000 run.nf -with-docker \
-     'quay.io/h3abionet/impute2:latest' -c ../docker_nextflow \
+     'quay.io/h3abionet_org/impute2:latest' -c ../docker_nextflow \
      -with-timeline foo.html -with-dag foo.png \
 
 ## Examine results
