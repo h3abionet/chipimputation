@@ -47,3 +47,19 @@ shared between all nodes:
 
 `docker -H :4000 run -i -u 1000 -P -v
 /srv/imputation:/srv/imputation:Z busybox sh`
+
+## Running the imputation workflow
+
+You can also run our imputation workflow using nextflow:
+
+     NXF_EXECUTOR_CPUS=100 /srv/imputation/nextflow/nextflow run \
+     -qs 1000 -ps 1000 run.nf -with-docker 'quay.io/dondelelcaro/impute2:latest' \
+     -c ../docker_nextflow
+
+The environmental variable `NXF_EXECUTOR_CPUS=100` tells nextflow that
+we have 100 available CPUs so that the local executor will schedule
+more than a single job on the available docker swarm. This value may
+need to be tuned for a particular workflow depending on how many
+swarms you have running.
+
+
