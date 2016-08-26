@@ -26,12 +26,10 @@ params.reference_map = "${params.refdir}/genetic_map_${params.chr}_combined_b37.
 chr_segments = (params.begin .. params.end).step((int)params.range+1).collect({[it,it+params.range > params.end?params.end:it+params.range]})
 
 // this is the channel which contains the regions to iterate over
-Channel
-.from(chr_segments).set { chr_segment }
-
+// Channel.from(chr_segments).set{chr_segment}
 
 Channel
-    .fromFilePairs( params.study)                              
+.fromFilePairs( params.study).spread(chr_segments)
     .set { input_study }
 
 
@@ -42,10 +40,11 @@ Channel
 process prePhase {
  
     input:
-        set val(chunkname), file(studybase) from input_study
+    set val(chunkname), file(studybase),val(begin),val(end) from input_study
  
     output:
-        file "${chunkname}.prephasing.impute2" into prePhased
+    set file("prephased.impute2"),val(begin),val(end) into prePhased
+
  
     """
     echo "Running prePhase on..." 
@@ -55,9 +54,9 @@ process prePhase {
     impute2 -prephase_g \
         -m ${chunkname}.map \
         -g ${chunkname}.study.gens \
-        -int 20.4e6 20.5e6 \
+        -int ${begin} ${end} \
         -Ne 20000 \
-        -o ${chunkname}.prephasing.impute2
+        -o prephased.impute2
 
     """
 }
@@ -68,7 +67,7 @@ process prePhase {
 process imputeStudyWithPrephased {
  
     input:
-        file phasedchunkname from prePhased
+    set file(phasedchunkname),val(begin),val(end) from prePhased
      
     output:
         stdout result
@@ -76,14 +75,14 @@ process imputeStudyWithPrephased {
     """
     echo "Running imputeStudyWithPrephased on..." 
     impute2 \
-        -known_haps_g ${INPUT}/gwas_data_chr10_phased.haps \
-        -h ${INPUT}/pilot1.jun2010.b36.CEU.chr10.snpfilt.haps \
-        -l ${INPUT}/pilot1.jun2010.b36.CEU.chr10.snpfilt.legend \
-        -m ${INPUT}/genetic_map_chr10_combined_b36.txt \
-        -int 20000000 25000000 \
+        -known_haps_g ${phasedchunkname} \
+        -h ${params.reference_hap} \
+        -l ${params.reference_legend} \
+        -m ${params.reference_map} \
+        -int ${begin} ${end} \
         -Ne 15000 \
         -buffer 250 \
-        -o ${OUTPUT}/gwas_data_chr10_imputed.20-25Mb.gen
+        -o imputed.haps
     echo ${phasedchunkname}
     echo ${phasedchunkname}
 
