@@ -78,9 +78,9 @@ process imputeStudyWithPrephased {
     """
     impute2 \
         -known_haps_g ${phasedchunkname} \
-        -h ${params.reference_hap} \
-        -l ${params.reference_legend} \
-        -m ${params.reference_map} \
+        -h <(gzip -dcf ${params.reference_hap}) \
+        -l <(gzip -dcf ${params.reference_legend}) \
+        -m <(gzip -dcf ${params.reference_map}) \
         -int ${begin} ${end} \
         -Ne 15000 \
         -buffer 250 \
