@@ -23,16 +23,19 @@ params.reference_legend = "${params.refdir}/1000GP_Phase3_${params.chr}.legend.g
 params.reference_map = "${params.refdir}/genetic_map_${params.chr}_combined_b37.txt"
 
 // these are the chromosome segments to iterate over
+
+// This takes the start (params.begin) and stop (params.end), makes a
+// range operator, then steps through that range by the window size
+// (params.range) to create a list, which is turned into the
+// start/stop positions by collect
 chr_segments = (params.begin .. params.end).step((int)params.range+1).collect({[it,it+params.range > params.end?params.end:it+params.range]})
 
-// this is the channel which contains the regions to iterate over
-// Channel.from(chr_segments).set{chr_segment}
+// We then take all of the file pairs from params.study and spread
+// them over the chromosome segments into the input_study channel
 
 Channel
 .fromFilePairs( params.study).spread(chr_segments)
     .set { input_study }
-
-
 
 /*
  * pre-phase the study genotypes
