@@ -73,10 +73,9 @@ process imputeStudyWithPrephased {
     set file(phasedchunkname),val(begin),val(end) from prePhased
      
     output:
-        stdout result
+    file('imputed.haps') into imputedHaplotypes
  
     """
-    echo "Running imputeStudyWithPrephased on..." 
     impute2 \
         -known_haps_g ${phasedchunkname} \
         -h ${params.reference_hap} \
@@ -86,14 +85,30 @@ process imputeStudyWithPrephased {
         -Ne 15000 \
         -buffer 250 \
         -o imputed.haps
-    echo ${phasedchunkname}
-    echo ${phasedchunkname}
 
     """
 
 }
- 
+
+// combine the imputed segments
+
+process imputeCombine {
+  publishDir "./results/imputation"
+  input:
+    file haplotype_files from imputedHaplotypes.toList()
+  output:
+  file ('imputed_haplotypes') into result
+
+  script:
+  """
+  rm -f imputed_haplotypes;
+  for file in ${haplotype_files}; do
+     cat \$file >> imputed_haplotypes
+  done;
+  """
+}
+
+
 /*
  * print the channel content
  */
-result.subscribe { println it }
