@@ -1,7 +1,7 @@
 #!/usr/bin/env nextflow
  
 //params.study =  "$baseDir/data/example.chr22.{map,study.gens}"
-params.study =  "$baseDir/data/{*}.{map,study.gens}"
+params.study =  "$baseDir/data/*.study.gens"
 
 params.refdir = "/srv/imputation/refdata/1000GP_Phase3"
 
@@ -33,7 +33,8 @@ chr_segments = (params.begin .. params.end).step((int)params.range+1).collect({[
 // We then take all of the file pairs from params.study and spread
 // them over the chromosome segments into the input_study channel
 
-input_study = Channel.fromFilePairs( params.study).spread(chr_segments)
+input_study = Channel.fromPath( params.study).spread(chr_segments)
+
 
 /*
  * pre-phase the study genotypes
@@ -41,20 +42,19 @@ input_study = Channel.fromFilePairs( params.study).spread(chr_segments)
 process prePhase {
  
     input:
-    set chunkname,file('map'),file('genotypes'),begin,end from input_study
+    set file('genotypes'),begin,end from input_study
  
     output:
     set file('prephased.impute2'),val(begin),val(end) into prePhased
 
     """
     echo "Running prePhase on..." 
-    echo ${chunkname}.map
-    echo ${chunkname}.study.gens
+    echo ${genotypes}.study.gens
     echo ${begin}-${end}
 
 
     impute2 -prephase_g \
-        -m map \
+        -m ${params.reference_map} \
         -g genotypes \
         -int ${begin} ${end} \
         -Ne ${params.populationsize} \
@@ -76,7 +76,7 @@ process imputeStudyWithPrephased {
  
     """
     impute2 \
-        -known_haps_g ${phasedchunkname} \
+        -known_haps_g phasedchunkname \
         -h <(gzip -dcf ${params.reference_hap}) \
         -l <(gzip -dcf ${params.reference_legend}) \
         -m <(gzip -dcf ${params.reference_map}) \
