@@ -33,9 +33,7 @@ chr_segments = (params.begin .. params.end).step((int)params.range+1).collect({[
 // We then take all of the file pairs from params.study and spread
 // them over the chromosome segments into the input_study channel
 
-Channel
-.fromFilePairs( params.study).spread(chr_segments)
-    .set { input_study }
+input_study = Channel.fromFilePairs( params.study).spread(chr_segments)
 
 /*
  * pre-phase the study genotypes
@@ -43,20 +41,21 @@ Channel
 process prePhase {
  
     input:
-    set val(chunkname), file(map),file(genotypes),val(begin),val(end) from input_study
+    set chunkname,file('map'),file('genotypes'),begin,end from input_study
  
     output:
-    set file("prephased.impute2"),val(begin),val(end) into prePhased
+    set file('prephased.impute2'),val(begin),val(end) into prePhased
 
- 
     """
     echo "Running prePhase on..." 
     echo ${chunkname}.map
     echo ${chunkname}.study.gens
+    echo ${begin}-${end}
+
 
     impute2 -prephase_g \
-        -m ${map} \
-        -g ${genotypes} \
+        -m map \
+        -g genotypes \
         -int ${begin} ${end} \
         -Ne ${params.populationsize} \
         -o prephased.impute2
@@ -70,7 +69,7 @@ process prePhase {
 process imputeStudyWithPrephased {
  
     input:
-    set file(phasedchunkname),val(begin),val(end) from prePhased
+    set file('phasedchunkname'),begin,end from prePhased
      
     output:
     file('imputed.haps') into imputedHaplotypes
@@ -99,14 +98,14 @@ process imputeStudyWithPrephased {
 process imputeCombine {
   publishDir "./results/imputation"
   input:
-    file haplotype_files from imputedHaplotypes.toList()
+    file 'haplotype_files' from imputedHaplotypes.toList()
   output:
   file ('imputed_haplotypes') into result
 
   script:
   """
   rm -f imputed_haplotypes;
-  for file in ${haplotype_files}; do
+  for file in haplotype_files*; do
      cat \$file >> imputed_haplotypes
   done;
   """
