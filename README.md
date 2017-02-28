@@ -106,6 +106,18 @@ imputation (or any other nextflow based workflow) with
      'quay.io/h3abionet_org/impute2:latest' -c ../docker_nextflow \
      -with-timeline foo.html -with-dag foo.png \
 
+### Run imputation locally
+
+You can alternatively run the imputation locally with something like this:
+
+     nextflow ./impute2.nf --chr chr7 --begin 0 --end 2e6 --refdir /srv/imputation/refdata
+
+## Sample data
+
+Sample data for imputation can be generated using the
+`generate_testdata.pl` in the data subdirectory by subsetting the
+imputation reference panels and then imputing against them.
+
 ## Examine results
 
 *TODO*
