@@ -79,7 +79,7 @@ generate_testdata.pl
 
 =cut
 
-
+use Scalar::Util qw(looks_like_number);
 use vars qw($DEBUG);
 
 my %options = (skip            => 50,
@@ -165,7 +165,7 @@ while (1) {
     last unless skip_n_lines($legend,$options{skip});
 }
 
-sub read_and_write_sample_files {
+sub read_and_write_sample_file {
     my ($sample,$sample_out) = @_;
 
     print {$sample_out} "ID_1 ID_2 missing sex status\n";
@@ -194,6 +194,7 @@ sub skip_n_lines {
         my $a = <$fh>;
         return 0 if not defined $a;
     }
+    return 1;
 }
 
 sub open_compressed_file {
