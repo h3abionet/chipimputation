@@ -35,6 +35,8 @@ chr_segments = (params.begin .. params.end).step((int)params.range+1).collect({[
 
 input_study = Channel.fromPath( params.study).spread(chr_segments)
 
+// input_study_debug = Channel.fromPath( params.study).spread(chr_segments)
+// input_study_debug.subscribe { println "Got: $it" }
 
 /*
  * pre-phase the study genotypes
