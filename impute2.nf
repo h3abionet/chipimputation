@@ -80,13 +80,15 @@ process duplicatePedMapByChr {
 /* split ped/map by chromosome */
 process splitPedMap {
   input:
-  set file('full.ped'),file('full.map'),chr from ped_maps_per_chr
+  set val(chr),val(start),val(end),file('full.ped'),file('full.map') from ped_maps_per_chr;
 
   output:
-  set val(chr),file('split.ped'),file('split.map') into split_ped_maps
+  set val(chr),val(start),val(end),file('split.ped'),file('split.map') into split_ped_maps
 
   """
-  plink1 --noweb --file full --chr ${chr.replace('chr','')} --recode --out split
+  ${params.plink} --noweb \
+           --file full --chr ${chr.replace('chr','')} \
+           --recode --out split
   """
 }
 
@@ -96,10 +98,10 @@ process splitPedMap {
 process checkGenotypes {
  
     input:
-    set chr,file('split.ped'),file('split.map') from split_ped_maps
+    set val(chr),val(start),val(end),file('split.ped'),file('split.map') from split_ped_maps
  
     output:
-    set val(chr),file('split.ped'),file('split.map'),file('split_shapeit_log.snp.strand.exclude') \
+    set val(chr),val(start),val(end),file('split.ped'),file('split.map'),file('split_shapeit_log.snp.strand.exclude') \
     into checked_genotypes
 
     """
@@ -109,7 +111,7 @@ process checkGenotypes {
         --input-ref ${params.reference_hap(chr)} \
                     ${params.reference_legend(chr)} \
                     ${params.reference_sample(chr)} \
-        --output-log split_shapeit_log
+        --output-log split_shapeit_log || true
     """
 }
 
@@ -118,53 +120,68 @@ process checkGenotypes {
  * pre-phase each chromosome
  */
 process prePhase {
- 
+    cpus 8
+  
     input:
-    set chr,file('split.ped'),file('split.map'),file('split.snp.strand.exclude') \
+    set val(chr),val(start),val(end),file('split.ped'),\
+    file('split.map'),file('split.snp.strand.exclude') \
     from checked_genotypes
  
     output:
-    set val(chr),file('prephased_gens'),val(begin),val(end) into prePhased
+    set val(chr),val(start),val(end),file('prephased_gens.haps'),\
+    file('prephased_gens.sample') into prePhased;
 
     """
-    echo "Running prePhase on..." 
-    echo ${genotypes}.study.gens
-    echo ${begin}-${end}
-
-
     shapeit -phase \
         -P split.ped split.map \
         --input-ref ${params.reference_hap(chr)} \
                     ${params.reference_legend(chr)} \
                     ${params.reference_sample(chr)} \
-        --exclude-snps split.snp.strand.exclude \
+        --exclude-snp split.snp.strand.exclude \
+        -T 8 \
         -O prephased_gens
 
     """
 }
- 
+
+
+split_prephased = Channel.create();
+process splitPrephased {
+  input:
+  set val(chr),val(start),val(end),val(haps), \
+  val(sample) from prePhased;
+
+  exec:
+  chr_segments = \
+  (start .. end).step((int)params.range+1).\
+  collect({[it,it+params.range > end?end:it+params.range]})
+  for (chr_seg in chr_segments) {
+    split_prephased.bind(tuple(chr,chr_seg[0],chr_seg[1],haps,sample))
+  }
+}
+
+
 /*
  * impute using the prephased genotypes
  */
 process imputeStudyWithPrephased {
  
     input:
-    set file('phasedchunkname'),begin,end from prePhased
+    set val(chr),val(begin),val(end),file('phasedhaps'),file('phasedsample') from split_prephased;
      
     output:
     file('imputed.haps') into imputedHaplotypes
  
     """
     impute2 \
-        -known_haps_g phasedchunkname \
-        -h <(gzip -dcf ${params.reference_hap}) \
-        -l <(gzip -dcf ${params.reference_legend}) \
-        -m <(gzip -dcf ${params.reference_map}) \
+        -known_haps_g phasedhaps \
+        -h <(gzip -dcf ${params.reference_hap(chr)} \
+        -l <(gzip -dcf ${params.reference_legend(chr)} \
+        -m <(gzip -dcf ${params.reference_map(chr)} \
         -int ${begin} ${end} \
         -Ne 15000 \
         -buffer 250 \
         -o imputed.haps
-
     """
 
 }
