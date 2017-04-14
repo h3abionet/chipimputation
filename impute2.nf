@@ -18,9 +18,10 @@ params.positions = ["chr20":
 params.range = (long)5e5
 
 params.populationsize = 2000
-params.reference_hap = {chr -> "${params.refdir}/1000GP_Phase3_${chr}.hap.gz"}
-params.reference_legend = {chr -> "${params.refdir}/1000GP_Phase3_${chr}.legend.gz"}
-params.reference_map = {chr -> "${params.refdir}/genetic_map_${chr}_combined_b37.txt"}
+params.reference_hap = {chr -> "${params.refdir}/1000GP_Phase3_chr${chr}.hap.gz"}
+params.reference_legend = {chr -> "${params.refdir}/1000GP_Phase3_chr${chr}.legend.gz"}
+params.reference_map = {chr -> "${params.refdir}/genetic_map_chr${chr}_combined_b37.txt"}
+params.reference_sample = {chr -> "${params.refdir}/1000GP_Phase3.sample"}
 
 // these are the chromosome segments to iterate over
 
