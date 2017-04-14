@@ -37,26 +37,45 @@ chr_segments = params.positions.collect{ entry ->
   collect({[entry.key,it,it+params.range > entry.value[1]?entry.value[1]:it+params.range]})
 }
 
-chromosomes = params.positions.collect{entry -> entry.key}
+// this channel contains the ped and map file
+ped_and_maps = Channel.fromPath(params.study_ped).\
+merge(Channel.fromPath(params.study_map)){o,e->[o,e]}
 
-ped_maps_per_chr = Channel.fromPath(params.study_ped).\
-merge(Channel.fromPath(params.study_map)){o,e->[o,e]}.spread(chromosomes)
+ped_maps_per_chr = Channel.create();
 
-ped_maps_per_chr_debug = Channel.fromPath(params.study_ped).\
-merge(Channel.fromPath(params.study_map)){o,e->[o,e]}.spread(chromosomes)
+/* identify chromosomes and start/stop positions per chromosome */
+process identifyChromosomes {
+  input:
+  set file('full.ped'),file('full.map') from ped_and_maps;
 
-ped_maps_per_chr_debug.subscribe {println "Got: $it"}
+  output:
+  set file('full.ped'),file('full.map'),file('chr_min_max') into chromosomes;
 
-//chr_segments.each{println "Item: $it"};
+  // Read through the map file, and output the min and max for each chromosome
+  """
+  perl -n -e 'my (\$chr,\$rs,\$m,\$pos) = split /\\s+/; \$chrs{\$chr}{start} = \$pos if not defined \$chrs{\$chr}{start} or \$chrs{\$chr}{start} > \$pos; \$chrs{\$chr}{end} = \$pos if not defined \$chrs{\$chr}{end} or \$chrs{\$chr}{end} < \$pos; END { print map { qq(\$_\\t\$chrs{\$_}{start}\\t\$chrs{\$_}{end}\\n)} keys %chrs; }' < full.map > chr_min_max
+  """
+}
 
-// We then take all of the file pairs from params.study and spread
-// them over the chromosome segments into the input_study channel
+process duplicatePedMapByChr {
+  input:
+  set ped,map,chroms from chromosomes;
 
-// input_study = Channel.fromPath( params.study).spread(chr_segments)
-
-// input_study_debug = Channel.fromPath( params.study).spread(chr_segments)
-// input_study_debug.subscribe { println "Got: $it" }
-
+  exec:
+  for (chrminmax in chroms.readLines()) {
+    def cmt = chrminmax.tokenize("\t")
+    def chr = cmt[0];
+    def start = cmt[1].toInteger();
+    start = start - params.range;
+    if (start < 0) {
+      start = 0;
+    }
+    def end = cmt[2].toInteger();
+    end = end + params.range;
+    ped_maps_per_chr.bind(tuple(cmt[0],cmt[1],cmt[2],ped,map));
+    // ped_maps_per_chr.bind(set (chr,file('full.ped'),file('full.map')));
+  }
+}
 
 /* split ped/map by chromosome */
 process splitPedMap {
