@@ -23,6 +23,9 @@ params.reference_legend = {chr -> "${params.refdir}/1000GP_Phase3_chr${chr}.lege
 params.reference_map = {chr -> "${params.refdir}/genetic_map_chr${chr}_combined_b37.txt"}
 params.reference_sample = {chr -> "${params.refdir}/1000GP_Phase3.sample"}
 
+// plink may also be called plink1
+params.plink="plink1"
+
 // these are the chromosome segments to iterate over
 
 // This takes the start (params.begin) and stop (params.end), makes a
