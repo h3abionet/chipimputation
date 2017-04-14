@@ -1,5 +1,6 @@
 #!/usr/bin/env nextflow
- 
+// -*- mode: groovy -*-
+
 //params.study =  "$baseDir/data/example.chr22.{map,study.gens}"
 params.study_map =  "$baseDir/data/example.map"
 params.study_ped =  "$baseDir/data/example.ped"
