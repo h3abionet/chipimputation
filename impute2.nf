@@ -18,10 +18,10 @@ params.positions = ["chr20":
 params.range = (long)5e5
 
 params.populationsize = 2000
-params.reference_hap = {chr -> "${params.refdir}/1000GP_Phase3_chr${chr}.hap.gz"}
-params.reference_legend = {chr -> "${params.refdir}/1000GP_Phase3_chr${chr}.legend.gz"}
+params.reference_hap = {chr -> "${params.refdir}/HRC.r1-1.EGA.GRCh37.chr${chr}.hap.gz"}
+params.reference_legend = {chr -> "${params.refdir}/HRC.r1-1.EGA.GRCh37.chr${chr}.legend.gz"}
 params.reference_map = {chr -> "${params.refdir}/genetic_map_chr${chr}_combined_b37.txt"}
-params.reference_sample = {chr -> "${params.refdir}/1000GP_Phase3.sample"}
+params.reference_sample = {chr -> "${params.refdir}/HRC.r1-1.EGA.GRCh37.chr${chr}.samples"}
 
 // plink may also be called plink1
 params.plink="plink1"
