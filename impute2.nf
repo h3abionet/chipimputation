@@ -61,6 +61,8 @@ process duplicatePedMapByChr {
   input:
   set ped,map,chroms from chromosomes;
 
+  executor 'local'
+  
   exec:
   for (chrminmax in chroms.readLines()) {
     def cmt = chrminmax.tokenize("\t")
@@ -160,6 +162,8 @@ process splitPrephased {
   input:
   set val(chr),val(start),val(end),val(haps), \
   val(sample),val(refhap),val(reflegend),val(refmap),val(refsample) from prePhased;
+
+  executor 'local'
 
   exec:
   chr_segments = \
