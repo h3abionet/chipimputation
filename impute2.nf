@@ -55,7 +55,7 @@ process identifyChromosomes {
   shell:
   '''
   perl -n -e 'my ($chr,$rs,$m,$pos) = split /\\s+/;
-  if ($chr !~ /^(Y|X|0)$/) {
+  if ($chr !~ /^(Y|X|0|23|24)$/) {
    $chrs{$chr}{start} = $pos if not defined $chrs{$chr}{start} or $chrs{$chr}{start} > $pos;
    $chrs{$chr}{end} = $pos if not defined $chrs{$chr}{end} or $chrs{$chr}{end} < $pos;
   }
