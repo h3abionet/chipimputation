@@ -52,9 +52,16 @@ process identifyChromosomes {
   set file('full.ped'),file('full.map'),file('chr_min_max') into chromosomes,chromosomes2;
 
   // Read through the map file, and output the min and max for each chromosome
-  """
-  perl -n -e 'my (\$chr,\$rs,\$m,\$pos) = split /\\s+/; \$chrs{\$chr}{start} = \$pos if not defined \$chrs{\$chr}{start} or \$chrs{\$chr}{start} > \$pos; \$chrs{\$chr}{end} = \$pos if not defined \$chrs{\$chr}{end} or \$chrs{\$chr}{end} < \$pos; END { print map { qq(\$_\\t\$chrs{\$_}{start}\\t\$chrs{\$_}{end}\\n)} keys %chrs; }' < full.map > chr_min_max
-  """
+  shell:
+  '''
+  perl -n -e 'my ($chr,$rs,$m,$pos) = split /\\s+/;
+  if ($chr !~ /^(Y|X|0)$/) {
+   $chrs{$chr}{start} = $pos if not defined $chrs{$chr}{start} or $chrs{$chr}{start} > $pos;
+   $chrs{$chr}{end} = $pos if not defined $chrs{$chr}{end} or $chrs{$chr}{end} < $pos;
+  }
+  END { print map { qq($_\\t$chrs{$_}{start}\\t$chrs{$_}{end}\\n)} keys %chrs; }' < \
+    full.map > chr_min_max
+  '''
 }
 
 process duplicatePedMapByChr {
