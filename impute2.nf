@@ -2,8 +2,8 @@
 // -*- mode: groovy -*-
 
 //params.study =  "$baseDir/data/example.chr22.{map,study.gens}"
-params.study_map =  "$baseDir/data/example.map"
-params.study_ped =  "$baseDir/data/example.ped"
+params.map =  "$baseDir/data/example.map"
+params.ped =  "$baseDir/data/example.ped"
 
 params.refdir = "/srv/imputation/refdata/1000GP_Phase3"
 
@@ -38,8 +38,8 @@ chr_segments = params.positions.collect{ entry ->
 }
 
 // this channel contains the ped and map file
-ped_and_maps = Channel.fromPath(params.study_ped).\
-merge(Channel.fromPath(params.study_map)){o,e->[o,e]}
+ped_and_maps = Channel.fromPath(params.ped).\
+merge(Channel.fromPath(params.map)){o,e->[o,e]}
 
 ped_maps_per_chr = Channel.create();
 
