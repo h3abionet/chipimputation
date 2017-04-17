@@ -49,7 +49,7 @@ process identifyChromosomes {
   set file('full.ped'),file('full.map') from ped_and_maps;
 
   output:
-  set file('full.ped'),file('full.map'),file('chr_min_max') into chromosomes;
+  set file('full.ped'),file('full.map'),file('chr_min_max') into chromosomes,chromosomes2;
 
   // Read through the map file, and output the min and max for each chromosome
   """
@@ -72,7 +72,11 @@ process duplicatePedMapByChr {
     }
     def end = cmt[2].toInteger();
     end = end + params.range;
-    ped_maps_per_chr.bind(tuple(cmt[0],cmt[1],cmt[2],ped,map));
+    ped_maps_per_chr.bind(tuple(cmt[0],start,end,ped,map,
+                                file(params.reference_hap(chr)),
+                                file(params.reference_legend(chr)),     \
+                                file(params.reference_map(chr)),
+                                file(params.reference_sample(chr))));
     // ped_maps_per_chr.bind(set (chr,file('full.ped'),file('full.map')));
   }
 }
@@ -80,10 +84,14 @@ process duplicatePedMapByChr {
 /* split ped/map by chromosome */
 process splitPedMap {
   input:
-  set val(chr),val(start),val(end),file('full.ped'),file('full.map') from ped_maps_per_chr;
+  set chr,val(start),val(end),file('full.ped'),file('full.map'),\
+  file('refhap'),file('reflegend'),file('refmap'),file('refsample')\
+  from ped_maps_per_chr;
 
   output:
-  set val(chr),val(start),val(end),file('split.ped'),file('split.map') into split_ped_maps
+  set val(chr),val(start),val(end),file('split.ped'),file('split.map'), \
+  file('refhap'),file('reflegend'),file('refmap'),file('refsample')\
+  into split_ped_maps
 
   """
   ${params.plink} --noweb \
@@ -98,19 +106,20 @@ process splitPedMap {
 process checkGenotypes {
  
     input:
-    set val(chr),val(start),val(end),file('split.ped'),file('split.map') from split_ped_maps
+    set val(chr),val(start),val(end),file('split.ped'),file('split.map'), \
+    file('refhap.gz'),file('reflegend.gz'),file('refmap'),file('refsample')   \
+    from split_ped_maps;
  
     output:
-    set val(chr),val(start),val(end),file('split.ped'),file('split.map'),file('split_shapeit_log.snp.strand.exclude') \
+    set val(chr),val(start),val(end),file('split.ped'),file('split.map'), \
+    file('split_shapeit_log.snp.strand.exclude'),\
+    file('refhap.gz'),file('reflegend.gz'),file('refmap'),file('refsample')\
     into checked_genotypes
 
     """
-
     shapeit -check \
         -P split.ped split.map \
-        --input-ref ${params.reference_hap(chr)} \
-                    ${params.reference_legend(chr)} \
-                    ${params.reference_sample(chr)} \
+        --input-ref refhap.gz reflegend.gz refsample \
         --output-log split_shapeit_log || true
     """
 }
@@ -124,19 +133,20 @@ process prePhase {
   
     input:
     set val(chr),val(start),val(end),file('split.ped'),\
-    file('split.map'),file('split.snp.strand.exclude') \
+    file('split.map'),file('split.snp.strand.exclude'),                 \
+    file('refhap.gz'),file('reflegend.gz'),file('refmap'),file('refsample')\
     from checked_genotypes
  
     output:
     set val(chr),val(start),val(end),file('prephased_gens.haps'),\
-    file('prephased_gens.sample') into prePhased;
+    file('prephased_gens.sample'),\
+    file('refhap.gz'),file('reflegend.gz'),file('refmap'),file('refsample') \
+    into prePhased;
 
     """
     shapeit -phase \
         -P split.ped split.map \
-        --input-ref ${params.reference_hap(chr)} \
-                    ${params.reference_legend(chr)} \
-                    ${params.reference_sample(chr)} \
+        --input-ref refhap.gz reflegend.gz refsample \
         --exclude-snp split.snp.strand.exclude \
         -T 8 \
         -O prephased_gens
@@ -149,14 +159,15 @@ split_prephased = Channel.create();
 process splitPrephased {
   input:
   set val(chr),val(start),val(end),val(haps), \
-  val(sample) from prePhased;
+  val(sample),val(refhap),val(reflegend),val(refmap),val(refsample) from prePhased;
 
   exec:
   chr_segments = \
   (start .. end).step((int)params.range+1).\
   collect({[it,it+params.range > end?end:it+params.range]})
   for (chr_seg in chr_segments) {
-    split_prephased.bind(tuple(chr,chr_seg[0],chr_seg[1],haps,sample))
+    split_prephased.bind(tuple(chr,chr_seg[0],chr_seg[1],haps,sample,\
+                               refhap,reflegend,refmap,refsample))
   }
 }
 
@@ -167,7 +178,9 @@ process splitPrephased {
 process imputeStudyWithPrephased {
  
     input:
-    set val(chr),val(begin),val(end),file('phasedhaps'),file('phasedsample') from split_prephased;
+    set val(chr),val(begin),val(end),file('phasedhaps'),file('phasedsample'),\
+    file('refhap'),file('reflegend'),file('refmap'),file('refsample')   \
+    from split_prephased;
      
     output:
     file('imputed.haps') into imputedHaplotypes
@@ -175,9 +188,9 @@ process imputeStudyWithPrephased {
     """
     impute2 \
         -known_haps_g phasedhaps \
-        -h <(gzip -dcf ${params.reference_hap(chr)} \
-        -l <(gzip -dcf ${params.reference_legend(chr)} \
-        -m <(gzip -dcf ${params.reference_map(chr)} \
+        -h <(gzip -dcf refhap ) \
+        -l <(gzip -dcf reflegend ) \
+        -m <(gzip -dcf refmap ) \
         -int ${begin} ${end} \
         -Ne 15000 \
         -buffer 250 \
