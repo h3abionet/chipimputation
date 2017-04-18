@@ -195,7 +195,9 @@ process imputeStudyWithPrephased {
      
     output:
     file('imputed.haps') into imputedHaplotypes
- 
+
+    errorStrategy 'finish'
+    
     """
     impute2 \
         -known_haps_g phasedhaps \
@@ -205,7 +207,7 @@ process imputeStudyWithPrephased {
         -int ${begin} ${end} \
         -Ne 15000 \
         -buffer 250 \
-        -o imputed.haps;
+        -o imputed.haps || true;
     if ! [ -e imputed.haps ] && [ -e imputed.haps_summary ]; then 
          touch imputed.haps
     fi;
