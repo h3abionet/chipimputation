@@ -206,7 +206,9 @@ process imputeStudyWithPrephased {
         -Ne 15000 \
         -buffer 250 \
         -o imputed.haps;
-    if ! [ -e imputed.haps ] && [ -e imputed.haps_summary ] && grep -q 'There are no SNPs in the imputation interval, so there is nothing'; then
+    if ! [ -e imputed.haps ] && [ -e imputed.haps_summary ] && \
+         grep -q 'There are no SNPs in the imputation interval, so there is nothing' \
+         imputed.haps_summary; then 
          touch imputed.haps
     fi;
     """
