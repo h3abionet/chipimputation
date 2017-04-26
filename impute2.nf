@@ -160,7 +160,7 @@ process prePhase {
 }
 
 
-split_prephased = prephased.flatMap {
+split_prephased = prePhased.flatMap {
   def chr       = it[0];
   def start     = it[1];
   def end       = it[2];
