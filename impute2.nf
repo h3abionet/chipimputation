@@ -41,8 +41,6 @@ chr_segments = params.positions.collect{ entry ->
 ped_and_maps = Channel.fromPath(params.ped).\
 merge(Channel.fromPath(params.map)){o,e->[o,e]}
 
-ped_maps_per_chr = Channel.create();
-
 /* identify chromosomes and start/stop positions per chromosome */
 process identifyChromosomes {
   input:
@@ -64,13 +62,11 @@ process identifyChromosomes {
   '''
 }
 
-process duplicatePedMapByChr {
-  input:
-  set ped,map,chroms from chromosomes;
-
-  executor 'local'
-  
-  exec:
+ped_maps_per_chr = chromosomes.flatMap {
+  def ped = it[0];
+  def map = it[1];
+  def chroms = it[2];
+  def res = [];
   for (chrminmax in chroms.readLines()) {
     def cmt = chrminmax.tokenize("\t")
     def chr = cmt[0];
@@ -81,13 +77,13 @@ process duplicatePedMapByChr {
     }
     def end = cmt[2].toInteger();
     end = end + params.range;
-    ped_maps_per_chr.bind(tuple(cmt[0],start,end,ped,map,
-                                file(params.reference_hap(chr)),
-                                file(params.reference_legend(chr)),     \
-                                file(params.reference_map(chr)),
-                                file(params.reference_sample(chr))));
-    // ped_maps_per_chr.bind(set (chr,file('full.ped'),file('full.map')));
+    res << tuple(cmt[0],start,end,ped,map,
+                 file(params.reference_hap(chr)),
+                 file(params.reference_legend(chr)),                \
+                 file(params.reference_map(chr)),
+                 file(params.reference_sample(chr)));
   }
+  res
 }
 
 /* split ped/map by chromosome */
@@ -164,22 +160,26 @@ process prePhase {
 }
 
 
-split_prephased = Channel.create();
-process splitPrephased {
-  input:
-  set val(chr),val(start),val(end),val(haps), \
-  val(sample),val(refhap),val(reflegend),val(refmap),val(refsample) from prePhased;
-
-  executor 'local'
-
-  exec:
-  chr_segments = \
+split_prephased = prephased.flatMap {
+  def chr       = it[0];
+  def start     = it[1];
+  def end       = it[2];
+  def haps      = it[3];
+  def sample    = it[4];
+  def refhap    = it[5];
+  def reflegend = it[6];
+  def refmap    = it[7];
+  def refsample = it[8];
+  
+  def res = [];
+  def chr_segments =  \
   (start .. end).step((int)params.range+1).\
   collect({[it,it+params.range > end?end:it+params.range]})
   for (chr_seg in chr_segments) {
-    split_prephased.bind(tuple(chr,chr_seg[0],chr_seg[1],haps,sample,\
-                               refhap,reflegend,refmap,refsample))
+    res << tuple(chr,chr_seg[0],chr_seg[1],haps,sample,\
+                 refhap,reflegend,refmap,refsample)
   }
+  res
 }
 
 
