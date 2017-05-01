@@ -1,0 +1,105 @@
+digraph imputation {
+    node [shape=box,style=filled,fillcolor=wheat]
+    idchrom[label="Identify Chromosomes\n(perl)",shape="box"];
+    pedmap[label="PED/MAP Input\nFrom GWAS Chip",shape="trapezium"];
+    ref[label="Reference Panel\n(HRC or 1K Genomes)",shape="trapezium"];
+    checkgeno[label="Check Genotypes\n(SHAPEIT)",shape="box"];
+    combine[label="Combine Imputed Variants\n(perl)",shape="box"];
+    output[label="Imputed Variants\nfor further analysis",shape="box",style="rounded,filled",fillcolor="gold"];
+    {rank=same;
+        ref;
+        pedmap;
+    }
+//    {rank=same;
+//        mapchr;
+//        splitchr;
+//    }
+    pedmap->idchrom;
+    idchrom->splitchr;
+    idchrom->splitchr3;
+    pedmap->splitchr;
+    pedmap->splitchr3;
+    subgraph cluster_0 {
+        color=blue
+        label="Per chr"
+        labeljust="c"
+        style="filled"
+        fillcolor="gray80"
+        splitchr[label="Split ped/map by Chr.\n(PLINK)",shape="box"];
+        prephase[label="Prephase Genotypes\n(SHAPEIT)",shape="box"];
+   // {rank=same;
+   //     prephase;
+   //     checkgeno;
+   // }
+        splitchr->checkgeno;
+        checkgeno->prephase;
+        splitchr->prephase;
+        prephase->impute1;
+        prephase->impute2;
+        subgraph cluster_1 {
+            color="green"
+            label="Per Region"
+            fillcolor="gray90"
+            style="filled"
+            labeljust="c"
+            impute1[label="Impute Variants\n(IMPUTEv2)",shape="box"];
+        }
+        subgraph cluster_2 {
+            color="green"
+            label="Per Region"
+            fillcolor="gray90"
+            style="filled"
+            labeljust="c"
+            impute2[label="Impute Variants\n(IMPUTEv2)",shape="box"];
+        }
+    }
+    subgraph cluster_3 {
+        color=blue
+        label="Per chr"
+        labeljust="c"
+        style="filled"
+        fillcolor="gray80"
+        splitchr3[label="Split ped/map by Chr.\n(PLINK)",shape="box"];
+        prephase3[label="Prephase Genotypes\n(SHAPEIT)",shape="box"];
+        checkgeno3[label="Check Genotypes\n(SHAPEIT)",shape="box"];
+   // {rank=same;
+   //     prephase;
+   //     checkgeno;
+   // }
+        splitchr3->checkgeno3;
+        checkgeno3->prephase3;
+        splitchr3->prephase3;
+        prephase3->impute4;
+        prephase3->impute5;
+        subgraph cluster_4 {
+            color="green"
+            label="Per Region"
+            style="filled"
+            fillcolor="gray90"
+            labeljust="c"
+            impute4[label="Impute Variants\n(IMPUTEv2)",shape="box"];
+        }
+        subgraph cluster_5 {
+            color="green"
+            label="Per Region"
+            fillcolor="gray90"
+            style="filled"
+            labeljust="c"
+            impute5[label="Impute Variants\n(IMPUTEv2)",shape="box"];
+        }
+    }
+    ref->impute1;
+    ref->impute2;
+    ref->impute4;
+    ref->impute5;
+    ref->checkgeno;
+    ref->prephase;
+    ref->checkgeno3;
+    ref->prephase3;
+    impute1->combine;
+    impute2->combine;
+    impute4->combine;
+    impute5->combine;
+    combine->output;
+    
+}
