@@ -18,6 +18,8 @@ IMPUTATION_REFDATA=/srv/imputation/refdata/1000GP_Phase3/
 HAP_FILES=$(foreach chr,$(CHRS),$(IMPUTATION_REFDATA)1000GP_Phase3_chr$(chr).hap.gz)
 LEGEND_FILES=$(foreach chr,$(CHRS),$(IMPUTATION_REFDATA)1000GP_Phase3_chr$(chr).legend.gz)
 
+NEXTFLOW=nextflow
+
 
 all: testdata.map testdata.ped
 
@@ -27,3 +29,9 @@ $(IMPUTATION_REFDATA)1000GP_Phase3.sample
 	hap,$(HAP_FILES),--hap $(hap)) $(foreach							\
 	legend,$(LEGEND_FILES),--legend $(legend)) --sample $(word 3,$^)	\
 	--ped-out testdata.ped --map-out testdata.map
+
+run_imputation: testdata.map testdata.ped
+	$(NEXTFLOW) ../../impute.nf --map testdata.map --ped testdata.ped \
+	--refdir $(IMPUTATION_REFDATA) -resume;
+
+.PHONY: run_imputation
