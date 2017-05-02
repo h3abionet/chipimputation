@@ -18,10 +18,10 @@ params.positions = ["chr20":
 params.range = (long)5e5
 
 params.populationsize = 2000
-params.reference_hap = {chr -> "${params.refdir}/1000GP_Phase3_chr${chr}.hap.gz"}
-params.reference_legend = {chr -> "${params.refdir}/1000GP_Phase3_chr${chr}.legend.gz"}
+params.reference_hap = {chr -> "${params.refdir}/HRC.r1-1.EGA.GRCh37.chr${chr}.hap.gz"}
+params.reference_legend = {chr -> "${params.refdir}/HRC.r1-1.EGA.GRCh37.chr${chr}.legend.gz"}
 params.reference_map = {chr -> "${params.refdir}/genetic_map_chr${chr}_combined_b37.txt"}
-params.reference_sample = {chr -> "${params.refdir}/1000GP_Phase3.sample"}
+params.reference_sample = {chr -> "${params.refdir}/HRC.r1-1.EGA.GRCh37.chr${chr}.samples"}
 
 // plink may also be called plink1
 params.plink="plink1"
@@ -41,8 +41,6 @@ chr_segments = params.positions.collect{ entry ->
 ped_and_maps = Channel.fromPath(params.ped).\
 merge(Channel.fromPath(params.map)){o,e->[o,e]}
 
-ped_maps_per_chr = Channel.create();
-
 /* identify chromosomes and start/stop positions per chromosome */
 process identifyChromosomes {
   input:
@@ -52,16 +50,23 @@ process identifyChromosomes {
   set file('full.ped'),file('full.map'),file('chr_min_max') into chromosomes,chromosomes2;
 
   // Read through the map file, and output the min and max for each chromosome
-  """
-  perl -n -e 'my (\$chr,\$rs,\$m,\$pos) = split /\\s+/; \$chrs{\$chr}{start} = \$pos if not defined \$chrs{\$chr}{start} or \$chrs{\$chr}{start} > \$pos; \$chrs{\$chr}{end} = \$pos if not defined \$chrs{\$chr}{end} or \$chrs{\$chr}{end} < \$pos; END { print map { qq(\$_\\t\$chrs{\$_}{start}\\t\$chrs{\$_}{end}\\n)} keys %chrs; }' < full.map > chr_min_max
-  """
+  shell:
+  '''
+  perl -n -e 'my ($chr,$rs,$m,$pos) = split /\\s+/;
+  if ($chr !~ /^(Y|X|0|23|24)$/) {
+   $chrs{$chr}{start} = $pos if not defined $chrs{$chr}{start} or $chrs{$chr}{start} > $pos;
+   $chrs{$chr}{end} = $pos if not defined $chrs{$chr}{end} or $chrs{$chr}{end} < $pos;
+  }
+  END { print map { qq($_\\t$chrs{$_}{start}\\t$chrs{$_}{end}\\n)} keys %chrs; }' < \
+    full.map > chr_min_max
+  '''
 }
 
-process duplicatePedMapByChr {
-  input:
-  set ped,map,chroms from chromosomes;
-
-  exec:
+ped_maps_per_chr = chromosomes.flatMap {
+  def ped = it[0];
+  def map = it[1];
+  def chroms = it[2];
+  def res = [];
   for (chrminmax in chroms.readLines()) {
     def cmt = chrminmax.tokenize("\t")
     def chr = cmt[0];
@@ -72,13 +77,13 @@ process duplicatePedMapByChr {
     }
     def end = cmt[2].toInteger();
     end = end + params.range;
-    ped_maps_per_chr.bind(tuple(cmt[0],start,end,ped,map,
-                                file(params.reference_hap(chr)),
-                                file(params.reference_legend(chr)),     \
-                                file(params.reference_map(chr)),
-                                file(params.reference_sample(chr))));
-    // ped_maps_per_chr.bind(set (chr,file('full.ped'),file('full.map')));
+    res << tuple(cmt[0],start,end,ped,map,
+                 file(params.reference_hap(chr)),
+                 file(params.reference_legend(chr)),                \
+                 file(params.reference_map(chr)),
+                 file(params.reference_sample(chr)));
   }
+  res
 }
 
 /* split ped/map by chromosome */
@@ -155,20 +160,26 @@ process prePhase {
 }
 
 
-split_prephased = Channel.create();
-process splitPrephased {
-  input:
-  set val(chr),val(start),val(end),val(haps), \
-  val(sample),val(refhap),val(reflegend),val(refmap),val(refsample) from prePhased;
-
-  exec:
-  chr_segments = \
+split_prephased = prePhased.flatMap {
+  def chr       = it[0];
+  def start     = it[1];
+  def end       = it[2];
+  def haps      = it[3];
+  def sample    = it[4];
+  def refhap    = it[5];
+  def reflegend = it[6];
+  def refmap    = it[7];
+  def refsample = it[8];
+  
+  def res = [];
+  def chr_segments =  \
   (start .. end).step((int)params.range+1).\
   collect({[it,it+params.range > end?end:it+params.range]})
   for (chr_seg in chr_segments) {
-    split_prephased.bind(tuple(chr,chr_seg[0],chr_seg[1],haps,sample,\
-                               refhap,reflegend,refmap,refsample))
+    res << tuple(chr,chr_seg[0],chr_seg[1],haps,sample,\
+                 refhap,reflegend,refmap,refsample)
   }
+  res
 }
 
 
@@ -184,7 +195,9 @@ process imputeStudyWithPrephased {
      
     output:
     file('imputed.haps') into imputedHaplotypes
- 
+
+    errorStrategy 'finish'
+    
     """
     impute2 \
         -known_haps_g phasedhaps \
@@ -194,8 +207,8 @@ process imputeStudyWithPrephased {
         -int ${begin} ${end} \
         -Ne 15000 \
         -buffer 250 \
-        -o imputed.haps;
-    if ! [ -e imputed.haps ] && [ -e imputed.haps_summary ] && grep -q 'There are no SNPs in the imputation interval, so there is nothing'; then
+        -o imputed.haps || true;
+    if ! [ -e imputed.haps ] && [ -e imputed.haps_summary ]; then 
          touch imputed.haps
     fi;
     """
