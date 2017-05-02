@@ -25,13 +25,14 @@ all: testdata.map testdata.ped
 
 testdata.map testdata.ped: $(HAP_FILES) $(LEGEND_FILES) \
 $(IMPUTATION_REFDATA)1000GP_Phase3.sample
-	../generate_testdata_ped_map.pl --skip 50 $(foreach				\
+	../generate_testdata_ped_map.pl --skip 50 $(foreach					\
 	hap,$(HAP_FILES),--hap $(hap)) $(foreach							\
-	legend,$(LEGEND_FILES),--legend $(legend)) --sample $(word 3,$^)	\
-	--ped-out testdata.ped --map-out testdata.map
+	legend,$(LEGEND_FILES),--legend $(legend)) --sample					\
+	$(IMPUTATION_REFDATA)1000GP_Phase3.sample --ped-out testdata.ped	\
+	--map-out testdata.map
 
 run_imputation: testdata.map testdata.ped
-	$(NEXTFLOW) ../../impute.nf --map testdata.map --ped testdata.ped \
-	--refdir $(IMPUTATION_REFDATA) -resume;
+	$(NEXTFLOW) ./impute2.nf --map testdata.map --ped testdata.ped \
+	--refdir $(IMPUTATION_REFDATA);
 
 .PHONY: run_imputation
