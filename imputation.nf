@@ -60,8 +60,7 @@ ped_map_data = bed_data
 
 // TODO check if files exist
 // TODO check if chromosomes specified in config are in data
-// TODO
-// Be able to run everything on a specified chunk
+// TODO Be able to run everything on a specified chunk
 
 """
 Create a channel with bed/fam/bim for each chromosome
@@ -85,12 +84,10 @@ process generate_chunks {
     input:
         set val(chromosome), file(data_bed), file(data_fam), val(bim_data) from ped_map_data__identifyChromosomes
     output:
-        set val(chromosome), val(chunks) into identifyChromosomes_all, identifyChromosomes_prehase
-    script:
+        set val(chromosome), val(chunks) into identifyChromosomes, identifyChromosomes_all, identifyChromosomes_prehase
+    exec:
+        // This will always be run locally
         chunks = chunk_split(bim_data, chromosome, params.chunk_size)
-        """
-        sleep 1
-        """
 }
 
 
@@ -100,7 +97,7 @@ Plink bed/fam/bim per chromosomes
 ped_map_data_all.into{ped_map_data_all; ped_map_data__plink_to_chrm}
 process plink_to_chrm {
     tag "plink2chrm_${chromosome}"
-    publishDir "${params.output_dir}/data/qc/${chromosome}", overwrite: true, mode:'symlink'
+    publishDir "${params.output_dir}/qc/${chromosome}", overwrite: true, mode:'symlink'
 
     input:
         set val(chromosome), file(data_bed), file(data_fam), file(bim_data) from ped_map_data__plink_to_chrm
@@ -131,15 +128,15 @@ process plink_to_chrm {
     """
 }
 
-///
-// check the study genotypes
-///
+"""
+check the study genotypes
+"""
 plink_to_chrm_all.into{plink_to_chrm__checkGenotypes}
 process checkGenotypes {
     tag "checkGenotypes_${chromosome}"
     validExitStatus 0,1,2
     errorStrategy 'ignore'
-    publishDir "${params.output_dir}/data/checkGenotypes_shapeit/${chromosome}", overwrite: true, mode:'symlink'
+    publishDir "${params.output_dir}/checkGenotypes_shapeit/${chromosome}", overwrite: true, mode:'symlink'
 
     input:
         set val(chromosome), file(pedFile), file(mapFile) from plink_to_chrm__checkGenotypes
@@ -166,8 +163,8 @@ checkGenotypes_all.into{checkGenotypes_all; checkGenotypes_prephase}
 
 process prephase {
     tag "prephase_${chromosome}"
-    memory { 2.GB * task.cpus }
-    publishDir "${params.output_dir}/data/prephased/${chromosome}", overwrite: true, mode:'symlink'
+    memory { 2.GB * task.attempt }
+    publishDir "${params.output_dir}/prephased/${chromosome}", overwrite: true, mode:'symlink'
 
     input:
         set val(chromosome), file(data_ped), file(data_map), file(shapeit_check_log), file(shapeit_check_snp_strand_exclude) from checkGenotypes_prephase
@@ -177,19 +174,17 @@ process prephase {
     script:
         ref_hapFile = file( sprintf(params.ref_hapFile, chromosome) )
         ref_legendFile = file( sprintf(params.ref_legendFile, chromosome) )
-        ref_sampleFile = file( params.ref_sampleFile )
+        ref_sampleFile = file(params.ref_sampleFile)
         """
         shapeit -phase \
             --input-ped ${data_ped} ${data_map} \
             --input-ref ${ref_hapFile} ${ref_legendFile} ${ref_sampleFile} \
             --exclude-snp ${shapeit_check_snp_strand_exclude} \
-            -T ${task.cpus} \
+            -T ${task.attempt} \
             -O ${data_ped.baseName}.prephased
         """
 }
-prephase_all.subscribe{
-    println "|-- Finished for ${it[1][-1]}, ${it[2][-1]}"
-}
+
 
 '''
 Impute using the prephased genotypes with impute2
@@ -204,7 +199,6 @@ chunk_prephased = prephase__chunk.flatMap {
     ref_mapFile     = file( sprintf(params.ref_mapFile, chromosome) )
     ref_sampleFile  = file( params.ref_sampleFile )
     res = []
-//    chunk_data = identifyChromosomes_all.toSortedList().val[0][1..-1]
     for (chunks in chunk_data) {
         chunks = chunks.split()
         res << tuple(chromosome, chunks[0], chunks[1], haps, sample, ref_hapFile, ref_legendFile, ref_mapFile, ref_sampleFile)
@@ -214,15 +208,15 @@ chunk_prephased = prephase__chunk.flatMap {
 
 process impute {
     tag "imp_chr${chromosome}_${chunkStart}-${chunkEnd}"
-    memory { 2.GB * task.cpus }
-    publishDir "${params.impute_result}/${chromosome}", overwrite: true, mode:'symlink'
+    memory { 2.GB * task.attempt }
+    publishDir "${params.impute_result}/impute/${chromosome}", overwrite: true, mode:'symlink'
 
     input:
         set val(chromosome), val(chunkStart), val(chunkEnd), file(haps), file(sample), file(ref_hapFile), file(ref_legendFile), file(ref_mapFile), file(ref_sampleFile) from chunk_prephased
     output:
-        set val(chromosome), file("chr${chromosome}_${chunkStart}-${chunkEnd}.imputed.gz"), file("chr${chromosome}_${chunkStart}-${chunkEnd}.imputed_haps.gz"), file("chr${chromosome}_${chunkStart}-${chunkEnd}.imputed_info"), file("chr${chromosome}_${chunkStart}-${chunkEnd}.imputed_summary") into impute_all, impute__sub
+        set val(chromosome), file("${outfile}.imputed.gz"), file("${outfile}.imputed_haps.gz"), file("${outfile}.imputed_info"), file("${outfile}.imputed_summary") into impute_all, impute__sub
     shell:
-        outfile = "chr${chromosome}_${chunkStart}-${chunkEnd}"
+        outfile = "${haps.baseName}_${chunkStart}-${chunkEnd}"
         """
         impute2 \
             -use_prephased_g \
@@ -251,9 +245,6 @@ process impute {
         fi
         """
 }
-impute__sub.subscribe{
-    println "|-- Finished for ${it[-1][-1]}"
-}
 
 
 '''
@@ -275,23 +266,47 @@ imputeCombine_cha = Channel
 imputeCombine_cha.into { imputeCombine_cha; imputeCombine_cha1 }
 process imputeCombine {
     tag "impComb_chr${chromosome}"
-    cpus { 2 * task.attempt }
-    memory { 2.GB * task.cpus }
+    memory { 2.GB * task.attempt }
     publishDir "${params.impute_result}/combined", overwrite: true, mode:'symlink'
-
     input:
         set val(chromosome), file(imputed_files) from imputeCombine_cha
     output:
-        set val(chromosome), file("chr${chromosome}.imputed.gz") into imputeCombine_all
+        set val(chromosome), file(comb_impute) into imputeCombine_all
     script:
+        comb_impute = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed.gz"
         """
-        zcat $imputed_files | bgzip -c > chr${chromosome}.imputed.gz
+        zcat $imputed_files | bgzip -c > ${comb_impute}
         """
-}
-imputeCombine_all.subscribe{
-    println "|-- Finished for ${it[1][-1]}"
 }
 
+
+imputeCombine_all.into { imputeCombine_all; imputeCombine_toPlink }
+prephase_all.into { prephase_all; prephase_toPlink}
+println prephase_all.toSortedList().val.each { chromosome, prephased_haps, prephased_sample ->
+
+}
+process imputeToPlink {
+    tag "toPlink_chr${chromosome}"
+    memory { 2.GB * task.attempt }
+    publishDir "${params.impute_result}/plink", overwrite: true, mode:'symlink'
+    
+    input:
+        set val(chromosome), file(chromosome_imputed_gz) from imputeCombine_toPlink
+        set val(chrom), file(prephased_haps), file(prephased_sample) from prephase_toPlink
+    output:
+        set val(chromosome), file("${chromosome_imputed_gz.baseName}.bed"), file("${chromosome_imputed_gz.baseName}.bim"), file("${chromosome_imputed_gz.baseName}.fam") into imputeToPlink
+    script:
+        """
+        gunzip -c ${chromosome_imputed_gz} > ${chromosome_imputed_gz.baseName}
+        plink2 \
+            --gen ${chromosome_imputed_gz.baseName} \
+            --sample ${prephased_sample} \
+            --oxford-single-chr ${chromosome} \
+            --oxford-pheno-name plink_pheno \
+            --hard-call-threshold 0.1 \
+            --make-bed --out ${chromosome_imputed_gz.baseName}
+        """
+}
 
 workflow.onComplete {
     def subject = 'My pipeline execution'
