@@ -253,29 +253,36 @@ Combine output
 impute_all.into{impute_all; impute__imputeCombine_cha}
 
 // Create a dataflow instance of all impute results
-imputeCombine_map = []
+imputeCombine_impute = []
+imputeCombine_info = []
 impute__imputeCombine_cha_list = impute__imputeCombine_cha.toSortedList().val
 impute__imputeCombine_cha_list.each{chromosome, impute, haps, info, summary ->
-    imputeCombine_map << [chromosome, impute]
+    imputeCombine_impute << [chromosome, impute]
+    imputeCombine_info << [chromosome, info]
 }
-// Create a channel
-imputeCombine_cha = Channel
-        .from(imputeCombine_map)
+// Create channels
+imputeCombine_impute_cha = Channel
+        .from(imputeCombine_impute)
+        .groupTuple()
+imputeCombine_info_cha = Channel
+        .from(imputeCombine_info)
         .groupTuple()
 
-imputeCombine_cha.into { imputeCombine_cha; imputeCombine_cha1 }
 process imputeCombine {
     tag "impComb_chr${chromosome}"
     memory { 2.GB * task.attempt }
     publishDir "${params.impute_result}/combined", overwrite: true, mode:'symlink'
     input:
-        set val(chromosome), file(imputed_files) from imputeCombine_cha
+        set val(chromosome), file(imputed_files) from imputeCombine_impute_cha
+        set val(chromo), file(info_files) from imputeCombine_info_cha
     output:
-        set val(chromosome), file(comb_impute) into imputeCombine_all
+        set val(chromosome), file(comb_impute), file(comb_info) into imputeCombine_all
     script:
         comb_impute = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed.gz"
+        comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
         """
         zcat $imputed_files | bgzip -c > ${comb_impute}
+        cat $info_files > ${comb_info}
         """
 }
 
