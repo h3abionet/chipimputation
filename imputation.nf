@@ -46,18 +46,26 @@ try {
             "============================================================"
 }
 
-println "|- Project : $workflow.projectDir"
-println "|- Git info: $workflow.repository - $workflow.revision [$workflow.commitId]"
-println "|- Cmd line: $workflow.commandLine"
-println "======="
-println "|- Datasets: ${params.bedFile}, ${params.bimFile}, ${params.famFile}"
+println "|-- Project : $workflow.projectDir"
+println "|-- Git info: $workflow.repository - $workflow.revision [$workflow.commitId]"
+println "|-- Command line: $workflow.commandLine"
+println "|-- Datasets: ${file(params.bedFile).getName()}, ${file(params.bimFile).getName()}, ${file(params.famFile).getName()}"
 
 // Check if chromosomes
 if (params.chromosomes == '' || params.chromosomes == 'ALL'){
     chromosomes = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22"
 }
 chromosomes = params.chromosomes.split(',')
-chromosomes_ = file(params.bimFile).readLines().collect{ it.split()[0] }.unique() // Chromosomes in bim file
+chromosomes_ = []
+bimFile = file(params.bimFile)
+// TODO do this in a process to control for memory
+bimFile.eachLine{ line ->
+    chrm = line.split()[0]
+    if ( !chromosomes_.contains(chrm) ){
+        chromosomes_ << chrm
+    }
+}
+
 not_chrs = []
 chromosomes.each { chromosome ->
     if (!(chromosome in chromosomes_)){
@@ -68,12 +76,11 @@ if (!(not_chrs.isEmpty())){
     println "|-- Chromosome(s) ${not_chrs.join(', ')} not in dataset ${params.bedFile} and will be ignored."
     chromosomes = chromosomes_
 }
-println "|- Chromosomes used: ${chromosomes.join(', ')}"
+println "|-- Chromosomes used: ${chromosomes.join(', ')}"
 
 
 //// Help functions
 datas = [:]
-chr_chunks = [:]
 def chunk_split(map_file, chunk=params.chunk_size, chromosomes) {
     '''
     Return: chunck files in the output folder
@@ -90,9 +97,10 @@ def chunk_split(map_file, chunk=params.chunk_size, chromosomes) {
             datas[chromosome] << dat[1].toInteger()
         }
     }
+    data = [:]
     datas.keySet().each { chromosome ->
-        if ( !(chromosome in chr_chunks.keySet()) ){
-            chr_chunks[chromosome] = []
+        if ( !(chromosome in data.keySet()) ){
+            data[chromosome] = []
         }
         chunk_ = chunk.toInteger()
         max_ = datas[chromosome].max()
@@ -101,10 +109,10 @@ def chunk_split(map_file, chunk=params.chunk_size, chromosomes) {
         myPos.each { pos ->
             start_ = pos
             end_ = start_ + chunk_ - 1
-            chr_chunks[chromosome] << [start_, end_]
+            data[chromosome] << [start_, end_]
         }
     }
-    return chr_chunks
+    return data
 }
 
 
@@ -118,8 +126,6 @@ bim_data.into{bim_data; bim_data_all}
 ped_map_data = bed_data
         .merge(fam_data){ o,e -> [o,e] }
         .merge(bim_data){ o,e -> o + [e] }
-
-
 
 
 // TODO check if files (study data and reference) exist if( !fasta.exists() ) exit 1, "Fasta file not found: ${params.fasta}"
@@ -270,7 +276,7 @@ process prephase {
 }
 prephase_all.into{ prephase_all; prephase_sub; prephase__chunk; prephase__impute }
 prephase_sub.subscribe {
-    println "|-- Finished ${it[0]}, ${it[2]}"
+    println "|--- Finished ${it[0]}, ${it[2]}"
 }
 
 '''
@@ -335,7 +341,7 @@ process impute {
 }
 impute_all.into{ impute_all; impute_sub }
 impute_sub.subscribe {
-    println "|-- Finished ${it[0]}, ${it[-1]}"
+    println "|--- Finished ${it[0]}, ${it[-1]}"
 }
 
 
@@ -364,10 +370,10 @@ process imputeCombine {
     tag "impComb_chr${chromosome}"
     memory { 2.GB * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600" // Specific to UCT HPC
-    publishDir "${params.impute_result}/combined", overwrite: true, mode:'symlink'
+    publishDir "${params.impute_result}/combined", overwrite: true, mode:'copy'
     input:
-        set val(chromosome), val(imputed_files) from imputeCombine_impute_cha
-        set val(chromo), val(info_files) from imputeCombine_info_cha
+        set val(chromosome), file(imputed_files) from imputeCombine_impute_cha
+        set val(chromo), file(info_files) from imputeCombine_info_cha
     output:
         set val(chromosome), file(comb_impute), file(comb_info) into imputeCombine_all
     script:
@@ -375,12 +381,13 @@ process imputeCombine {
         comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
         """
         zcat ${imputed_files.join(' ')} | bgzip -c > ${comb_impute}
-        cat ${info_files.join(' ')} > ${comb_info}
+        head -n 1 ${info_files[0]} > ${comb_info}
+        tail -q -n +2 ${info_files.join(' ')}>> ${comb_info}
         """
 }
 imputeCombine_all.into { imputeCombine_all; imputeCombine_sub; imputeCombine_toPlink }
 imputeCombine_sub.subscribe{
-    println "|-- Finished ${it.join(', ')}"
+    println "|--- Finished ${it.join(', ')}"
 }
 
 
@@ -388,7 +395,7 @@ prephase_all.into { prephase_all; prephase_toPlink}
 process imputeToPlink {
     tag "toPlink_chr${chromosome}"
     memory { 2.GB * task.attempt }
-    publishDir "${params.impute_result}/plink", overwrite: true, mode:'symlink'
+    publishDir "${params.impute_result}/plink", overwrite: true, mode:'copy'
     
     input:
         set val(chromosome), file(chromosome_imputed_gz), file(chromosome_imputed_info) from imputeCombine_toPlink
@@ -405,6 +412,7 @@ process imputeToPlink {
             --oxford-pheno-name plink_pheno \
             --hard-call-threshold 0.1 \
             --make-bed --out ${chromosome_imputed_gz.baseName} || true
+        rm -f ${chromosome_imputed_gz.baseName}
         """
 }
 
