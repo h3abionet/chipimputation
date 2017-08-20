@@ -53,131 +53,122 @@ println "|-- Datasets: ${file(params.bedFile).getName()}, ${file(params.bimFile)
 
 // Check if chromosomes
 if (params.chromosomes == '' || params.chromosomes == 'ALL'){
-    chromosomes = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22"
+    chromosomes = "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22".split(',')
 }
-chromosomes = params.chromosomes.split(',')
-chromosomes_ = []
-bimFile = file(params.bimFile)
-// TODO do this in a process to control for memory
-bimFile.eachLine{ line ->
-    chrm = line.split()[0]
-    if ( !chromosomes_.contains(chrm) ){
-        chromosomes_ << chrm
-    }
+else{
+    chromosomes = params.chromosomes.split(',')
 }
 
-not_chrs = []
-chromosomes.each { chromosome ->
-    if (!(chromosome in chromosomes_)){
-        not_chrs << chromosome
-    }
-}
-if (!(not_chrs.isEmpty())){
-    println "|-- Chromosome(s) ${not_chrs.join(', ')} not in dataset ${params.bedFile} and will be ignored."
-    chromosomes = chromosomes_
-}
-println "|-- Chromosomes used: ${chromosomes.join(', ')}"
-
-
-//// Help functions
-datas = [:]
-def chunk_split(map_file, chunk=params.chunk_size, chromosomes) {
-    '''
-    Return: chunck files in the output folder
-    '''
-    chromosomes = (chromosomes.split(',')).collect{ it.toInteger() }
-    data = map_file.readLines().collect{ [it.split()[0], it.split()[3]] }
-    data.each{ dat ->
-        chromosome = dat[0].toInteger()
-        myPos = dat[1].toInteger()
-        if( chromosome != '' && chromosome in chromosomes){
-            if ( !(chromosome in datas.keySet()) ){
-                datas[chromosome] = []
-            }
-            datas[chromosome] << dat[1].toInteger()
-        }
-    }
-    data = [:]
-    datas.keySet().each { chromosome ->
-        if ( !(chromosome in data.keySet()) ){
-            data[chromosome] = []
-        }
-        chunk_ = chunk.toInteger()
-        max_ = datas[chromosome].max()
-        min_ = datas[chromosome].min() - (datas[chromosome].min() % 10) + 1
-        myPos = (min_..max_).step(chunk_)
-        myPos.each { pos ->
-            start_ = pos
-            end_ = start_ + chunk_ - 1
-            data[chromosome] << [start_, end_]
-        }
-    }
-    return data
-}
-
+// Help functions
 
 // Create channel for the study data from ped and map files and check if files exist
 bed_data = Channel
         .fromPath(params.bedFile)
         .ifEmpty { exit 1, "BED file not found: ${params.bedFile}" }
-fam_data = Channel.fromPath(params.famFile)
-bim_data = Channel.fromPath(params.bimFile)
-bim_data.into{bim_data; bim_data_all}
-ped_map_data = bed_data
-        .merge(fam_data){ o,e -> [o,e] }
-        .merge(bim_data){ o,e -> o + [e] }
-
+fam_data = Channel
+        .fromPath(params.famFile)
+        .ifEmpty { exit 1, "FAM file not found: ${params.famFile}" }
+bim_data = Channel
+        .fromPath(params.bimFile)
+        .ifEmpty { exit 1, "BIM file not found: ${params.bimFile}" }
 
 // TODO check if files (study data and reference) exist if( !fasta.exists() ) exit 1, "Fasta file not found: ${params.fasta}"
-
 // TODO Be able to run everything on a specified chunk
 
+
 """
-Create a channel with bed/fam/bim for each chromosome
+Check user's provided chromosomes vs those in map file
 """
-ped_map_data.into{ ped_map_data; ped_map_data_chan }
-ped_map_data_all = ped_map_data_chan.flatMap { bed_File, fam_File, bim_File ->
-    def results = []
-    chromosomes.each { chromosome ->
-        results.push( [ chromosome, bed_File, fam_File, bim_File] )
-    }
-    return results
+bim_data.into{bim_data; bim_data_check}
+process check_chromosome {
+    tag "check_chromosome_${bim_data.baseName}"
+    memory { 8.GB * task.attempt }
+    cpus { 4 * task.attempt }
+    time { 4.h * task.attempt }
+    clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
+    publishDir "${params.output_dir}", overwrite: true, mode:'symlink'
+    
+    input:
+        file bim_data from bim_data_check
+    output:
+        file chromFile into check_chromosome
+    script:
+        chromFile = "${bim_data.baseName}_chromosomes.txt"
+        """
+        awk '{print \$1}' ${bim_data}  | sort | uniq >  ${chromFile}
+        """
 }
+chromosomes_ = file(check_chromosome.toSortedList().val[0]).readLines() // Chromosomes from the dataset map file
+not_chrs = []
+in_chrs = []
+chromosomes.each { chromosome ->
+    if (!(chromosome in chromosomes_)){
+        not_chrs << chromosome
+    }
+    else{
+        in_chrs << chromosome
+    }
+}
+old_chrs = chromosomes
+if (in_chrs.isEmpty()){
+    println "|-- Chromosome(s) ${old_chrs.join(', ')} not in dataset ${params.bedFile} and the pipeline will exit."
+    exit 1
+}
+if (!(not_chrs.isEmpty())){
+    println "|-- Chromosome(s) ${not_chrs.join(', ')} not in dataset ${params.bedFile} and will be ignored."
+    chromosomes = in_chrs
+}
+println "|-- Chromosomes used: ${chromosomes.join(', ')}"
 
 
 """
 Identify chromosomes and start/stop positions per chromosome and generate chunks
 """
-ped_map_data_all.into{ ped_map_data_all; ped_map_data__identifyChromosomes; ped_map_data__identifyChromosomes_1}
-bim_data_all.into{bim_data_all; bim_data_chunks}
+bim_data.into{ bim_data; bim_data_chunks }
 
 process generate_chunks {
-    tag "generate_chunks"
+    tag "generate_chunks_${bim_data.baseName}"
+    memory { 8.GB * task.attempt }
+    cpus { 4 * task.attempt }
+    time { 4.h * task.attempt }
+    clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
+    publishDir "${params.output_dir}", overwrite: true, mode:'copy'
+    
     input:
-        val bim_data from bim_data_chunks
-        val chromosome from chromosomes.join(',')
+        file bim_data from bim_data_chunks
     output:
-        val chunks into identifyChromosomes, identifyChromosomes_all, identifyChromosomes_prehase
+        file chunkFile into generate_chunks
     script:
-        // This will always be run locally
-        chunks = chunk_split(bim_data, params.chunk_size, chromosomes = chromosome)
+        chunkFile = "${bim_data.baseName}_chunks.txt"
         """
+        python3 ${params.scripts}/generate_chunks.py ${bim_data} ${chunkFile} ${params.chunk_size}
         """
+}
+generate_chunks.into{generate_chunks; generate_chunks_sub; generate_chunks_all}
+generate_chunks_sub.subscribe {
+    println "|--- Finished ${it}"
 }
 
 
 """
 Plink bed/fam/bim per chromosomes
 """
-ped_map_data_all.into{ped_map_data_all; ped_map_data_1}
+bed_data.into{ bed_data; bed_data_plink }
+bim_data.into{ bed_data; bim_data_plink }
+fam_data.into{ bed_data; fam_data_plink }
+generate_chunks.into{ generate_chunks; generate_chunks_plink}
 process plink_to_chrm {
-    tag "plink2chrm_${chromosome}"
+    tag "plink2chrm_${chromosome}_${data_bed.baseName}"
     memory { 4.GB * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
     publishDir "${params.output_dir}/qc/${chromosome}", overwrite: true, mode:'symlink'
-
+    
     input:
-        set val(chromosome), file(data_bed), file(data_fam), file(bim_data) from ped_map_data_1
+        each chromosome from chromosomes
+        file data_bed from bed_data_plink
+        file data_bim from bim_data_plink
+        file data_fam from fam_data_plink
+        file chunkFile from generate_chunks_plink
     output:
         set val(chromosome), file("${data_bed.baseName}.chr${chromosome}_clean.bed"), file("${data_bed.baseName}.chr${chromosome}_clean.bim"), file("${data_bed.baseName}.chr${chromosome}_clean.fam") into plink_to_chrm_all
     script:
@@ -191,7 +182,7 @@ process plink_to_chrm {
             --out ${data_bed.baseName}.chr${chromosome}
         plink2 --bfile ${data_bed.baseName}.chr${chromosome} \
             --mind ${params.cut_mind} --allow-no-sex --recode \
-            --out ${data_bed.baseName}.chr${chromosome}_clean_mind  
+            --out ${data_bed.baseName}.chr${chromosome}_clean_mind
         plink2 --file ${data_bed.baseName}.chr${chromosome}_clean_mind \
             --allow-no-sex --list-duplicate-vars ids-only suppress-first \
             --out ${data_bed.baseName}.chr${chromosome}_clean_mind
@@ -211,12 +202,11 @@ check the study genotypes
 """
 plink_to_chrm_all.into{plink_to_chrm_all; plink_to_chrm__checkGenotypes}
 process checkGenotypes {
-    tag "checkGenotypes_${chromosome}"
+    tag "checkGenotypes_${chromosome}_${bedFile.baseName}"
     memory { 4.GB * task.attempt }
     validExitStatus 0,1,2
     errorStrategy 'ignore'
     publishDir "${params.output_dir}/qc/checkGenotypes_shapeit/${chromosome}", overwrite: true, mode:'symlink'
-
     input:
         set val(chromosome), file(bedFile), file(bimFile), file(famFile) from plink_to_chrm__checkGenotypes
     output:
@@ -238,15 +228,13 @@ process checkGenotypes {
 Step 3: Pre-phase each chromosome using shapeit
 """
 checkGenotypes_all.into{checkGenotypes_all; checkGenotypes_prephase}
-
 process prephase {
-    tag "prephase_${chromosome}"
-    memory { 4.GB * task.attempt }
-    cpus { 2 * task.attempt }
+    tag "prephase_${chromosome}_${bedFile.baseName}"
+    memory { 8.GB * task.attempt }
+    cpus { 4 * task.attempt }
     time { 4.h * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
     publishDir "${params.output_dir}/prephased/${chromosome}", overwrite: true, mode:'symlink'
-
     input:
         set val(chromosome), file(bedFile), file(bimFile), file(famFile), file(shapeit_check_log), file(shapeit_check_snp_strand_exclude) from checkGenotypes_prephase
     output:
@@ -272,7 +260,6 @@ process prephase {
 //            --numThreads=${task.cpus} \
 //            2>&1 | tee ${data_ped.baseName}.phased.log
 
-
 }
 prephase_all.into{ prephase_all; prephase_sub; prephase__chunk; prephase__impute }
 prephase_sub.subscribe {
@@ -283,7 +270,7 @@ prephase_sub.subscribe {
 Impute using the prephased genotypes with impute2
 '''
 
-chunk_data = identifyChromosomes_all.toSortedList().val[0]
+chunk_data = file(generate_chunks_all.toSortedList().val[0]).readLines()
 chunk_prephased = prephase__chunk.flatMap {
     chromosome      = it[0]
     haps            = it[1]
@@ -292,14 +279,23 @@ chunk_prephased = prephase__chunk.flatMap {
     ref_legendFile  = file( sprintf(params.ref_legendFile, chromosome) )
     ref_mapFile     = file( sprintf(params.ref_mapFile, chromosome) )
     ref_sampleFile  = file( params.ref_sampleFile )
+    tmp = []
     res = []
-    chunk_data[chromosome.toInteger()].each { chunks ->
-        res << tuple(chromosome, chunks[0], chunks[1], haps, sample, ref_hapFile, ref_legendFile, ref_mapFile, ref_sampleFile)
+    chunk_data.each { chunk_dat ->
+        chunks = chunk_dat.split()
+        if (chromosome.toInteger() == chunks[0].toInteger()){
+            if(!(chunk_dat in tmp)){
+                res << [chromosome, chunks[1], chunks[2], haps, sample, ref_hapFile, ref_legendFile, ref_mapFile, ref_sampleFile]
+                tmp << chunk_dat
+            }
+        }
     }
     res
 }
+
+
 process impute {
-    tag "imp_chr${chromosome}_${chunkStart}-${chunkEnd}"
+    tag "imp_chr${chromosome}_${chunkStart}-${chunkEnd}_${haps.baseName}"
     memory { 4.GB * task.attempt }
     cpus { 2 * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600" // Specific to UCT HPC
@@ -396,7 +392,7 @@ process imputeToPlink {
     tag "toPlink_chr${chromosome}"
     memory { 2.GB * task.attempt }
     publishDir "${params.impute_result}/plink", overwrite: true, mode:'copy'
-    
+
     input:
         set val(chromosome), file(chromosome_imputed_gz), file(chromosome_imputed_info) from imputeCombine_toPlink
         set val(chrom), file(prephased_haps), file(prephased_sample) from prephase_toPlink
@@ -418,8 +414,8 @@ process imputeToPlink {
 
 workflow.onComplete {
     def subject = 'My pipeline execution'
-    def recipient = 'mypandos@gmail.com'
-
+    def recipient = 'mamana.mbiyavanga@uct.ac.za'
+    
     ['mail', '-s', subject, recipient].execute() << """
 
     Pipeline execution summary
@@ -432,4 +428,3 @@ workflow.onComplete {
     Error report: ${workflow.errorReport ?: '-'}
     """
 }
-
