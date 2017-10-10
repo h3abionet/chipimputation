@@ -30,7 +30,8 @@ def helpMessage() {
 //    helpMessage()
 //    exit 0
 //}
-
+//
+//
 // Check that Nextflow version is up to date enough
 // try / throw / catch works for NF versions < 0.25 when this was implemented
 nf_required_version = '0.25.0'
