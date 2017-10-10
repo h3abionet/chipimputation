@@ -141,7 +141,7 @@ process generate_chunks {
     script:
         chunkFile = "${bim_data.baseName}_chunks.txt"
         """
-        python3 ${params.scripts}/generate_chunks.py ${bim_data} ${chunkFile} ${params.chunk_size}
+        python ${params.scripts}/generate_chunks.py ${bim_data} ${chunkFile} ${params.chunk_size}
         """
 }
 generate_chunks.into{generate_chunks; generate_chunks_sub; generate_chunks_all}
@@ -231,7 +231,6 @@ plink_to_chrm_sub.subscribe {
 """
 Step 3: Pre-phase each chromosome using shapeit
 """
-//checkGenotypes.into{checkGenotypes; checkGenotypes_prephase}
 plink_to_chrm.into{plink_to_chrm; plink_to_chrm_1}
 process prephase {
     tag "prephase_${chromosome}_${bedFile.baseName}"
@@ -241,7 +240,6 @@ process prephase {
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
     publishDir "${params.output_dir}/prephased/${chromosome}", overwrite: true, mode:'symlink'
     input:
-//        set val(chromosome), file(bedFile), file(bimFile), file(famFile), file(shapeit_check_log), file(shapeit_check_snp_strand_exclude) from checkGenotypes_prephase
         set val(chromosome), file(bedFile), file(bimFile), file(famFile) from plink_to_chrm_1
     output:
         set val(chromosome), file("${vcf_out}.haps.gz"), file("${vcf_out}.sample") into prephase_all
@@ -250,12 +248,6 @@ process prephase {
         ref_legendFile_1 = file( sprintf(params.ref_legendFile_1, chromosome) )
         ref_sampleFile_1 = file( params.ref_sampleFile_1 )
         vcf_out = "${bedFile.baseName}.phased"
-//
-//        shapeit -phase \
-//            --input-bed ${bedFile} ${bimFile} ${famFile} \
-//            --input-ref ${ref_hapFile_1} ${ref_legendFile_1} ${ref_sampleFile_1} \
-//            --exclude-snp ${shapeit_check_snp_strand_exclude} \
-//            -O ${vcf_out}
         """
         eagle \
             --bfile=${bedFile.baseName} \
@@ -271,17 +263,13 @@ prephase_all.into{ prephase_all; prephase_sub; prephase__chunk; prephase__impute
 prephase_sub.subscribe {
     println "|--- Finished ${it[0]}, ${it[1]}"
 }
-
 if ( params.ref_1_name != null){
     if ( !('ref_2_name' in params.keySet()) || params.ref_2_name.length() == 0){
         '''
         Impute using the prephased genotypes with impute2 with 1 reference panel
         '''
         chunk_data = file(generate_chunks_all.toSortedList().val[0]).readLines()
-        chunk_prephased = prephase__chunk.flatMap {
-            chromosome      = it[0]
-            haps            = it[1]
-            sample          = it[2]
+        chunk_prephased = prephase__chunk.flatMap { chromosome, haps, sample ->
             ref_hapFile_1     = file( sprintf(params.ref_hapFile_1, chromosome) )
             ref_legendFile_1  = file( sprintf(params.ref_legendFile_1, chromosome) )
             ref_mapFile_1     = file( sprintf(params.ref_mapFile_1, chromosome) )
@@ -350,27 +338,31 @@ if ( params.ref_1_name != null){
         tmp = []
         refs_data = []
         chunk_data = file(generate_chunks_all.toSortedList().val[0]).readLines()
-        chunk_data.each { chunk_dat ->
-            chunks = chunk_dat.split()
-            chrm = chunks[0]
-            chunkStart = chunks[1]
-            chunkEnd = chunks[2]
-            ref_hapFile_1     = file( sprintf(params.ref_hapFile_1, chrm) )
-            ref_legendFile_1  = file( sprintf(params.ref_legendFile_1, chrm) )
-            ref_mapFile_1     = file( sprintf(params.ref_mapFile_1, chrm) )
-            ref_sampleFile_1  = file( params.ref_sampleFile_1 )
-            ref_hapFile_2     = file( sprintf(params.ref_hapFile_2, chrm) )
-            ref_legendFile_2  = file( sprintf(params.ref_legendFile_2, chrm) )
-            ref_mapFile_2     = file( sprintf(params.ref_mapFile_2, chrm) )
-            ref_sampleFile_2  = file( params.ref_sampleFile_2 )
-            if (chrm in chromosomes){
-                if(!(chunk_dat in tmp)){
-                    refs_data << [chrm, chunkStart, chunkEnd, ref_hapFile_1, ref_legendFile_1, ref_mapFile_1, ref_sampleFile_1, ref_hapFile_2, ref_legendFile_2, ref_mapFile_2, ref_sampleFile_2]
-                    tmp << chunk_dat
+        chunk_prephased = prephase__chunk.toSortedList().val
+        chunk_prephased.each { chromosome, study_haps, study_sample ->
+            chunk_data.each { chunk_dat ->
+                chunks = chunk_dat.split()
+                chrm = chunks[0]
+                chunkStart = chunks[1]
+                chunkEnd = chunks[2]
+                ref_hapFile_1 = file(sprintf(params.ref_hapFile_1, chrm))
+                ref_legendFile_1 = file(sprintf(params.ref_legendFile_1, chrm))
+                ref_mapFile_1 = file(sprintf(params.ref_mapFile_1, chrm))
+                ref_sampleFile_1 = file(params.ref_sampleFile_1)
+                ref_hapFile_2 = file(sprintf(params.ref_hapFile_2, chrm))
+                ref_legendFile_2 = file(sprintf(params.ref_legendFile_2, chrm))
+                ref_mapFile_2 = file(sprintf(params.ref_mapFile_2, chrm))
+                ref_sampleFile_2 = file(params.ref_sampleFile_2)
+                if ( chrm in chromosomes ) {
+                    if ( chrm.toInteger() == chromosome.toInteger() ){
+                        if (!(chunk_dat in tmp)) {
+                            refs_data << [chrm, chunkStart, chunkEnd, study_haps, study_sample, ref_hapFile_1, ref_legendFile_1, ref_mapFile_1, ref_sampleFile_1, ref_hapFile_2, ref_legendFile_2, ref_mapFile_2, ref_sampleFile_2]
+                            tmp << chunk_dat
+                        }
+                    }
                 }
             }
         }
-
         process cross_impute_2refs {
             tag "cross_impute_2refs_chr${chromosome}_${chunkStart}-${chunkEnd}_${params.ref_1_name}_${params.ref_2_name}"
             memory { 6.GB * task.attempt }
@@ -378,9 +370,9 @@ if ( params.ref_1_name != null){
             clusterOptions "-l nodes=1:ppn=${task.cpus}:series600" // Specific to UCT HPC
             publishDir "${params.impute_result}/cross_impute_${params.ref_1_name}_${params.ref_2_name}/${chromosome}", overwrite: true, mode: 'symlink'
             input:
-                set val(chromosome), val(chunkStart), val(chunkEnd), file(ref_hapFile_1), file(ref_legendFile_1), file(ref_mapFile_1), file(ref_sampleFile_1), file(ref_hapFile_2), file(ref_legendFile_2), file(ref_mapFile_2), file(ref_sampleFile_2) from refs_data
+                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(ref_hapFile_1), file(ref_legendFile_1), file(ref_mapFile_1), file(ref_sampleFile_1), file(ref_hapFile_2), file(ref_legendFile_2), file(ref_mapFile_2), file(ref_sampleFile_2) from refs_data
             output:
-                set val(chromosome), val(chunkStart), val(chunkEnd), file(haps_file), file(legend_file) into cross_impute_2refs
+                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(haps_file), file(legend_file), file(ref_mapFile_1) into cross_impute_2refs
             shell:
                 outfile = "${params.ref_1_name}_${params.ref_2_name}_chr${chromosome}_${chunkStart}-${chunkEnd}.impute2"
                 haps_file = "${outfile}.hap.gz"
