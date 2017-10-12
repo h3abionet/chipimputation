@@ -235,8 +235,8 @@ Step 3: Pre-phase each chromosome using shapeit
 plink_to_chrm.into{plink_to_chrm; plink_to_chrm_1}
 process prephase {
     tag "prephase_${chromosome}_${bedFile.baseName}"
-    memory { 20.GB * task.attempt }
-    cpus { 10 * task.attempt }
+    memory { 40.GB * task.attempt }
+    cpus { 20 * task.attempt }
     time { 4.h * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
     publishDir "${params.output_dir}/prephased/${chromosome}", overwrite: true, mode:'symlink'
