@@ -30,8 +30,7 @@ def helpMessage() {
 //    helpMessage()
 //    exit 0
 //}
-//
-//
+
 // Check that Nextflow version is up to date enough
 // try / throw / catch works for NF versions < 0.25 when this was implemented
 nf_required_version = '0.25.0'
@@ -62,18 +61,20 @@ else{
 
 // Help functions
 
-// Create channel for the study data from ped and map files and check if files exist
+
+// check if files exist
+if(!file(params.bedFile).exists()) exit 1, "BED file ${params.bedFile} not found. Please check your config file."
+if(!file(params.famFile).exists()) exit 1, "FAM file ${params.famFile} not found. Please check your config file."
+if(!file(params.bimFile).exists()) exit 1, "BIM file ${params.bimFile} not found. Please check your config file."
+if(!file(params.eagle_genetic_map).exists()) exit 1, "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+
+// Create channel for the study data from ped and map files
 bed_data = Channel
         .fromPath(params.bedFile)
-        .ifEmpty { exit 1, "BED file not found: ${params.bedFile}" }
 fam_data = Channel
         .fromPath(params.famFile)
-        .ifEmpty { exit 1, "FAM file not found: ${params.famFile}" }
 bim_data = Channel
         .fromPath(params.bimFile)
-        .ifEmpty { exit 1, "BIM file not found: ${params.bimFile}" }
-
-// TODO check if files (study data and reference) exist if( !fasta.exists() ) exit 1, "Fasta file not found: ${params.fasta}"
 // TODO Be able to run everything on a specified chunk
 
 
@@ -112,11 +113,11 @@ chromosomes.each { chromosome ->
 }
 old_chrs = chromosomes
 if (in_chrs.isEmpty()){
-    println "|-- Chromosome(s) ${old_chrs.join(', ')} not in dataset ${params.bedFile} and the pipeline will exit."
+    println "|-- Chromosome(s) ${old_chrs.join(', ')} not in dataset ${params.bimFile} and the pipeline will exit."
     exit 1
 }
 if (!(not_chrs.isEmpty())){
-    println "|-- Chromosome(s) ${not_chrs.join(', ')} not in dataset ${params.bedFile} and will be ignored."
+    println "|-- Chromosome(s) ${not_chrs.join(', ')} not in dataset ${params.bimFile} and will be ignored."
     chromosomes = in_chrs
 }
 println "|-- Chromosomes used: ${chromosomes.join(', ')}"
@@ -235,9 +236,9 @@ Step 3: Pre-phase each chromosome using shapeit
 plink_to_chrm.into{plink_to_chrm; plink_to_chrm_1}
 process prephase {
     tag "prephase_${chromosome}_${bedFile.baseName}"
-    memory { 40.GB * task.attempt }
-    cpus { 20 * task.attempt }
-    time { 4.h * task.attempt }
+    memory { 8.GB * task.attempt }
+    cpus { 4 * task.attempt }
+    time { 24.h * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
     publishDir "${params.output_dir}/prephased/${chromosome}", overwrite: true, mode:'symlink'
     input:
