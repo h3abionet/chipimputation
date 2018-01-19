@@ -47,8 +47,8 @@ try {
 }
 
 println "|-- Project : $workflow.projectDir"
-println "|-- Git info: $workflow.repository - $workflow.revision [$workflow.commitId]"
-println "|-- Command line: $workflow.commandLine"
+//println "|-- Git info: $workflow.repository - $workflow.revision [$workflow.commitId]"
+//println "|-- Command line: $workflow.commandLine"
 println "|-- Datasets: ${file(params.bedFile).getName()}, ${file(params.bimFile).getName()}, ${file(params.famFile).getName()}"
 
 // Check if chromosomes
@@ -62,11 +62,27 @@ else{
 // Help functions
 
 
-// check if files exist
+// check if study genotype files exist
 if(!file(params.bedFile).exists()) exit 1, "BED file ${params.bedFile} not found. Please check your config file."
 if(!file(params.famFile).exists()) exit 1, "FAM file ${params.famFile} not found. Please check your config file."
 if(!file(params.bimFile).exists()) exit 1, "BIM file ${params.bimFile} not found. Please check your config file."
 if(!file(params.eagle_genetic_map).exists()) exit 1, "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+
+// check if files exist
+for (chrm in chromosomes){
+    // For Ref 1 // Must exist
+    if(!file(sprintf(params.ref_1.hapFile, chrm)).exists()) exit 1, "File ${sprintf(params.ref_1.hapFile, chrm)} not found. Please check your config file."
+    if(!file(sprintf(params.ref_1.legendFile, chrm)).exists()) exit 1, "File ${sprintf(params.ref_1.legendFile, chrm)} not found. Please check your config file."
+    if(!file(sprintf(params.ref_1.mapFile, chrm)).exists()) exit 1, "File ${sprintf(params.ref_1.mapFile, chrm)} not found. Please check your config file."
+    if(!file(sprintf(params.ref_1.sampleFile, chrm)).exists()) exit 1, "File ${sprintf(params.ref_1.sampleFile, chrm)} not found. Please check your config file."
+    // If Ref 2 exist
+    if ('ref_2' in params.keySet()){
+        if(!file(sprintf(params.ref_2.hapFile, chrm)).exists()) exit 1, "File ${sprintf(params.ref_2.hapFile, chrm)} not found. Please check your config file."
+        if(!file(sprintf(params.ref_2.legendFile, chrm)).exists()) exit 1, "File ${sprintf(params.ref_2.legendFile, chrm)} not found. Please check your config file."
+        if(!file(sprintf(params.ref_2.mapFile, chrm)).exists()) exit 1, "File ${sprintf(params.ref_2.mapFile, chrm)} not found. Please check your config file."
+        if(!file(sprintf(params.ref_2.sampleFile, chrm)).exists()) exit 1, "File ${sprintf(params.ref_2.sampleFile, chrm)} not found. Please check your config file."
+    }
+}
 
 // Create channel for the study data from ped and map files
 bed_data = Channel
@@ -81,7 +97,7 @@ bim_data = Channel
 """
 Check user's provided chromosomes vs those in map file
 """
-bim_data.into{bim_data; bim_data_check}
+bim_data.into{ bim_data; bim_data_check }
 process check_chromosome {
     tag "check_chromosome_${bim_data.baseName}"
     memory { 8.GB * task.attempt }
@@ -89,7 +105,7 @@ process check_chromosome {
     time { 4.h * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
     publishDir "${params.output_dir}", overwrite: true, mode:'symlink'
-    
+
     input:
         file bim_data from bim_data_check
     output:
@@ -135,7 +151,7 @@ process generate_chunks {
     time { 4.h * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
     publishDir "${params.output_dir}", overwrite: true, mode:'copy'
-    
+
     input:
         file bim_data from bim_data_chunks
     output:
@@ -146,25 +162,21 @@ process generate_chunks {
         python ${params.scripts}/generate_chunks.py ${bim_data} ${chunkFile} ${params.chunk_size}
         """
 }
-generate_chunks.into{generate_chunks; generate_chunks_sub; generate_chunks_all}
-generate_chunks_sub.subscribe {
-    println "|--- Finished ${it}"
-}
 
 
 """
 Plink bed/fam/bim per chromosomes
 """
 bed_data.into{ bed_data; bed_data_plink }
-bim_data.into{ bed_data; bim_data_plink }
-fam_data.into{ bed_data; fam_data_plink }
+bim_data.into{ bim_data; bim_data_plink }
+fam_data.into{ fam_data; fam_data_plink }
 generate_chunks.into{ generate_chunks; generate_chunks_plink}
-process plink_to_chrm {
-    tag "plink2chrm_${chromosome}_${data_bed.baseName}"
+process qc_plink_to_chrm {
+    tag "plink2chrm_${chromosome}"
     memory { 4.GB * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
     publishDir "${params.output_dir}/qc/${chromosome}", overwrite: true, mode:'symlink'
-    
+
     input:
         each chromosome from chromosomes
         file data_bed from bed_data_plink
@@ -172,7 +184,7 @@ process plink_to_chrm {
         file data_fam from fam_data_plink
         file chunkFile from generate_chunks_plink
     output:
-        set val(chromosome), file("${data_bed.baseName}.chr${chromosome}_clean.bed"), file("${data_bed.baseName}.chr${chromosome}_clean.bim"), file("${data_bed.baseName}.chr${chromosome}_clean.fam") into plink_to_chrm
+        set val(chromosome), file("${data_bed.baseName}.chr${chromosome}_clean.bed"), file("${data_bed.baseName}.chr${chromosome}_clean.bim"), file("${data_bed.baseName}.chr${chromosome}_clean.fam") into qc_plink_to_chrm
     script:
         /*
         2- Exclude samples with missing more than 5% of genotype calls
@@ -198,140 +210,194 @@ process plink_to_chrm {
             ${data_bed.baseName}.chr${chromosome}_clean_mind.dupvar
     """
 }
-plink_to_chrm.into{ plink_to_chrm; plink_to_chrm_sub }
-plink_to_chrm_sub.subscribe {
-    println "|--- Finished ${it[0]}, ${it[2]}"
+
+qc_plink_to_chrm.into{ qc_plink_to_chrm; qc_plink_to_chrm_1}
+process plink_to_vcf_chrm {
+    tag "plink2vcf_${chromosome}"
+    memory { 4.GB * task.attempt }
+    clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
+    publishDir "${params.output_dir}/vcf/${chromosome}", overwrite: true, mode:'symlink'
+
+    input:
+        set val(chromosome), file(data_bed), file(data_bim), file(data_fam) from qc_plink_to_chrm_1
+    output:
+        set val(chromosome), file("${data_bed.baseName}.vcf.gz") into plink_to_chrm
+    script:
+        """
+        plink2 --bfile ${data_bed.baseName} \
+            --allow-no-sex \
+            --keep-allele-order \
+            --recode vcf \
+            --out ${data_bed.baseName}
+        bgzip -f ${data_bed.baseName}.vcf
+    """
 }
 
-//"""
-//check the study genotypes
-//"""
-//plink_to_chrm.into{plink_to_chrm; plink_to_chrm_checkGenotypes}
-//process checkGenotypes {
-//    tag "checkGenotypes_${chromosome}_${bedFile.baseName}"
-//    memory { 4.GB * task.attempt }
-//    validExitStatus 0,1,2
-//    errorStrategy 'ignore'
-//    publishDir "${params.output_dir}/qc/checkGenotypes_shapeit/${chromosome}", overwrite: true, mode:'symlink'
-//    input:
-//        set val(chromosome), file(bedFile), file(bimFile), file(famFile) from plink_to_chrm_checkGenotypes
-//    output:
-//        set val(chromosome), file(bedFile), file(bimFile), file(famFile), file("${bedFile.baseName}.alignments.log"), file("${bedFile.baseName}.alignments.snp.strand.exclude") into checkGenotypes
-//    script:
-//        ref_hapFile_1 = file( sprintf(params.ref_hapFile_1, chromosome) )
-//        ref_legendFile_1 = file( sprintf(params.ref_legendFile_1, chromosome) )
-//        ref_sampleFile_1 = file( params.ref_sampleFile_1 )
-//        """
-//        shapeit -check \
-//            --input-bed ${bedFile} ${bimFile} ${famFile} \
-//            --input-ref ${ref_hapFile_1} ${ref_legendFile_1} ${ref_sampleFile_1} \
-//            --output-log ${bedFile.baseName}.alignments.log
-//        """
-//}
+plink_to_chrm.into{ plink_to_chrm; plink_to_chrm_1}
+generate_chunks.into{ generate_chunks; generate_chunks_1; generate_chunks_all }
+all_chunks = generate_chunks_1.toSortedList().val
 
+def transform_chunk = { chrm, vcfFile ->
+    chunks_datas = []
+    all_chunks.each{ chunk_file ->
+        chunks = file(chunk_file).text.split()
+        chunks.each{ chunk_data ->
+            data = chunk_data.split(',')
+            chrm_ = data[0]
+            chunk_start = data[1]
+            chunk_end = data[2]
+            if (chrm ==chrm_){
+                chunks_datas << [chrm, chunk_start, chunk_end, file(vcfFile)]
+            }
+        }
+    }
+    return chunks_datas
+}
+chunk_vcfFile = plink_to_chrm_1
+        .flatMap{ it -> transform_chunk(it) }
+
+chunk_vcfFile.into{ chunk_vcfFile; chunk_vcfFile_1}
+process chunk_vcf_data {
+    tag "chunk_vcf_${chromosome}_${chunk_start}_${chunk_end}"
+    memory { 4.GB * task.attempt }
+    clusterOptions "-l nodes=1:ppn=${task.cpus}:series600"
+
+    input:
+        set chromosome, chunk_start, chunk_end, file(vcfFile) from chunk_vcfFile_1
+    output:
+        set chromosome, chunk_start, chunk_end, file(vcfFile_out) into chunk_vcf_data
+    script:
+        vcfFile_out = "${file(vcfFile.baseName).baseName}_${chunk_start}_${chunk_end}.vcf.gz"
+        buffer_size = params.chunk_size.toInteger()/2
+        """
+        vcftools \
+            --gzvcf ${vcfFile} \
+            --chr ${chromosome} \
+            --from-bp ${chunk_start.toInteger() - buffer_size.toInteger()} --to-bp ${chunk_end.toInteger() + buffer_size.toInteger()} \
+            --recode --stdout \
+            | bgzip -c > ${vcfFile_out}
+        """
+}
+
+//
+////"""
+////check the study genotypes
+////"""
+////plink_to_chrm.into{plink_to_chrm; plink_to_chrm_checkGenotypes}
+////process checkGenotypes {
+////    tag "checkGenotypes_${chromosome}_${bedFile.baseName}"
+////    memory { 4.GB * task.attempt }
+////    validExitStatus 0,1,2
+////    errorStrategy 'ignore'
+////    publishDir "${params.output_dir}/qc/checkGenotypes_shapeit/${chromosome}", overwrite: true, mode:'symlink'
+////    input:
+////        set val(chromosome), file(bedFile), file(bimFile), file(famFile) from plink_to_chrm_checkGenotypes
+////    output:
+////        set val(chromosome), file(bedFile), file(bimFile), file(famFile), file("${bedFile.baseName}.alignments.log"), file("${bedFile.baseName}.alignments.snp.strand.exclude") into checkGenotypes
+////    script:
+////        ref_1.hapFile = file( sprintf(params.ref_1.hapFile, chromosome) )
+////        ref_1.legendFile = file( sprintf(params.ref_1.legendFile, chromosome) )
+////        ref_1.sampleFile = file( params.ref_1.sampleFile )
+////        """
+////        shapeit -check \
+////            --input-bed ${bedFile} ${bimFile} ${famFile} \
+////            --input-ref ${ref_1.hapFile} ${ref_1.legendFile} ${ref_1.sampleFile} \
+////            --output-log ${bedFile.baseName}.alignments.log
+////        """
+////}
+//
+//
 
 """
 Step 3: Pre-phase each chromosome using shapeit
 """
-plink_to_chrm.into{plink_to_chrm; plink_to_chrm_1}
-process prephase {
-    tag "prephase_${chromosome}_${bedFile.baseName}"
+chunk_vcf_data.into{ chunk_vcf_data; chunk_vcf_data_1 }
+process phase_data {
+    tag "prephase_${chromosome}_${chunk_start}_${chunk_end}"
     memory { 8.GB * task.attempt }
     cpus { 4 * task.attempt }
     time { 24.h * task.attempt }
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
-    publishDir "${params.output_dir}/prephased/${chromosome}", overwrite: true, mode:'symlink'
     input:
-        set val(chromosome), file(bedFile), file(bimFile), file(famFile) from plink_to_chrm_1
+        set chromosome, chunk_start, chunk_end, file(vcfFile) from chunk_vcf_data
     output:
-        set val(chromosome), file("${vcf_out}.haps.gz"), file("${vcf_out}.sample") into prephase_all
+        set chromosome, chunk_start, chunk_end, file("${file_out}.haps.gz"), file("${file_out}.sample") into phase_data
     script:
-        ref_hapFile_1 = file( sprintf(params.ref_hapFile_1, chromosome) )
-        ref_legendFile_1 = file( sprintf(params.ref_legendFile_1, chromosome) )
-        ref_sampleFile_1 = file( params.ref_sampleFile_1 )
-        vcf_out = "${bedFile.baseName}.phased"
+        file_out = "${file(vcfFile.baseName).baseName}.phased"
         """
-        eagle \
-            --bfile=${bedFile.baseName} \
-            --geneticMapFile=${params.eagle_genetic_map} \
-            --chrom=${chromosome} \
-            --genoErrProb 0.003 --pbwtOnly \
-            --allowRefAltSwap \
-            --outPrefix=${vcf_out} 2>&1 | tee ${vcf_out}.log
+        nblines=\$(zcat ${vcfFile} | grep -v '^#' | wc -l)
+        if (( \$nblines > 0 ))
+        then
+            plink2 \
+                --vcf ${vcfFile} \
+                --set-missing-var-ids @:# \
+                --double-id --recode --make-bed \
+                --out ${file_out} || true
+            eagle \
+                --bfile=${file_out} \
+                --geneticMapFile=${params.eagle_genetic_map} \
+                --chrom=${chromosome} \
+                --genoErrProb 0.003 --pbwtOnly \
+                --allowRefAltSwap \
+                --outPrefix=${file_out} 2>&1 | tee ${file_out}.log
+            if [ ! -f "${file_out}.haps.gz" ]; then
+                touch ${file_out}.haps && bgzip -f ${file_out}.haps
+                touch ${file_out}.sample
+            fi
+            rm -f ${file_out}.bim ${file_out}.bed ${file_out}.fam ${file_out}.ped ${file_out}.map ${file_out}.log
+        else
+            touch ${file_out}.haps && bgzip -f ${file_out}.haps
+            touch ${file_out}.sample
+        fi
         """
+}
 
+phase_data.into{ phase_data; phase_data_1; phase_data_2 }
+def combine_chunk_data_with_ref = { chromosome, chunk_start, chunk_end, study_haps, study_sample ->
+    res = []
+    ref_hapFile     = file( sprintf(params.ref_1.hapFile, chromosome) )
+    ref_legendFile  = file( sprintf(params.ref_1.legendFile, chromosome) )
+    ref_mapFile     = file( sprintf(params.ref_1.mapFile, chromosome) )
+    ref_sampleFile  = file( params.ref_1.sampleFile )
+    res << [chromosome, chunk_start, chunk_end, study_haps, study_sample, ref_hapFile, ref_legendFile, ref_mapFile, ref_sampleFile]
+    return res
 }
-prephase_all.into{ prephase_all; prephase_sub; prephase__chunk; prephase__impute }
-prephase_sub.subscribe {
-    println "|--- Finished ${it[0]}, ${it[1]}"
+def combine_chunk_data_with_2refs = { chrm, chunk_start, chunk_end, study_haps, study_sample ->
+    res = []
+    ref_1_hapFile = file(sprintf(params.ref_1.hapFile, chrm))
+    ref_1_legendFile = file(sprintf(params.ref_1.legendFile, chrm))
+    ref_1_mapFile = file(sprintf(params.ref_1.mapFile, chrm))
+    ref_1_sampleFile = file(params.ref_1.sampleFile)
+    ref_2_hapFile = file(sprintf(params.ref_2.hapFile, chrm))
+    ref_2_legendFile = file(sprintf(params.ref_2.legendFile, chrm))
+    ref_2_mapFile = file(sprintf(params.ref_2.mapFile, chrm))
+    ref_2_sampleFile = file(params.ref_2.sampleFile)
+    res << [chrm, chunk_start, chunk_end, study_haps, study_sample, ref_1_hapFile, ref_1_legendFile, ref_2_mapFile, ref_1_sampleFile, ref_2_hapFile, ref_2_legendFile, ref_2_sampleFile]
+    return res
 }
-if ( params.ref_1_name != null){
-    if ( !('ref_2_name' in params.keySet()) || params.ref_2_name.length() == 0){
+if ( params.ref_1.name != null){
+    if ( !('ref_2' in params.keySet()) || params.ref_2.name.length() == 0){
         '''
         Impute using the prephased genotypes with impute2 with 1 reference panel
         '''
-        chunk_data = file(generate_chunks_all.toSortedList().val[0]).readLines()
-        chunk_prephased = prephase__chunk.flatMap { chromosome, haps, sample ->
-            ref_hapFile_1     = file( sprintf(params.ref_hapFile_1, chromosome) )
-            ref_legendFile_1  = file( sprintf(params.ref_legendFile_1, chromosome) )
-            ref_mapFile_1     = file( sprintf(params.ref_mapFile_1, chromosome) )
-            ref_sampleFile_1  = file( params.ref_sampleFile_1 )
-            tmp = []
-            res = []
-            chunk_data.each { chunk_dat ->
-                chunks = chunk_dat.split()
-                if (chromosome.toInteger() == chunks[0].toInteger()){
-                    if(!(chunk_dat in tmp)){
-                        res << [chromosome, chunks[1], chunks[2], haps, sample, ref_hapFile_1, ref_legendFile_1, ref_mapFile_1, ref_sampleFile_1]
-                        tmp << chunk_dat
-                    }
-                }
-            }
-            res
-        }
-        
+        chunk_prephased = phase_data_1.
+                flatMap { it -> combine_chunk_data_with_ref(it) }
     }
     else{
-        tmp = []
-        refs_data = []
-        chunk_data = file(generate_chunks_all.toSortedList().val[0]).readLines()
-        chunk_prephased = prephase__chunk.toSortedList().val
-        chunk_prephased.each { chromosome, study_haps, study_sample ->
-            chunk_data.each { chunk_dat ->
-                chunks = chunk_dat.split()
-                chrm = chunks[0]
-                chunkStart = chunks[1]
-                chunkEnd = chunks[2]
-                ref_hapFile_1 = file(sprintf(params.ref_hapFile_1, chrm))
-                ref_legendFile_1 = file(sprintf(params.ref_legendFile_1, chrm))
-                ref_mapFile_1 = file(sprintf(params.ref_mapFile_1, chrm))
-                ref_sampleFile_1 = file(params.ref_sampleFile_1)
-                ref_hapFile_2 = file(sprintf(params.ref_hapFile_2, chrm))
-                ref_legendFile_2 = file(sprintf(params.ref_legendFile_2, chrm))
-                ref_mapFile_2 = file(sprintf(params.ref_mapFile_2, chrm))
-                ref_sampleFile_2 = file(params.ref_sampleFile_2)
-                if ( chrm in chromosomes ) {
-                    if ( chrm.toInteger() == chromosome.toInteger() ){
-                        if (!(chunk_dat in tmp)) {
-                            refs_data << [chrm, chunkStart, chunkEnd, study_haps, study_sample, ref_hapFile_1, ref_legendFile_1, ref_mapFile_1, ref_sampleFile_1, ref_hapFile_2, ref_legendFile_2, ref_mapFile_2, ref_sampleFile_2]
-                            tmp << chunk_dat
-                        }
-                    }
-                }
-            }
-        }
+        cross_refs_data = phase_data_1.
+                flatMap { it -> combine_chunk_data_with_2refs(it) }
         process cross_impute_2refs {
-            tag "cross_impute_2refs_chr${chromosome}_${chunkStart}-${chunkEnd}_${params.ref_1_name}_${params.ref_2_name}"
+            tag "cross_impute_2refs_chr${chromosome}_${chunkStart}-${chunkEnd}_${params.ref_1.name}_${params.ref_2.name}"
             memory { 6.GB * task.attempt }
             cpus { 3 * task.attempt }
             clusterOptions "-l nodes=1:ppn=${task.cpus}:series600" // Specific to UCT HPC
-            publishDir "${params.impute_result}/cross_impute_${params.ref_1_name}_${params.ref_2_name}/${chromosome}", overwrite: true, mode: 'symlink'
+            publishDir "${params.impute_result}/cross_impute_${params.ref_1.name}_${params.ref_2.name}/${chromosome}", overwrite: true, mode: 'symlink'
             input:
-                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(ref_hapFile_1), file(ref_legendFile_1), file(ref_mapFile_1), file(ref_sampleFile_1), file(ref_hapFile_2), file(ref_legendFile_2), file(ref_mapFile_2), file(ref_sampleFile_2) from refs_data
+                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(ref_1_hapFile), file(ref_1_legendFile), file(ref_2_mapFile), file(ref_1_sampleFile), file(ref_2_hapFile), file(ref_2_legendFile), file(ref_2_sampleFile) from cross_refs_data
             output:
-                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(haps_file), file(legend_file), file(ref_mapFile_1), file(sample_file) into cross_impute_2refs
+                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(haps_file), file(legend_file), file(ref_1_mapFile), file(sample_file) into cross_impute_2refs
             shell:
-                outfile = "${params.ref_1_name}_${params.ref_2_name}_chr${chromosome}_${chunkStart}-${chunkEnd}.impute2"
+                outfile = "${params.ref_1.name}_${params.ref_2.name}_chr${chromosome}_${chunkStart}-${chunkEnd}.impute2"
                 haps_file = "${outfile}.hap.gz"
                 legend_file = "${outfile}.legend.gz"
                 sample_file = "${outfile}.sample"
@@ -339,9 +405,9 @@ if ( params.ref_1_name != null){
                 """
                 impute2 \
                     -merge_ref_panels \
-                    -m ${ref_mapFile_1} \
-                    -h ${ref_hapFile_1} ${ref_hapFile_2} \
-                    -l ${ref_legendFile_1} ${ref_legendFile_2} \
+                    -m ${ref_2_mapFile} \
+                    -h ${ref_1_hapFile} ${ref_2_hapFile} \
+                    -l ${ref_1_legendFile} ${ref_2_legendFile} \
                     -Ne ${params.NE} \
                     -burnin ${params.impute_burnin} \
                     -iter ${params.impute_iter} \
@@ -354,60 +420,53 @@ if ( params.ref_1_name != null){
                     -o ${outfile} \
                     -o_gz \
                     || true
-                head -n 1 ${ref_sampleFile_1} > ${sample_file}
-                tail -q -n +2 ${ref_sampleFile_1} ${ref_sampleFile_2} >> ${sample_file}
+                head -n 1 ${ref_1_sampleFile} > ${sample_file}
+                tail -q -n +2 ${ref_1_sampleFile} ${ref_2_sampleFile} >> ${sample_file}
                 """
         }
-        cross_impute_2refs.into{ cross_impute_2refs; cross_impute_2refs_sub; chunk_prephased}
-        cross_impute_2refs_sub.subscribe {
-            println "|--- Finished ${it.join(', ')}"
-        }
+        cross_impute_2refs.into{ cross_impute_2refs; chunk_prephased}
     }
     process impute {
-            tag "imp_chr${chromosome}_${chunkStart}-${chunkEnd}_${haps.baseName}"
-            memory { 4.GB * task.attempt }
-            cpus { 2 * task.attempt }
-            clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600" // Specific to UCT HPC
-            publishDir "${params.impute_result}/impute/${chromosome}", overwrite: true, mode:'symlink'
-        
-            input:
-                set val(chromosome), val(chunkStart), val(chunkEnd), file(haps), file(sample), file(ref_hapFile_1), file(ref_legendFile_1), file(ref_mapFile_1), file(ref_sampleFile_1) from chunk_prephased
-            output:
-                set val(chromosome), file("${outfile}.imputed.gz"), file("${outfile}.imputed_haps.gz"), file("${outfile}.imputed_info"), file("${outfile}.imputed_summary") into impute_all
-            shell:
-                outfile = "${haps.baseName}_${chunkStart}-${chunkEnd}"
-                """
-                impute2 \
-                    -use_prephased_g \
-                    -known_haps_g ${haps} \
-                    -h ${ref_hapFile_1}  \
-                    -l ${ref_legendFile_1}  \
-                    -m ${ref_mapFile_1}  \
-                    -int ${chunkStart} ${chunkEnd} \
-                    -Ne 15000 \
-                    -buffer 250 \
-                    -phase \
-                    -o_gz \
-                    -o ${outfile}.imputed || true
-        
-                ## Sometimes there are no (type2) SNP's in a region
-                if [ ! -f "${outfile}.imputed.gz" ]; then
-                    if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}.imputed_summary || \
-                        grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}.imputed_summary || \
-                        grep 'There are no SNPs in the imputation interval' ${outfile}.imputed_summary; then
-                        touch ${outfile}.imputed
-                        bgzip -f ${outfile}.imputed
-                        touch ${outfile}.imputed_haps
-                        bgzip -f ${outfile}.imputed_haps
-                        touch ${outfile}.imputed_info
-                    fi
+        tag "imp_${chromosome}_${chunkStart}-${chunkEnd}"
+        memory { 6.GB * task.attempt }
+        cpus { 3 * task.attempt }
+        clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600" // Specific to UCT HPC
+        publishDir "${params.impute_result}/impute/${chromosome}", overwrite: true, mode:'symlink'
+
+        input:
+            set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(ref_hapFile), file(ref_legendFile), file(ref_mapFile), file(ref_sampleFile) from chunk_prephased
+        output:
+            set val(chromosome), file("${outfile}.imputed.gz"), file("${outfile}.imputed_haps.gz"), file("${outfile}.imputed_info"), file("${outfile}.imputed_summary") into impute_all
+        shell:
+            outfile = "${study_haps.baseName}_${chunkStart}-${chunkEnd}"
+            """
+            impute2 \
+                -use_prephased_g \
+                -known_haps_g ${study_haps} \
+                -h ${ref_hapFile}  \
+                -l ${ref_legendFile}  \
+                -m ${ref_mapFile}  \
+                -int ${chunkStart} ${chunkEnd} \
+                -Ne 15000 \
+                -buffer 250 \
+                -phase \
+                -o_gz \
+                -o ${outfile}.imputed || true
+
+            ## Sometimes there are no (type2) SNP's in a region
+            if [ ! -f "${outfile}.imputed.gz" ]; then
+                if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}.imputed_summary || \
+                    grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}.imputed_summary || \
+                    grep 'There are no SNPs in the imputation interval' ${outfile}.imputed_summary; then
+                    touch ${outfile}.imputed
+                    bgzip -f ${outfile}.imputed
+                    touch ${outfile}.imputed_haps
+                    bgzip -f ${outfile}.imputed_haps
+                    touch ${outfile}.imputed_info
                 fi
-                """
-        }
-        impute_all.into{ impute_all; impute_sub }
-        impute_sub.subscribe {
-            println "|--- Finished ${it[0]}, ${it[-1]}"
-        }
+            fi
+            """
+    }
 }
 
 
@@ -438,10 +497,11 @@ process imputeCombine {
     clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600" // Specific to UCT HPC
     publishDir "${params.impute_result}/combined", overwrite: true, mode:'copy'
     input:
-        set val(chromosome), file(imputed_files) from imputeCombine_impute_cha
-        set val(chromo), file(info_files) from imputeCombine_info_cha
+        set chromosome, file(imputed_files) from imputeCombine_impute_cha
+        set chromo, file(info_files) from imputeCombine_info_cha
     output:
-        set val(chromosome), file(comb_impute), file(comb_info) into imputeCombine_all
+        set chromosome, file(comb_impute) into imputeCombine
+        set chromosome, file(comb_info) into infoCombine
     script:
         comb_impute = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed.gz"
         comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
@@ -451,23 +511,19 @@ process imputeCombine {
         tail -q -n +2 ${info_files.join(' ')}>> ${comb_info}
         """
 }
-imputeCombine_all.into { imputeCombine_all; imputeCombine_sub; imputeCombine_toPlink }
-imputeCombine_sub.subscribe{
-    println "|--- Finished ${it.join(', ')}"
-}
 
 
-prephase_all.into { prephase_all; prephase_toPlink}
+imputeCombine.into { imputeCombine; imputeCombine_1 }
 process imputeToPlink {
     tag "toPlink_chr${chromosome}"
     memory { 2.GB * task.attempt }
     publishDir "${params.impute_result}/plink", overwrite: true, mode:'copy'
 
     input:
-        set val(chromosome), file(chromosome_imputed_gz), file(chromosome_imputed_info) from imputeCombine_toPlink
-        set val(chrom), file(prephased_haps), file(prephased_sample) from prephase_toPlink
+        set chromosome, file(chromosome_imputed_gz) from imputeCombine_1
+        set chrom, chunk_start, chunk_end, file(prephased_haps), file(prephased_sample) from phase_data_2
     output:
-        set val(chromosome), file("${chromosome_imputed_gz.baseName}.bed"), file("${chromosome_imputed_gz.baseName}.bim"), file("${chromosome_imputed_gz.baseName}.fam") into imputeToPlink
+        set chromosome, file("${chromosome_imputed_gz.baseName}.bed"), file("${chromosome_imputed_gz.baseName}.bim"), file("${chromosome_imputed_gz.baseName}.fam") into imputeToPlink
     script:
         """
         gunzip -c ${chromosome_imputed_gz} > ${chromosome_imputed_gz.baseName}
@@ -482,7 +538,88 @@ process imputeToPlink {
         //--oxford-pheno-name plink_pheno
 }
 
-imputeToPlink.into { imputeToPlink; imputeToPlink_sub }
-imputeToPlink_sub.subscribe{
-    println "|--- Finished ${it.join(', ')}"
+
+"""
+Generating report
+"""
+infoCombine.into { infoCombine; infoCombine_1 }
+infoCombine_list = infoCombine_1.toSortedList().val
+chrm_infos = []
+infoCombine_list.each{ chrm, comb_info ->
+    chrm_infos << chrm+"=="+comb_info
+}
+process filter_info {
+    tag "filter_${projectName}_${chrms}"
+    memory { 2.GB * task.attempt }
+    maxRetries 1
+    publishDir "${params.output_dir}/INFOS/${projectName}", overwrite: true, mode:'copy'
+    input:
+        val(projectName) from params.project_name
+    output:
+        set val(projectName), file(well_out) into info_Well
+        set val(projectName), file(acc_out) into info_Acc
+    script:
+        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        comb_info = "${projectName}_${chrms}.imputed_info"
+        well_out = "${comb_info}_well_imputed"
+        acc_out = "${comb_info}_accuracy"
+        infos = chrm_infos.join(',')
+        """
+        python2.7 ${params.homedir}/scripts/report.py \
+            --infoFiles ${infos} \
+            --outWell_imputed ${well_out} \
+            --outSNP_acc ${acc_out} \
+            --infoCutoff ${params.impute_info_cutoff}
+        """
+}
+
+
+"""
+Report 1: Well imputed
+"""
+info_Well.into{ info_Well; info_Well_1}
+process report_well_imputed {
+    tag "report_wellImputed_${projectName}_${chrms}"
+    memory { 2.GB * task.attempt }
+    publishDir "${params.output_dir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
+    input:
+        set val(projectName), file(well_in) from info_Well_1
+    output:
+        set val(projectName), file(well_report_out) into report_well_imputed
+    script:
+        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        comb_info = "${projectName}_${chrms}.imputed_info"
+        well_report_out = "${comb_info}_report_well_imputed.tsv"
+        """
+        python2.7 -u ${params.homedir}/scripts/report.py \
+            --inWell_imputed ${well_in} \
+            --outWell_imputed ${well_report_out} \
+            --infoCutoff ${params.impute_info_cutoff}
+        """
+}
+
+
+"""
+Repor 2: Accuracy
+"""
+info_Acc.into{ info_Acc; info_Acc_2}
+process report_SNP_acc {
+    tag "report_SNP_acc_${projectName}_${chrms}"
+    memory { 2.GB * task.attempt }
+    maxRetries 1
+    publishDir "${params.output_dir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
+    input:
+        set val(projectName), file(acc_in) from info_Acc_2
+    output:
+        set val(projectName), file(SNP_acc_out) into report_SNP_acc
+    script:
+        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        comb_info = "${projectName}_${chrms}.imputed_info"
+        SNP_acc_out = "${comb_info}_report_SNP_acc.tsv"
+        """
+        python2.7 -u ${params.homedir}/scripts/report.py \
+            --inSNP_acc ${acc_in} \
+            --outSNP_acc ${SNP_acc_out} \
+            --infoCutoff ${params.impute_info_cutoff}
+        """
 }
