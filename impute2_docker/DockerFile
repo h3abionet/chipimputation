@@ -38,7 +38,7 @@ MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
 # Dockerfile to build Genotype imputation
 # Based on Ubuntu 16.04
 ############################################################
-## The command is docker run -v /cluster:/cluster -t -i impute:latest /usr/local/impute_v2.3.2_x86_64_static/impute2 -m /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.map -h /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.haps -l /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.legend -g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.reference.gens -strand_g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.study.strand -int 20.4e6 20.5e6 -Ne 20000
+## The command is docker run -v /cluster:/cluster -t -i impute:latest /usr/local/impute_v2.3.2_x86_64_static/impute2 -m /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.map -h /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.haps -l /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.legend -g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.reference.gens -strand_g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.study.strand #-int 20.4e6 20.5e6 -Ne 20000
 
 # Choose a base system
 FROM ubuntu:latest
