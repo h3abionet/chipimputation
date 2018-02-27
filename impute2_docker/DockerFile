@@ -1,62 +1,43 @@
-
-
-#MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
-
-#WORKDIR /root
-
-################## BEGIN INSTALLATION ######################
-
-# This is the docker file for running impute on Ubuntu
-## The command is docker run -v /cluster:/cluster -t -i impute:latest /usr/local/impute_v2.3.2_x86_64_static/impute2 -m /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.map -h /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.haps -l /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.legend -g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.reference.gens -strand_g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.study.strand -int 20.4e6 20.5e6 -Ne 20000
-
-# Install Basic tools
-
-# Install wget
-#RUN apt-get update && apt-get install -y wget && \
-#    apt-get clean && \
-#    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-# Install IMPUTE2
-#RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
-#    tar -zxvf impute_v2.3.2_x86_64_static.tgz && \
-#        mv impute_v2.3.2_x86_64_static/impute2 /usr/bin/impute2 && \
-#           mkdir /opt/impute2/example -p && \
-#                 mv impute_v2.3.2_x86_64_static/Example/* /opt/impute2/example && \
-#                    rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
-
-
-# Install PLINK2
-#RUN wget http://www.cog-genomics.org/static/bin/plink180221/plink_linux_x86_64.zip && \
-#    unzip plink_linux_x86_64.zip -d /usr/bin/ && \
-#    rm -f plink_linux_x86_64.zip
-
-
-#USER ubuntu
-######################################################################################
-
 ############################################################
 # Dockerfile to build Genotype imputation
 # Based on Ubuntu 16.04
 ############################################################
-## The command is docker run -v /cluster:/cluster -t -i impute:latest /usr/local/impute_v2.3.2_x86_64_static/impute2 -m /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.map -h /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.haps -l /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.legend -g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.reference.gens -strand_g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.study.strand -int 20.4e6 20.5e6 -Ne 20000
 
-# Choose a base system
+# Set the base image to Ubuntu
 FROM ubuntu:latest
 
 # File Author / Maintainer
 MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
+RUN groupadd -r impute2 && useradd -r -g impute2 impute2
 
-# Set up variables to get through UP proxy server
-# ENV http_proxy=http://137.215.6.50:8080
-
-# Change the Ubuntu repo to the ftp.up.ac.za site
+################## BEGIN INSTALLATION ######################
 
 # This isn't necessary, as the redirector should do this for us
 # RUN echo "deb ftp://ftp.up.ac.za/mirrors/ubuntu/ubuntu xenial main multiverse restricted universe" > /etc/apt/sources.list
 
+# Install Basic tools
+
 # Install wget
-RUN apt-get update && apt-get install -y wget && \
+RUN apt-get update && apt-get install -y wget unzip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install IMPUTE2
 RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
-l
+    tar -zxvf impute_v2.3.2_x86_64_static.tgz && \
+        mv impute_v2.3.2_x86_64_static/impute2 /usr/bin/impute2 && \
+           mkdir /opt/impute2/example -p && \
+                 mv impute_v2.3.2_x86_64_static/Example/* /opt/impute2/example && \
+                    rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
+
+# Install PLINK2
+RUN wget http://www.cog-genomics.org/static/bin/plink180221/plink_linux_x86_64.zip && \
+    unzip plink_linux_x86_64.zip -d /usr/bin/ && \
+    rm -f plink_linux_x86_64.zip
+
+# Run impute on the included sample data
+## The command is docker run -v /cluster:/cluster -t -i impute:latest /usr/local/impute_v2.3.2_x86_64_static/impute2 -m /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.map -h /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.haps -l /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.1kG.legend -g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.reference.gens -strand_g /usr/local/impute_v2.3.2_x86_64_static/Example/example.chr22.study.strand -int 20.4e6 20.5e6 -Ne 20000
+
+
+
+#USER ubuntu
