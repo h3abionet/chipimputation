@@ -41,4 +41,4 @@ RUN wget http://www.cog-genomics.org/static/bin/plink180221/plink_linux_x86_64.z
 
 USER ubuntu
 
-#
+##
