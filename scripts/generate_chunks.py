@@ -29,7 +29,7 @@ def chunk_split(map_file, output, chunk):
         for pos in myPos:
             start_ = pos
             end_ = start_ + chunk - 1
-            out.writelines(' '.join([str(chrm), str(start_), str(end_)])+'\n')
+            out.writelines(','.join([str(chrm), str(start_), str(end_)])+'\n')
     out.close()
 
 bimFile = sys.argv[1]
