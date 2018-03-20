@@ -1,6 +1,0 @@
-docker {
-       enabled = true
-       runOptions = -u 1000
-       engineOptions = -H :4000
-       fixOwnership = true
-};
