@@ -246,26 +246,6 @@ process qc_data_to_chrm {
         """
 }
 
-//qc_plink_to_chrm.into{ qc_plink_to_chrm; qc_plink_to_chrm_1}
-//process plink_to_vcf_chrm {
-//    tag "plink2vcf_${chromosome}"
-//    memory { 4.GB * task.attempt }
-//    publishDir "${params.output_dir}/VCF/${chromosome}", overwrite: true, mode:'symlink'
-//
-//    input:
-//        set val(chromosome), file(data_bed), file(data_bim), file(data_fam) from qc_plink_to_chrm_1
-//    output:
-//        set val(chromosome), file("${data_bed.baseName}.vcf.gz") into plink_to_chrm
-//    script:
-//        """
-//        plink2 --bfile ${data_bed.baseName} \
-//            --allow-no-sex \
-//            --keep-allele-order \
-//            --recode vcf \
-//            --out ${data_bed.baseName}
-//        bgzip -f ${data_bed.baseName}.vcf
-//    """
-//}
 
 qc_data_to_chrm.into{ qc_data_to_chrm; qc_data_to_chrm_1}
 generate_chunks.into{ generate_chunks; generate_chunks_1; generate_chunks_all }
