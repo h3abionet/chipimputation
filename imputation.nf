@@ -25,12 +25,6 @@ def helpMessage() {
     """.stripIndent()
 }
 
-// Show help emssage
-//if (params.help){
-//    helpMessage()
-//    exit 0
-//}
-
 // Check that Nextflow version is up to date enough
 // try / throw / catch works for NF versions < 0.25 when this was implemented
 nf_required_version = '0.25.0'
@@ -102,7 +96,6 @@ process check_chromosome {
     tag "check_chromosome_${bim_data.baseName}"
     memory { 8.GB * task.attempt }
     publishDir "${params.output_dir}", overwrite: true, mode:'symlink'
-
     input:
         file bim_data from bim_data_check
     output:
@@ -144,7 +137,7 @@ bim_data.into{ bim_data; bim_data_chunks }
 process generate_chunks {
     tag "generate_chunks_${bim_data.baseName}"
     memory { 8.GB * task.attempt }
-    publishDir "${params.output_dir}", overwrite: true, mode:'copy'
+    publishDir "${params.output_dir}/chunks", overwrite: true, mode:'copy'
 
     input:
         file bim_data from bim_data_chunks
@@ -159,75 +152,122 @@ process generate_chunks {
 
 
 """
-Plink bed/fam/bim per chromosomes
+Basic QC
 """
 bed_data.into{ bed_data; bed_data_plink }
 bim_data.into{ bim_data; bim_data_plink }
 fam_data.into{ fam_data; fam_data_plink }
 generate_chunks.into{ generate_chunks; generate_chunks_plink}
-process qc_plink_to_chrm {
-    tag "plink2chrm_${chromosome}"
-    memory { 4.GB * task.attempt }
-    // clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
-    publishDir "${params.output_dir}/qc/${chromosome}", overwrite: true, mode:'symlink'
-
+process qc_data {
+    tag "qc_data_${data_bed.baseName}"
+    memory { 40.GB * task.attempt }
+    publishDir "${params.output_dir}/QC", overwrite: true, mode:'copy'
     input:
-        each chromosome from chromosomes
         file data_bed from bed_data_plink
         file data_bim from bim_data_plink
         file data_fam from fam_data_plink
-        file chunkFile from generate_chunks_plink
     output:
-        set val(chromosome), file("${data_bed.baseName}.chr${chromosome}_clean.bed"), file("${data_bed.baseName}.chr${chromosome}_clean.bim"), file("${data_bed.baseName}.chr${chromosome}_clean.fam") into qc_plink_to_chrm
+        file("${base}_qc.vcf.gz") into qc_data
     script:
-        /*
-        1- Exclude samples with missing more than 5% of genotype calls
-        2- Remove duplicate sample (remove first)
-        */
+        base = "${data_bed.baseName}"
         """
-        plink2 --bfile ${data_bed.baseName} \
-            --chr ${chromosome} --allow-no-sex --make-bed \
-            --out ${data_bed.baseName}.chr${chromosome}
-        plink2 --bfile ${data_bed.baseName}.chr${chromosome} \
-            --mind ${params.cut_mind} --allow-no-sex --recode \
-            --out ${data_bed.baseName}.chr${chromosome}_clean_mind
-        plink2 --file ${data_bed.baseName}.chr${chromosome}_clean_mind \
+        #1- Exclude samples with missing more than 5% of genotype calls
+        plink2 --bfile ${base} \
+            --mind ${params.cut_mind} \
+            --geno ${params.cut_geno} \
+            --hwe ${params.cut_hwe} \
+            --allow-no-sex --recode \
+            --out ${base}_clean_mind
+        #2- Remove duplicate sample (remove first)
+        plink2 --file ${base}_clean_mind \
             --allow-no-sex --list-duplicate-vars ids-only suppress-first \
-            --out ${data_bed.baseName}.chr${chromosome}_clean_mind
-        plink2 --file ${data_bed.baseName}.chr${chromosome}_clean_mind \
+            --out ${base}_clean_mind
+        plink2 --file ${base}_clean_mind \
             --allow-no-sex \
             --set-missing-var-ids @:# \
-            --exclude ${data_bed.baseName}.chr${chromosome}_clean_mind.dupvar \
-            --make-bed --out ${data_bed.baseName}.chr${chromosome}_clean
-        rm -f ${data_bed.baseName}.chr${chromosome}.* \
-            ${data_bed.baseName}.chr${chromosome}_clean_mind.* \
-            ${data_bed.baseName}.chr${chromosome}_clean_mind.dupvar
-    """
-}
-
-qc_plink_to_chrm.into{ qc_plink_to_chrm; qc_plink_to_chrm_1}
-process plink_to_vcf_chrm {
-    tag "plink2vcf_${chromosome}"
-    memory { 4.GB * task.attempt }
-    // clusterOptions  "-l nodes=1:ppn=${task.cpus}:series600"
-    publishDir "${params.output_dir}/vcf/${chromosome}", overwrite: true, mode:'symlink'
-
-    input:
-        set val(chromosome), file(data_bed), file(data_bim), file(data_fam) from qc_plink_to_chrm_1
-    output:
-        set val(chromosome), file("${data_bed.baseName}.vcf.gz") into plink_to_chrm
-    script:
-        """
-        plink2 --bfile ${data_bed.baseName} \
-            --allow-no-sex \
             --keep-allele-order \
-            --recode vcf \
-            --out ${data_bed.baseName}
-        bgzip -f ${data_bed.baseName}.vcf
+            --exclude ${base}_clean_mind.dupvar \
+            --recode vcf --out ${base}_qc
+        bgzip -f ${base}_qc.vcf
+        rm -f ${base}.* \
+            ${base}_clean_mind.* \
+            ${base}_clean_mind.dupvar
     """
 }
 
-plink_to_chrm.into{ plink_to_chrm; plink_to_chrm_1}
+"""
+Generate sample file from fam
+"""
+qc_data.into{ qc_data; qc_data_2}
+process sample_from_fam {
+    tag "sample_from_fam_${base}"
+    memory { 2.GB * task.attempt }
+    publishDir "${params.output_dir}/samples", overwrite: true, mode:'copy'
+    input:
+        file(vcf) from qc_data_2
+    output:
+        file("${base}.sample") into sample_from_fam
+    script:
+        base = "${file(vcf.baseName).baseName}"
+        """
+        plink2 --vcf ${vcf} \
+            --allow-no-sex \
+            --make-bed --out ${base}
+        echo "ID_1\tID_2\tmissing\n0\t0\t0" > ${base}.sample
+        awk '{print \$2"\t"\$2"\t"0}' ${base}.fam  >> ${base}.sample
+        rm -f ${base}.fam ${base}.bim ${base}.bed ${base}.log
+        """
+}
+
+
+"""
+Split vcf data in chromosomes
+"""
+qc_data.into{ qc_data; qc_data_1 }
+generate_chunks.into{ generate_chunks; generate_chunks_plink}
+process qc_data_to_chrm {
+    tag "vcf2chrm_${chromosome}_${base}"
+    memory { 4.GB * task.attempt }
+    publishDir "${params.output_dir}/QC/${chromosome}", overwrite: true, mode:'symlink'
+    input:
+        each chromosome from chromosomes
+        file(data_vcf) from qc_data_1
+    output:
+        set val(chromosome), file("${base}.chr${chromosome}.vcf.gz") into qc_data_to_chrm
+    script:
+        base = "${file(data_vcf.baseName).baseName}"
+        """
+        #1- Exclude samples with missing more than 5% of genotype calls
+        plink2 --vcf ${data_vcf} \
+            --chr ${chromosome} --allow-no-sex \
+            --keep-allele-order \
+            --recode vcf --out ${base}.chr${chromosome}
+        bgzip -f ${base}.chr${chromosome}.vcf
+        """
+}
+
+//qc_plink_to_chrm.into{ qc_plink_to_chrm; qc_plink_to_chrm_1}
+//process plink_to_vcf_chrm {
+//    tag "plink2vcf_${chromosome}"
+//    memory { 4.GB * task.attempt }
+//    publishDir "${params.output_dir}/VCF/${chromosome}", overwrite: true, mode:'symlink'
+//
+//    input:
+//        set val(chromosome), file(data_bed), file(data_bim), file(data_fam) from qc_plink_to_chrm_1
+//    output:
+//        set val(chromosome), file("${data_bed.baseName}.vcf.gz") into plink_to_chrm
+//    script:
+//        """
+//        plink2 --bfile ${data_bed.baseName} \
+//            --allow-no-sex \
+//            --keep-allele-order \
+//            --recode vcf \
+//            --out ${data_bed.baseName}
+//        bgzip -f ${data_bed.baseName}.vcf
+//    """
+//}
+
+qc_data_to_chrm.into{ qc_data_to_chrm; qc_data_to_chrm_1}
 generate_chunks.into{ generate_chunks; generate_chunks_1; generate_chunks_all }
 all_chunks = generate_chunks_1.toSortedList().val
 
@@ -247,7 +287,7 @@ def transform_chunk = { chrm, vcfFile ->
     }
     return chunks_datas
 }
-chunk_vcfFile = plink_to_chrm_1
+chunk_vcfFile = qc_data_to_chrm_1
         .flatMap{ it -> transform_chunk(it) }
 
 chunk_vcfFile.into{ chunk_vcfFile; chunk_vcfFile_1}
@@ -278,10 +318,11 @@ chunk_vcf_data.into{ chunk_vcf_data; chunk_vcf_data_1 }
 process phase_data {
     tag "prephase_${chromosome}_${chunk_start}_${chunk_end}"
     memory { 8.GB * task.attempt }
+    publishDir "${params.output_dir}/PHASED/${chromosome}", overwrite: true, mode:'symlink'
     input:
         set chromosome, chunk_start, chunk_end, file(vcfFile) from chunk_vcf_data
     output:
-        set chromosome, chunk_start, chunk_end, file("${file_out}.haps.gz"), file("${file_out}.sample") into phase_data
+        set chromosome, chunk_start, chunk_end, file("${file_out}.haps.gz"), file("${file_out}.sample"), file(vcfFile) into phase_data
     script:
         file_out = "${file(vcfFile.baseName).baseName}.phased"
         """
@@ -299,6 +340,7 @@ process phase_data {
                 --chrom=${chromosome} \
                 --genoErrProb 0.003 --pbwtOnly \
                 --allowRefAltSwap \
+                --maxMissingPerIndiv 1 \
                 --outPrefix=${file_out} 2>&1 | tee ${file_out}.log
             if [ ! -f "${file_out}.haps.gz" ]; then
                 touch ${file_out}.haps && bgzip -f ${file_out}.haps
@@ -313,13 +355,13 @@ process phase_data {
 }
 
 phase_data.into{ phase_data; phase_data_1; phase_data_2 }
-def combine_chunk_data_with_ref = { chromosome, chunk_start, chunk_end, study_haps, study_sample ->
+def combine_chunk_data_with_ref = { chromosome, chunk_start, chunk_end, study_haps, study_sample, study_vcf ->
     res = []
     ref_hapFile     = file( sprintf(params.ref_1.hapFile, chromosome) )
     ref_legendFile  = file( sprintf(params.ref_1.legendFile, chromosome) )
     ref_mapFile     = file( sprintf(params.ref_1.mapFile, chromosome) )
     ref_sampleFile  = file( params.ref_1.sampleFile )
-    res << [chromosome, chunk_start, chunk_end, study_haps, study_sample, ref_hapFile, ref_legendFile, ref_mapFile, ref_sampleFile]
+    res << [chromosome, chunk_start, chunk_end, study_haps, study_sample, study_vcf, ref_hapFile, ref_legendFile, ref_mapFile, ref_sampleFile]
     return res
 }
 def combine_chunk_data_with_2refs = { chrm, chunk_start, chunk_end, study_haps, study_sample ->
@@ -332,7 +374,7 @@ def combine_chunk_data_with_2refs = { chrm, chunk_start, chunk_end, study_haps, 
     ref_2_legendFile = file(sprintf(params.ref_2.legendFile, chrm))
     ref_2_mapFile = file(sprintf(params.ref_2.mapFile, chrm))
     ref_2_sampleFile = file(params.ref_2.sampleFile)
-    res << [chrm, chunk_start, chunk_end, study_haps, study_sample, ref_1_hapFile, ref_1_legendFile, ref_2_mapFile, ref_1_sampleFile, ref_2_hapFile, ref_2_legendFile, ref_2_sampleFile]
+    res << [chrm, chunk_start, chunk_end, study_haps, study_sample, study_vcf, ref_1_hapFile, ref_1_legendFile, ref_2_mapFile, ref_1_sampleFile, ref_2_hapFile, ref_2_legendFile, ref_2_sampleFile]
     return res
 }
 if ( params.ref_1.name != null){
@@ -352,7 +394,7 @@ if ( params.ref_1.name != null){
             time { 10.h * task.attempt }
             publishDir "${params.impute_result}/cross_impute_${params.ref_1.name}_${params.ref_2.name}/${chromosome}", overwrite: true, mode: 'symlink'
             input:
-                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(ref_1_hapFile), file(ref_1_legendFile), file(ref_2_mapFile), file(ref_1_sampleFile), file(ref_2_hapFile), file(ref_2_legendFile), file(ref_2_sampleFile) from cross_refs_data
+                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(study_vcf), file(ref_1_hapFile), file(ref_1_legendFile), file(ref_2_mapFile), file(ref_1_sampleFile), file(ref_2_hapFile), file(ref_2_legendFile), file(ref_2_sampleFile) from cross_refs_data
             output:
                 set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(haps_file), file(legend_file), file(ref_2_mapFile), file(sample_file) into cross_impute_2refs
             shell:
@@ -387,15 +429,23 @@ if ( params.ref_1.name != null){
                 tail -q -n +2 ${ref_1_sampleFile} ${ref_2_sampleFile} >> ${sample_file}
                 rm -f ${ref_1_hapFile.baseName} ${ref_2_hapFile.baseName} ${ref_1_legendFile.baseName} ${ref_2_legendFile.baseName}
                 ## Sometimes there are no (type2) SNP's in a region
-                if [ ! -f "${outfile}.hap.gz" ]; then
-                    if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}_summary || \
-                        grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}_summary || \
-                        grep 'There are no SNPs in the imputation interval' ${outfile}_summary; then
-                        touch ${outfile}.hap
-                        bgzip -f ${outfile}.hap.gz
-                        touch ${outfile}.legend
-                        bgzip -f ${outfile}.legend.gz
-                        touch ${outfile}.sample
+                if [ ! -f "${haps_file}" ]; then
+                    nblines=\$(zcat ${study_vcf} | grep -v '^#' | wc -l)
+                    if (( \$nblines >= 1 )); then
+                        bcftools convert -gensample \
+                            ${study_vcf} \
+                            -Oz -o ${file(study_vcf.baseName).baseName}.gen.gz
+                        cp ${file(study_vcf.baseName).baseName}.gen.gz 
+                    else
+                        if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}_summary || \
+                            grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}_summary || \
+                            grep 'There are no SNPs in the imputation interval' ${outfile}_summary; then
+                            touch ${outfile}.hap
+                            bgzip -f ${outfile}.hap
+                            touch ${outfile}.legend
+                            bgzip -f ${outfile}.legend
+                            touch ${outfile}.sample
+                        fi
                     fi
                 fi
                 """
@@ -404,14 +454,14 @@ if ( params.ref_1.name != null){
     }
     process impute {
         tag "imp_${chromosome}_${chunkStart}-${chunkEnd}"
-        memory { 6.GB * task.attempt }
+        memory { 8.GB * task.attempt }
         publishDir "${params.impute_result}/impute/${chromosome}", overwrite: true, mode:'symlink'
         input:
-            set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(ref_hapFile), file(ref_legendFile), file(ref_mapFile), file(ref_sampleFile) from chunk_prephased
+            set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(study_vcf), file(ref_hapFile), file(ref_legendFile), file(ref_mapFile), file(ref_sampleFile) from chunk_prephased
         output:
-            set val(chromosome), file("${outfile}.imputed.gz"), file("${outfile}.imputed_haps.gz"), file("${outfile}.imputed_info"), file("${outfile}.imputed_summary") into impute_all
+            set val(chromosome), val(chunkStart), val(chunkEnd), file("${outfile}.imputed.gz"), file("${outfile}.imputed_info"), file("${outfile}.imputed_summary"), file(study_vcf), file(study_sample) into impute_all
         shell:
-            outfile = "${study_haps.baseName}_${chunkStart}-${chunkEnd}"
+            outfile = "${file(study_haps.baseName).baseName}"
             """
             impute2 \
                 -use_prephased_g \
@@ -421,8 +471,8 @@ if ( params.ref_1.name != null){
                 -m ${ref_mapFile}  \
                 -int ${chunkStart} ${chunkEnd} \
                 -Ne 15000 \
-                -buffer ${params.chunk_size.toInteger()/2} \
-                -phase \
+                -buffer 250 \
+                -align_by_maf_g \
                 -o_gz \
                 -o ${outfile}.imputed || true
 
@@ -430,12 +480,21 @@ if ( params.ref_1.name != null){
             if [ ! -f "${outfile}.imputed.gz" ]; then
                 if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}.imputed_summary || \
                     grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}.imputed_summary || \
-                    grep 'There are no SNPs in the imputation interval' ${outfile}.imputed_summary; then
-                    touch ${outfile}.imputed
-                    bgzip -f ${outfile}.imputed
-                    touch ${outfile}.imputed_haps
-                    bgzip -f ${outfile}.imputed_haps
-                    touch ${outfile}.imputed_info
+                    grep 'There are no SNPs in the imputation interval' ${outfile}.imputed_summary; 
+                    then
+                    nblines=\$(zcat ${study_vcf} | grep -v '^#' | wc -l)
+                    if (( \$nblines >= 1 )); then
+                        bcftools convert -gensample \
+                            ${study_vcf} \
+                            --chrom \
+                            -Oz -o ${file(study_vcf.baseName).baseName}
+                        mv ${file(study_vcf.baseName).baseName}.gen.gz ${outfile}.imputed.gz
+                        touch ${outfile}.imputed_info
+                    else
+                        touch ${outfile}.imputed
+                        bgzip -f ${outfile}.imputed
+                        touch ${outfile}.imputed_info
+                    fi
                 fi
             fi
             """
@@ -452,7 +511,7 @@ impute_all.into{impute_all; impute__imputeCombine_cha}
 imputeCombine_impute = []
 imputeCombine_info = []
 impute__imputeCombine_cha_list = impute__imputeCombine_cha.toSortedList().val
-impute__imputeCombine_cha_list.each{ chromosome, impute, haps, info, summary ->
+impute__imputeCombine_cha_list.each{ chromosome, chunkStart, chunkEnd, impute, info, summary, study_vcf, study_sample ->
     imputeCombine_impute << [chromosome, impute]
     imputeCombine_info << [chromosome, info]
 }
@@ -464,6 +523,9 @@ imputeCombine_info_cha = Channel
         .from(imputeCombine_info)
         .groupTuple()
 
+"""
+Combine impute chunks to chromosomes
+"""
 process imputeCombine {
     tag "impComb_chr${chromosome}"
     memory { 2.GB * task.attempt }
@@ -479,32 +541,42 @@ process imputeCombine {
         comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
         """
         zcat ${imputed_files.join(' ')} | bgzip -c > ${comb_impute}
-        head -n 1 ${info_files[0]} > ${comb_info}
-        tail -q -n +2 ${info_files.join(' ')}>> ${comb_info}
+        echo "snp_id rs_id position a0 a1 exp_freq_a1 info certainty type info_type0 concord_type0 r2_type0" > ${comb_info}
+        tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
         """
 }
 
 
+"""
+Convert chromosome impute files to VCF files
+"""
 imputeCombine.into { imputeCombine; imputeCombine_1 }
-process imputeToPlink {
-    tag "toPlink_chr${chromosome}"
+process imputeToVCF {
+    tag "toVCF_chr${chromosome}"
     memory { 2.GB * task.attempt }
-    publishDir "${params.impute_result}/plink", overwrite: true, mode:'copy'
+    publishDir "${params.impute_result}/FINAL_VCF", overwrite: true, mode:'copy'
     input:
         set chromosome, file(chromosome_imputed_gz) from imputeCombine_1
-        set chrom, chunk_start, chunk_end, file(prephased_haps), file(prephased_sample) from phase_data_2
+        file study_sample from sample_from_fam
     output:
-        set chromosome, file("${chromosome_imputed_gz.baseName}.bed"), file("${chromosome_imputed_gz.baseName}.bim"), file("${chromosome_imputed_gz.baseName}.fam") into imputeToPlink
+        set chromosome, file("${base}.vcf.gz"), file("${base}.vcf.gz.tbi"), file(study_sample) into imputeToVCF
     script:
+        base = chromosome_imputed_gz.baseName
         """
-        gunzip -c ${chromosome_imputed_gz} > ${chromosome_imputed_gz.baseName}
+        gunzip -c ${chromosome_imputed_gz} > ${base}.haps
         plink2 \
-            --gen ${chromosome_imputed_gz.baseName} \
-            --sample ${prephased_sample} \
+            --gen ${base}.haps \
+            --sample ${study_sample} \
             --oxford-single-chr ${chromosome} \
             --hard-call-threshold 0.1 \
-            --make-bed --out ${chromosome_imputed_gz.baseName} || true
-        rm -f ${chromosome_imputed_gz.baseName}
+            --mind ${params.cut_mind} \
+            --geno ${params.cut_geno} \
+            --hwe ${params.cut_hwe} \
+            --recode vcf --out ${base}.temp || true
+        bgzip -f ${base}.temp.vcf
+        bcftools sort ${base}.temp.vcf.gz -Oz -o ${base}.vcf.gz
+        bcftools index --tbi ${base}.vcf.gz
+        rm -f ${base}.haps *temp*
         """
 }
 
@@ -544,7 +616,7 @@ process filter_info {
 
 
 """
-Report 1: Well imputed
+Report 1: Report Well imputed (info > 0.8)
 """
 info_Well.into{ info_Well; info_Well_1}
 process report_well_imputed {
@@ -569,7 +641,7 @@ process report_well_imputed {
 
 
 """
-Repor 2: Accuracy
+Repor 2: Accuracy (Concordance)
 """
 info_Acc.into{ info_Acc; info_Acc_2}
 process report_SNP_acc {
