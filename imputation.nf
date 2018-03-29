@@ -332,6 +332,9 @@ process phase_data {
 }
 
 
+"""
+Impute with one (ref1) or two reference panels (ref1 and ref2) according to the configuration files
+"""
 phase_data.into{ phase_data; phase_data_1; phase_data_2 }
 def combine_chunk_data_with_ref = { chromosome, chunk_start, chunk_end, study_haps, study_sample, study_vcf ->
     res = []
