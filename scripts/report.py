@@ -95,7 +95,10 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed):
                     datas[dataset]['1_5'].append(maf)
     for dataset in sorted(datas):
         tot = datas[dataset]['total']
-        outWell_imputed_out.writelines('\t'.join([dataset, str(format(len(datas[dataset]['5'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['5']) * 100/tot)+'%)', str(format(len(datas[dataset]['1'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['1']) * 100/tot)+'%)', str(format(len(datas[dataset]['1_5'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['1_5']) * 100/tot)+'%)', str(format(tot, '0,.0f'))])+'\n')
+        if tot == 0:
+            outWell_imputed_out.write("dataset {} is empty (tot=0)".format(dataset))
+        else:
+            outWell_imputed_out.writelines('\t'.join([dataset, str(format(len(datas[dataset]['5'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['5']) * 100/tot)+'%)', str(format(len(datas[dataset]['1'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['1']) * 100/tot)+'%)', str(format(len(datas[dataset]['1_5'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['1_5']) * 100/tot)+'%)', str(format(tot, '0,.0f'))])+'\n')
     outWell_imputed_out.close()
 
 def acc_by_maf(inSNP_acc, outSNP_acc):
@@ -135,7 +138,10 @@ def acc_by_maf(inSNP_acc, outSNP_acc):
     for dataset in sorted(datas):
         tot = datas[dataset]['total']
         print tot
-        outSNP_acc_out.writelines('\t'.join([dataset, str(format(sum(datas[dataset]['5'])/float(len(datas[dataset]['5'])), '0,.3f')), str(format(sum(datas[dataset]['1'])/float(len(datas[dataset]['1'])), '0,.3f')), str(format(sum(datas[dataset]['1_5'])/float(len(datas[dataset]['1_5'])), '0,.3f')), str(format(tot, '0,.0f'))])+'\n')
+        if tot == 0:
+            outSNP_acc_out.write("dataset {} is empty (tot=0)".format(dataset))
+        else:
+            outSNP_acc_out.writelines('\t'.join([dataset, str(format(sum(datas[dataset]['5'])/float(len(datas[dataset]['5'])), '0,.3f')), str(format(sum(datas[dataset]['1'])/float(len(datas[dataset]['1'])), '0,.3f')), str(format(sum(datas[dataset]['1_5'])/float(len(datas[dataset]['1_5'])), '0,.3f')), str(format(tot, '0,.0f'))])+'\n')
     outSNP_acc_out.close()
 
 
@@ -213,7 +219,6 @@ def ld_by_maf(ldFiles, report_ld, inWell_imputed, infoCutoff):
         # print len(datas[dataset]['ALL']), tot
         report_ld_out.writelines('\t'.join([dataset, str(format(datas[dataset]['5']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['5'] * 100/tot)+'%)', str(format(datas[dataset]['1']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['1'] * 100/tot)+'%)', str(format(datas[dataset]['1_5']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['1_5'] * 100/tot)+'%)', str(format(tot, '0,.0f'))])+'\n')
     report_ld_out.close()
-
 
 if args.infoFiles and args.infoCutoff:
     filter_info(args.infoFiles, args.infoCutoff, args.outWell_imputed, args.outSNP_acc)

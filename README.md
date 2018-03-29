@@ -1,19 +1,41 @@
 # Imputation Workflow
 
-This repo contains the workflow which is being developed as part of
-the H3 Africa BioNet Hackathon in Pretoria, SA.
+This repo contains the workflow which was developed as part of
+the H3ABioNet Hackathon held in Pretoria, SA in 2016. We track our open tasks using github's [issues](
+https://github.com/h3abionet/chipimputation/issues). The 1000ft view is located on
+[our Trello board](https://trello.com/b/Dp08chq7/stream-d-imputation-and-phasing).
 
-![Workflow Diagram](workflow_diagram.png)
+[//]: # ( -- this is how you make a markdown comment )
+[//]: # ( TODO: update workflow diagram )
+[//]: # (![Workflow Diagram](workflow_diagram.png))
 
-# Open tasks
+## Setup
 
-We're tracking our open tasks using github's issues:
-https://github.com/h3abionet/chipimputation/issues
+#### Headnode
+  - [Nextflow](https://www.nextflow.io/) (can be installed as local user)
+   - Note that we've experienced problems running Nextflow with it's NXF_HOME on an NFS mount.
+   - NXF_HOME needs to be set to this
+   - NXF_HOME needs to be in the PATH
+  - Java 1.8+
 
-The 1000ft view is located on
-[our trello board](https://trello.com/b/Dp08chq7/stream-d-imputation-and-phasing).
+#### Compute nodes
+- access to shared storage for input, references, results
+- Impute2
+- PLINK 1.9+
+- vcftools
+- Eagle
 
-# Using this imputation workflow
+## Getting started
+ 1. Clone the repo
+ 2. Run the test imputation
+```
+nextflow run imputation.nf -C imputation_nf.test.config
+```
+ 3. check for results in `outfolder`
+
+----
+
+# Using this imputation workflow (on Openstack)
 
 To utilize this workflow, you will have to follow the following
 process:
@@ -74,7 +96,7 @@ the configuration node just created by running
      rm -f 1000GP_Phase3{,_chrX}.tgz;
      mv *chrX* 100GP_Phase3/;
     );
-    
+
 If you are using another directory location, you will need to change
 the paths located above and the nextflow configuration file
 appropriately.
