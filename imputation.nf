@@ -415,7 +415,7 @@ if ( params.ref_1.name != null){
                         bcftools convert -gensample \
                             ${study_vcf} \
                             -Oz -o ${file(study_vcf.baseName).baseName}.gen.gz
-                        cp ${file(study_vcf.baseName).baseName}.gen.gz 
+                        cp ${file(study_vcf.baseName).baseName}.gen.gz
                     else
                         if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}_summary || \
                             grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}_summary || \
@@ -459,7 +459,7 @@ if ( params.ref_1.name != null){
             if [ ! -f "${outfile}.imputed.gz" ]; then
                 if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}.imputed_summary || \
                     grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}.imputed_summary || \
-                    grep 'There are no SNPs in the imputation interval' ${outfile}.imputed_summary; 
+                    grep 'There are no SNPs in the imputation interval' ${outfile}.imputed_summary;
                     then
                     nblines=\$(zcat ${study_vcf} | grep -v '^#' | wc -l)
                     if (( \$nblines >= 1 )); then
@@ -523,16 +523,16 @@ process imputeCombine {
 """
 Combine impute info chunks to chromosomes
 """
-process imputeCombine {
-    tag "impComb_chr${chromosome}"
+process infoCombine {
+    tag "infoComb_chr${chromo}"
     memory { 2.GB * task.attempt }
     publishDir "${params.impute_result}/INFOS", overwrite: true, mode:'copy'
     input:
         set chromo, file(info_files) from imputeCombine_info_cha
     output:
-        set chromosome, file(comb_info) into infoCombine
+        set chromo, file(comb_info) into infoCombine
     script:
-        comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
+        comb_info = "${file(params.bedFile).getBaseName()}_chr${chromo}.imputed_info"
         """
         echo "snp_id rs_id position a0 a1 exp_freq_a1 info certainty type info_type0 concord_type0 r2_type0" > ${comb_info}
         tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
