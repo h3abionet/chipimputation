@@ -137,8 +137,6 @@ bim_data.into{ bim_data; bim_data_chunks }
 process generate_chunks {
     tag "generate_chunks_${bim_data.baseName}"
     memory { 8.GB * task.attempt }
-    publishDir "${params.output_dir}/chunks", overwrite: true, mode:'copy'
-
     input:
         file bim_data from bim_data_chunks
     output:
@@ -161,7 +159,6 @@ generate_chunks.into{ generate_chunks; generate_chunks_plink}
 process qc_data {
     tag "qc_data_${data_bed.baseName}"
     memory { 40.GB * task.attempt }
-    publishDir "${params.output_dir}/QC", overwrite: true, mode:'copy'
     input:
         file data_bed from bed_data_plink
         file data_bim from bim_data_plink
@@ -186,6 +183,7 @@ process qc_data {
             --allow-no-sex \
             --set-missing-var-ids @:# \
             --keep-allele-order \
+            --double-id \
             --exclude ${base}_clean_mind.dupvar \
             --recode vcf --out ${base}_qc
         bgzip -f ${base}_qc.vcf
@@ -202,7 +200,6 @@ qc_data.into{ qc_data; qc_data_2}
 process sample_from_fam {
     tag "sample_from_fam_${base}"
     memory { 2.GB * task.attempt }
-    publishDir "${params.output_dir}/samples", overwrite: true, mode:'copy'
     input:
         file(vcf) from qc_data_2
     output:
@@ -212,6 +209,7 @@ process sample_from_fam {
         """
         plink2 --vcf ${vcf} \
             --allow-no-sex \
+            --double-id \
             --make-bed --out ${base}
         echo "ID_1\tID_2\tmissing\n0\t0\t0" > ${base}.sample
         awk '{print \$2"\t"\$2"\t"0}' ${base}.fam  >> ${base}.sample
@@ -228,7 +226,6 @@ generate_chunks.into{ generate_chunks; generate_chunks_plink}
 process qc_data_to_chrm {
     tag "vcf2chrm_${chromosome}_${base}"
     memory { 4.GB * task.attempt }
-    publishDir "${params.output_dir}/QC/${chromosome}", overwrite: true, mode:'symlink'
     input:
         each chromosome from chromosomes
         file(data_vcf) from qc_data_1
@@ -241,6 +238,7 @@ process qc_data_to_chrm {
         plink2 --vcf ${data_vcf} \
             --chr ${chromosome} --allow-no-sex \
             --keep-allele-order \
+            --double-id \
             --recode vcf --out ${base}.chr${chromosome}
         bgzip -f ${base}.chr${chromosome}.vcf
         """
@@ -298,7 +296,6 @@ chunk_vcf_data.into{ chunk_vcf_data; chunk_vcf_data_1 }
 process phase_data {
     tag "prephase_${chromosome}_${chunk_start}_${chunk_end}"
     memory { 8.GB * task.attempt }
-    publishDir "${params.output_dir}/PHASED/${chromosome}", overwrite: true, mode:'symlink'
     input:
         set chromosome, chunk_start, chunk_end, file(vcfFile) from chunk_vcf_data
     output:
@@ -335,6 +332,9 @@ process phase_data {
 }
 
 
+"""
+Impute with one (ref1) or two reference panels (ref1 and ref2) according to the configuration files
+"""
 phase_data.into{ phase_data; phase_data_1; phase_data_2 }
 def combine_chunk_data_with_ref = { chromosome, chunk_start, chunk_end, study_haps, study_sample, study_vcf ->
     res = []
@@ -373,7 +373,6 @@ if ( params.ref_1.name != null){
             tag "cross_impute_2refs_chr${chromosome}_${chunkStart}-${chunkEnd}_${params.ref_1.name}_${params.ref_2.name}"
             memory { 15.GB * task.attempt }
             time { 10.h * task.attempt }
-            publishDir "${params.impute_result}/cross_impute_${params.ref_1.name}_${params.ref_2.name}/${chromosome}", overwrite: true, mode: 'symlink'
             input:
                 set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(study_vcf), file(ref_1_hapFile), file(ref_1_legendFile), file(ref_2_mapFile), file(ref_1_sampleFile), file(ref_2_hapFile), file(ref_2_legendFile), file(ref_2_sampleFile) from cross_refs_data
             output:
@@ -436,7 +435,6 @@ if ( params.ref_1.name != null){
     process impute {
         tag "imp_${chromosome}_${chunkStart}-${chunkEnd}"
         memory { 8.GB * task.attempt }
-        publishDir "${params.impute_result}/impute/${chromosome}", overwrite: true, mode:'symlink'
         input:
             set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(study_vcf), file(ref_hapFile), file(ref_legendFile), file(ref_mapFile), file(ref_sampleFile) from chunk_prephased
         output:
@@ -510,18 +508,32 @@ Combine impute chunks to chromosomes
 process imputeCombine {
     tag "impComb_chr${chromosome}"
     memory { 2.GB * task.attempt }
-    publishDir "${params.impute_result}/combined", overwrite: true, mode:'copy'
     input:
         set chromosome, file(imputed_files) from imputeCombine_impute_cha
-        set chromo, file(info_files) from imputeCombine_info_cha
     output:
         set chromosome, file(comb_impute) into imputeCombine
-        set chromosome, file(comb_info) into infoCombine
     script:
         comb_impute = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed.gz"
-        comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
         """
         zcat ${imputed_files.join(' ')} | bgzip -c > ${comb_impute}
+        """
+}
+
+
+"""
+Combine impute info chunks to chromosomes
+"""
+process imputeCombine {
+    tag "impComb_chr${chromosome}"
+    memory { 2.GB * task.attempt }
+    publishDir "${params.impute_result}/INFOS", overwrite: true, mode:'copy'
+    input:
+        set chromo, file(info_files) from imputeCombine_info_cha
+    output:
+        set chromosome, file(comb_info) into infoCombine
+    script:
+        comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
+        """
         echo "snp_id rs_id position a0 a1 exp_freq_a1 info certainty type info_type0 concord_type0 r2_type0" > ${comb_info}
         tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
         """
@@ -535,7 +547,7 @@ imputeCombine.into { imputeCombine; imputeCombine_1 }
 process imputeToVCF {
     tag "toVCF_chr${chromosome}"
     memory { 2.GB * task.attempt }
-    publishDir "${params.impute_result}/FINAL_VCF", overwrite: true, mode:'copy'
+    publishDir "${params.impute_result}/FINAL_VCFS", overwrite: true, mode:'copy'
     input:
         set chromosome, file(chromosome_imputed_gz) from imputeCombine_1
         file study_sample from sample_from_fam
