@@ -138,12 +138,24 @@ def acc_by_maf(inSNP_acc, outSNP_acc):
     for dataset in sorted(datas):
         tot = datas[dataset]['total']
         print tot
-        if tot == 0:
-            outSNP_acc_out.write("dataset {} is empty (tot=0)".format(dataset))
-        else:
-            outSNP_acc_out.writelines('\t'.join([dataset, str(format(sum(datas[dataset]['5'])/float(len(datas[dataset]['5'])), '0,.3f')), str(format(sum(datas[dataset]['1'])/float(len(datas[dataset]['1'])), '0,.3f')), str(format(sum(datas[dataset]['1_5'])/float(len(datas[dataset]['1_5'])), '0,.3f')), str(format(tot, '0,.0f'))])+'\n')
-    outSNP_acc_out.close()
 
+        if len(datas[dataset]['5'])==0:
+            maf_5 = 0.0
+        else:
+            maf_5 = sum(datas[dataset]['5'])/float(len(datas[dataset]['5']))
+        if len(datas[dataset]['1'])==0:
+            maf_1 = 0.0
+        else:
+            maf_1 = sum(datas[dataset]['1'])/float(len(datas[dataset]['1']))
+        if len(datas[dataset]['1_5'])==0:
+            maf_1_5 = 0.0
+        else:
+            maf_1_5 = sum(datas[dataset]['1_5'])/float(len(datas[dataset]['1_5']))
+
+        outSNP_acc_out.write("{0:.3f}\t{0:.3f}\t{0:.3f}\n".format(maf_5,maf_1, maf_1_5))
+        #outSNP_acc_out.writelines('\t'.join([dataset, str(format(maf_5), '0,.3f')), str(format(maf_1), '0,.3f')), str(format(maf_1_5), '0,.3f')), str(format(tot, '0,.0f'))])+'\n')
+
+    outSNP_acc_out.close()
 
 def ld_by_maf(ldFiles, report_ld, inWell_imputed, infoCutoff):
     """
@@ -217,7 +229,10 @@ def ld_by_maf(ldFiles, report_ld, inWell_imputed, infoCutoff):
         tot = datas[dataset]['total']
         # tot = len(datas[dataset]['ALL'])
         # print len(datas[dataset]['ALL']), tot
-        report_ld_out.writelines('\t'.join([dataset, str(format(datas[dataset]['5']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['5'] * 100/tot)+'%)', str(format(datas[dataset]['1']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['1'] * 100/tot)+'%)', str(format(datas[dataset]['1_5']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['1_5'] * 100/tot)+'%)', str(format(tot, '0,.0f'))])+'\n')
+        if tot == 0:
+            report_ld_out.write("dataset {} is empty (tot=0)".format(dataset))
+        else:
+            report_ld_out.writelines('\t'.join([dataset, str(format(datas[dataset]['5']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['5'] * 100/tot)+'%)', str(format(datas[dataset]['1']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['1'] * 100/tot)+'%)', str(format(datas[dataset]['1_5']/1000000., '0,.1f'))+'M ('+str(datas[dataset]['1_5'] * 100/tot)+'%)', str(format(tot, '0,.0f'))])+'\n')
     report_ld_out.close()
 
 if args.infoFiles and args.infoCutoff:
