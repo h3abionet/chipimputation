@@ -8,3 +8,6 @@ testrun.sh
 logs/*
 README.old.md
 .Trash*
+sample/old/*
+sample/small/*
+sample/min_YRI
