@@ -11,11 +11,18 @@ MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
 
 
 ################## BEGIN INSTALLATION ######################
-
 # Install Basic tools
 
 # Install wget
-RUN apt-get update && apt-get install -y build-essential wget unzip git pkg-config autoconf zlib1g-dev libncurses5-dev && \
+RUN apt-get update && apt-get install -y \
+      autoconf \
+      build-essential \
+      git \
+      libncurses5-dev \
+      pkg-config \
+      unzip \
+      wget \
+      zlib1g-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -28,7 +35,7 @@ RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz &&
                     rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
 
 # Install PLINK2
-RUN wget http://www.cog-genomics.org/static/bin/plink180221/plink_linux_x86_64.zip && \
+RUN wget http://www.cog-genomics.org/static/bin/plink180410/plink_linux_x86_64.zip && \
     unzip plink_linux_x86_64.zip -d /usr/local/bin/ && \
     rm -f plink_linux_x86_64.zip
 
@@ -38,7 +45,7 @@ RUN git clone https://github.com/vcftools/vcftools.git  && \
     cd vcftools && \
     ./autogen.sh && \
     ./configure && \
-    make && \
+    make -j && \
     make install && \
     cd .. && rm -rf vcftools
 
@@ -48,3 +55,10 @@ RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.t
     tar xvf Eagle_v2.4.tar && \
     mv Eagle_v2.4/eagle /usr/local/bin/ && \
     rm -rf Eagle_v2.4
+
+RUN useradd --create-home --shell /bin/bash ubuntu && \
+  chown -R ubuntu:ubuntu /home/ubuntu
+
+USER ubuntu
+
+CMD ["/bin/bash","-i"]
