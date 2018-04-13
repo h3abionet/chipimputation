@@ -17,11 +17,11 @@ the H3ABioNet Hackathon held in Pretoria, SA in 2016.
 #### Compute nodes
 - The compute nodes need access to shared storage for input, references, output
 - The following executables should be available in PATH
- - [IMPUTE2](http://mathgen.stats.ox.ac.uk/impute/impute_v2.html) as `impute2`
- - [PLINK 1.9+](https://www.cog-genomics.org/plink2) as `plink2`
- - [VCFtools](https://vcftools.github.io/index.html) as `vcftools`
- - [BCFtools](https://samtools.github.io/bcftools/bcftools.html) as `bcftools`
- - [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/) as `eagle`
+  - [IMPUTE2](http://mathgen.stats.ox.ac.uk/impute/impute_v2.html) as `impute2`
+  - [PLINK 1.9+](https://www.cog-genomics.org/plink2) as `plink2`
+  - [VCFtools](https://vcftools.github.io/index.html) as `vcftools`
+  - [BCFtools](https://samtools.github.io/bcftools/bcftools.html) as `bcftools`
+  - [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/) as `eagle`
 
 ## Getting started
  1. Clone the repo
