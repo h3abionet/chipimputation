@@ -168,14 +168,17 @@ process qc_data {
     script:
         base = "${data_bed.baseName}"
         """
-        #1- Exclude samples with missing more than 5% of genotype calls
+        # 1. Filter
+        #   - Missingness per individual > ${params.cut_mind}
+        #   - Missingness per marker > ${params.cut_geno}
+        #   - Hardy-Weinberg equilibrium < ${params.cut_hwe}
         ${params.plink} --bfile ${base} \
             --mind ${params.cut_mind} \
             --geno ${params.cut_geno} \
             --hwe ${params.cut_hwe} \
             --allow-no-sex --recode \
             --out ${base}_clean_mind
-        #2- Remove duplicate sample (remove first)
+        # 2. Remove duplicate sample (remove first)
         ${params.plink} --file ${base}_clean_mind \
             --allow-no-sex --list-duplicate-vars ids-only suppress-first \
             --out ${base}_clean_mind
