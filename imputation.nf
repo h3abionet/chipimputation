@@ -169,17 +169,17 @@ process qc_data {
         base = "${data_bed.baseName}"
         """
         #1- Exclude samples with missing more than 5% of genotype calls
-        plink2 --bfile ${base} \
+        ${params.plink} --bfile ${base} \
             --mind ${params.cut_mind} \
             --geno ${params.cut_geno} \
             --hwe ${params.cut_hwe} \
             --allow-no-sex --recode \
             --out ${base}_clean_mind
         #2- Remove duplicate sample (remove first)
-        plink2 --file ${base}_clean_mind \
+        ${params.plink} --file ${base}_clean_mind \
             --allow-no-sex --list-duplicate-vars ids-only suppress-first \
             --out ${base}_clean_mind
-        plink2 --file ${base}_clean_mind \
+        ${params.plink} --file ${base}_clean_mind \
             --allow-no-sex \
             --set-missing-var-ids @:# \
             --keep-allele-order \
@@ -207,7 +207,7 @@ process sample_from_fam {
     script:
         base = "${file(vcf.baseName).baseName}"
         """
-        plink2 --vcf ${vcf} \
+        ${params.plink} --vcf ${vcf} \
             --allow-no-sex \
             --double-id \
             --make-bed --out ${base}
@@ -235,7 +235,7 @@ process qc_data_to_chrm {
         base = "${file(data_vcf.baseName).baseName}"
         """
         #1- Exclude samples with missing more than 5% of genotype calls
-        plink2 --vcf ${data_vcf} \
+        ${params.plink} --vcf ${data_vcf} \
             --chr ${chromosome} --allow-no-sex \
             --keep-allele-order \
             --double-id \
@@ -306,7 +306,7 @@ process phase_data {
         nblines=\$(zcat ${vcfFile} | grep -v '^#' | wc -l)
         if (( \$nblines > 0 ))
         then
-            plink2 \
+            ${params.plink} \
                 --vcf ${vcfFile} \
                 --set-missing-var-ids @:# \
                 --double-id --recode --make-bed \
@@ -557,7 +557,7 @@ process imputeToVCF {
         base = chromosome_imputed_gz.baseName
         """
         gunzip -c ${chromosome_imputed_gz} > ${base}.haps
-        plink2 \
+        ${params.plink} \
             --gen ${base}.haps \
             --sample ${study_sample} \
             --oxford-single-chr ${chromosome} \
