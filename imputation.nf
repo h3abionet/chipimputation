@@ -237,7 +237,7 @@ process qc_data_to_chrm {
     script:
         base = "${file(data_vcf.baseName).baseName}"
         """
-        #1- Exclude samples with missing more than 5% of genotype calls
+        # 1. Extract single chromosomes
         ${params.plink} --vcf ${data_vcf} \
             --chr ${chromosome} --allow-no-sex \
             --keep-allele-order \
@@ -293,7 +293,7 @@ process chunk_vcf_data {
 }
 
 """
-Pre-phase each chromosome using eagle
+Pre-phase each chromosome using Eagle
 """
 chunk_vcf_data.into{ chunk_vcf_data; chunk_vcf_data_1 }
 process phase_data {
@@ -637,7 +637,7 @@ process report_well_imputed {
 
 
 """
-Repor 2: Accuracy (Concordance)
+Report 2: Accuracy (Concordance)
 """
 info_Acc.into{ info_Acc; info_Acc_2}
 process report_SNP_acc {
