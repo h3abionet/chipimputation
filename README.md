@@ -15,18 +15,38 @@ the H3ABioNet Hackathon held in Pretoria, SA in 2016.
   - Java 1.8+
 
 #### Compute nodes
+
 - The compute nodes need access to shared storage for input, references, output
-- The following executables should be available in PATH
-  - [IMPUTE2](http://mathgen.stats.ox.ac.uk/impute/impute_v2.html) as `impute2`
-  - [PLINK 1.9+](https://www.cog-genomics.org/plink2) as `plink2`
-  - [VCFtools](https://vcftools.github.io/index.html) as `vcftools`
-  - [BCFtools](https://samtools.github.io/bcftools/bcftools.html) as `bcftools`
-  - [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/) as `eagle`
+- The following commands need to be available in PATH on the compute nodes
+
+  - `impute2` from [IMPUTE2](http://mathgen.stats.ox.ac.uk/impute/impute_v2.html)
+  - `plink` from [PLINK 1.9+](https://www.cog-genomics.org/plink2)
+  - `vcftools` from [VCFtools](https://vcftools.github.io/index.html)
+  - `bcftools`from [bcftools](https://samtools.github.io/bcftools/bcftools.html)
+  - `bgzip` from [htslib](http://www.htslib.org)
+  - `eagle` from [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/)
+  - `python2.7`
 
 ## Getting started
- 1. Clone the repo
- 2. Run the test imputation
+
+### Basic test
+ 1. Clone this repo
+ 2. Run the "tiny" dataset included
 ```
-nextflow run imputation.nf -C imputation_nf.test.config
+nextflow run imputation.nf -c nextflow.test.tiny.config
 ```
  3. check for results in `outfolder`
+```
+wc -l output/impute_results/FINAL_VCFS/*
+```
+
+### Larger dataset
+ 1. Download the larger small.tar.bz2 dataset from [here](https://goo.gl/cYk51U) and extract into the `samples` folder
+ 2. Run this "small" dataset with
+```
+nextflow run imputation.nf -c nextflow.test.tiny.config
+```
+ 3. check for results in `outfolder`
+```
+wc -l output/impute_results/FINAL_VCFS/*
+```
