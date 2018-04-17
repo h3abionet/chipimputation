@@ -158,7 +158,7 @@ fam_data.into{ fam_data; fam_data_plink }
 generate_chunks.into{ generate_chunks; generate_chunks_plink}
 process qc_data {
     tag "qc_data_${data_bed.baseName}"
-    memory { 40.GB * task.attempt }
+    memory { 4.GB * task.attempt }
     input:
         file data_bed from bed_data_plink
         file data_bim from bim_data_plink
