@@ -32,7 +32,7 @@ the H3ABioNet Hackathon held in Pretoria, SA in 2016.
 ### Basic test (testing reading / writing to shared home dir)
  1. Clone this repo and switch to this branch
 ```
-cd /home/gerrit
+cd $HOME 
 https://github.com/h3abionet/chipimputation.git 
 cd chipimputation
 git branch azure-test
@@ -40,11 +40,11 @@ git branch azure-test
 
  2. Run the "tiny" dataset included
 ```
-nextflow -log /home/gerrit/chipimputation/nextflow.log run /home/gerrit/chipimputation/imputation.nf -c /home/gerrit/chipimputation/nextflow.test.tiny.config -w /home/gerrit/chipimputation/nf-workdir
+nextflow -log $HOME/chipimputation/nextflow.log run $HOME/chipimputation/imputation.nf -c $HOME/chipimputation/nextflow.test.tiny.config -w $HOME/chipimputation/nf-workdir
 ```
  3. check for results in `outfolder`
 ```
-wc -l /home/gerrit/chipimputation/output/impute_results/FINAL_VCFS/*
+wc -l $HOME/chipimputation/output/impute_results/FINAL_VCFS/*
 ```
 
 ### Larger dataset (reading / writing to shared datastore that allows for fast reading and writing) 
@@ -52,7 +52,7 @@ wc -l /home/gerrit/chipimputation/output/impute_results/FINAL_VCFS/*
  2. Edit `dir` and `studyDir` in `nextflow.test.tiny.config` to point to the correct samples directory. 
  2. Run this "small" dataset with (change the file paths to your setup)
 ```
-nextflow -log /global5/scratch/gerrit/projects/chipimputation/test.small/nextflow.log run /home/gerrit/chipimputation/imputation.nf -c /home/gerrit/chipimputation/nextflow.test.small.config -w /global5/scratch/gerrit/projects/chipimputation/test.small/nf-workdir -profile pbs -resume
+nextflow -log /global5/scratch/gerrit/projects/chipimputation/test.small/nextflow.log run $HOME/chipimputation/imputation.nf -c $HOME/chipimputation/nextflow.test.small.config -w /global5/scratch/gerrit/projects/chipimputation/test.small/nf-workdir -profile pbs -resume
 ```
  3. check for results in `outfolder`
 ```
