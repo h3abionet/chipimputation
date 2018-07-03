@@ -44,7 +44,7 @@ wc -l output/impute_results/FINAL_VCFS/*
  1. Download this slightly larger dataset: [small.tar.bz2](https://goo.gl/cYk51U) and extract into the `samples` folder
  2. Run this "small" dataset with
 ```
-nextflow run imputation.nf -c nextflow.test.tiny.config
+nextflow run imputation.nf -c nextflow.test.small.config
 ```
  3. check for results in `outfolder`
 ```
