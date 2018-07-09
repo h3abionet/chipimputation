@@ -48,3 +48,6 @@ RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.t
     tar xvf Eagle_v2.4.tar && \
     mv Eagle_v2.4/eagle /usr/local/bin/ && \
     rm -rf Eagle_v2.4
+
+
+
