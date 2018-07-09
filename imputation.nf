@@ -260,12 +260,12 @@ process chunk_vcf_data {
         set chromosome, chunk_start, chunk_end, file(vcfFile_out) into chunk_vcf_data
     script:
         vcfFile_out = "${file(vcfFile.baseName).baseName}_${chunk_start}_${chunk_end}.vcf.gz"
-        buffer_size = params.chunk_size.toInteger()/2
+        buffer_basepairs = params.buffer_size.toInteger()*1000
         """
         vcftools \
             --gzvcf ${vcfFile} \
             --chr ${chromosome} \
-            --from-bp ${chunk_start.toInteger() - buffer_size.toInteger()} --to-bp ${chunk_end.toInteger() + buffer_size.toInteger()} \
+            --from-bp ${chunk_start.toInteger() - buffer_basepairs} --to-bp ${chunk_end.toInteger() + buffer_basepairs} \
             --recode --stdout \
             | bgzip -c > ${vcfFile_out}
         """
@@ -360,7 +360,6 @@ if ( params.ref_1.name != null){
                 haps_file = "${outfile}.hap.gz"
                 legend_file = "${outfile}.legend.gz"
                 sample_file = "${outfile}.sample"
-                buffer = (params.chunk_size.toInteger()/2000).toInteger() // in kb
                 """
                 gunzip -c ${ref_1_hapFile} > ${ref_1_hapFile.baseName}
                 gunzip -c ${ref_2_hapFile} > ${ref_2_hapFile.baseName}
@@ -374,7 +373,7 @@ if ( params.ref_1.name != null){
                     -Ne ${params.NE} \
                     -burnin ${params.impute_burnin} \
                     -iter ${params.impute_iter} \
-                    -buffer ${buffer} \
+                    -buffer ${params.buffer_size} \
                     -int ${chunkStart} ${chunkEnd} \
                     -include_buffer_in_output \
                     -merge_ref_panels_output_ref ${outfile} \
@@ -421,7 +420,7 @@ if ( params.ref_1.name != null){
                 -m ${ref_mapFile}  \
                 -int ${chunkStart} ${chunkEnd} \
                 -Ne 15000 \
-                -buffer ${params.chunk_size.toInteger()/2} \
+                -buffer ${params.buffer_size} \
                 -phase \
                 -o_gz \
                 -o ${outfile}.imputed || true
