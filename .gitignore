@@ -8,3 +8,4 @@ run.sh
 testrun.sh
 logs/*
 .Trash*
+sample/small/*
