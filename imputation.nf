@@ -189,7 +189,7 @@ process qc_plink_to_chrm {
             --chr ${chromosome} --allow-no-sex --make-bed \
             --out ${data_bed.baseName}.chr${chromosome}
         plink2 --bfile ${data_bed.baseName}.chr${chromosome} \
-            --mind ${params.cut_mind} --allow-no-sex --recode \
+            --allow-no-sex --recode \
             --out ${data_bed.baseName}.chr${chromosome}_clean_mind
         plink2 --file ${data_bed.baseName}.chr${chromosome}_clean_mind \
             --allow-no-sex --list-duplicate-vars ids-only suppress-first \
