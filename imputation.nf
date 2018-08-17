@@ -299,7 +299,7 @@ process phase_data {
                 --chrom=${chromosome} \
                 --genoErrProb 0.003 --pbwtOnly \
                 --maxMissingPerIndiv 1 \
-                --allowRefAltSwap \
+                --noImpMissing \
                 --outPrefix=${file_out} 2>&1 | tee ${file_out}.log
             if [ ! -f "${file_out}.haps.gz" ]; then
                 touch ${file_out}.haps && bgzip -f ${file_out}.haps
