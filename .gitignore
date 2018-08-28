@@ -9,3 +9,4 @@ testrun.sh
 logs/*
 .Trash*
 sample/small/*
+../commit.sh
