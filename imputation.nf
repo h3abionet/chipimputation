@@ -47,10 +47,9 @@ try {
 }
 
 println "|-- Project : $workflow.projectDir"
-//println "|-- Git info: $workflow.repository - $workflow.revision [$workflow.commitId]"
+println "|-- Git info: $workflow.repository - $workflow.revision [$workflow.commitId]"
 println "|-- Command line: $workflow.commandLine"
 println "|-- Datasets: ${params.target_datasets.values().join(', ')}"
-//println "|-- Datasets: ${file(params.vcfFile).getName()}"
 
 // Help functions
 
