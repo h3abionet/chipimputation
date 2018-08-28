@@ -333,7 +333,7 @@ process phase_target_chunk {
                 --chrom=${chrm} \
                 --bpStart=${chunk_start} \
                 --bpEnd=${chunk_end} \
-                --bpFlanking=${params.flanking_region} \
+                --bpFlanking=${params.buffer_size} \
                 --outPrefix=${file_out} 2>&1 | tee ${file_out}.log
             if [ ! -f "${file_out}.vcf.gz" ]; then
                 touch ${file_out}.vcf && bgzip -f ${file_out}.vcf
