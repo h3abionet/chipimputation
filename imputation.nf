@@ -81,6 +81,8 @@ target_datasets = Channel
 
 
 println eagle_genetic_map
+println params.eagle_genetic_map
+
 """
 Check user's provided chromosomes vs those in map file
 """
