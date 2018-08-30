@@ -62,8 +62,8 @@ params.target_datasets.each { target ->
     if (!file(target.value).exists()) exit 1, "Target VCF file ${target.value} not found. Please check your config file."
     target_datasets << [target.key, file(target.value)]
 }
-//if (!file(params.eagle_genetic_map).exists()) exit 1, "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
 
+eagle_genetic_map = params.eagle_genetic_map
 if (!file(params.eagle_genetic_map).exists()){
     projectDir = "$workflow.projectDir"
     eagle_genetic_map = file("$projectDir/${params.eagle_genetic_map}")
@@ -72,10 +72,13 @@ if (!file(params.eagle_genetic_map).exists()){
         exit 1
     }
 }
-else{
-    eagle_genetic_map = params.eagle_genetic_map
 
+
+if(!file(params.reference_genome).exists()){
+    System.err.println "Reference genome (reference_genome) file ${params.reference_genome} not found. Please check your config file."
+    exit 1
 }
+
 
 //// Create channel for the study data from ped and map files
 target_datasets = Channel
