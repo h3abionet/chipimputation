@@ -72,6 +72,10 @@ if (!file(params.eagle_genetic_map).exists()){
         exit 1
     }
 }
+else{
+    eagle_genetic_map = params.eagle_genetic_map
+
+}
 
 //// Create channel for the study data from ped and map files
 target_datasets = Channel
