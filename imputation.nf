@@ -80,6 +80,7 @@ target_datasets = Channel
 // TODO Be able to run just on a specified chunk
 
 
+println eagle_genetic_map
 """
 Check user's provided chromosomes vs those in map file
 """
