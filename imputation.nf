@@ -59,7 +59,7 @@ println "|-- Datasets : ${params.target_datasets.values().join(', ')}"
 // check if study genotype files exist
 target_datasets = []
 params.target_datasets.each { target ->
-    if (!file(target.value).exists()) exit 1, "VCF file ${target.value} not found. Please check your config file."
+    if (!file(target.value).exists()) exit 1, "Target VCF file ${target.value} not found. Please check your config file."
     target_datasets << [target.key, file(target.value)]
 }
 //if (!file(params.eagle_genetic_map).exists()) exit 1, "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
