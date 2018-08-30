@@ -174,13 +174,14 @@ process generate_chunks {
 //    publishDir "${params.output_dir}", overwrite: true, mode:'copy'
     echo true
     input:
+        val chromosomes from chromosomes.join(',')
         set val(target_name), file(mapFile) from mapFile_cha_chunks
     output:
         set val(target_name), file(chunkFile) into generate_chunks
     script:
         chunkFile = "${mapFile.baseName}_chunks.txt"
         chunk_size = params.chunk_size
-        chromosomes = chromosomes.join(',')
+//        chromosomes = chromosomes.join(',')
         template "generate_chunks.py"
 }
 
