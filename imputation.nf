@@ -174,7 +174,7 @@ process generate_chunks {
 //    publishDir "${params.output_dir}", overwrite: true, mode:'copy'
     echo true
     input:
-        set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine(chromosomes.join(','))
+        set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
     output:
         set val(target_name), file(chunkFile) into generate_chunks
     script:
