@@ -65,20 +65,14 @@ params.target_datasets.each { target ->
 //if (!file(params.eagle_genetic_map).exists()) exit 1, "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
 
 if (!file(params.eagle_genetic_map).exists()){
-    projectDir = "${workflow.projectDir}"
-    eagle_genetic_map = file("${projectDir}/${params.eagle_genetic_map}")
+    projectDir = "$workflow.projectDir"
+    eagle_genetic_map = file("$projectDir/${params.eagle_genetic_map}")
     if(!file(eagle_genetic_map).exists()){
         System.err.println "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
         exit 1
     }
-    else{
-        params.eagle_genetic_map = eagle_genetic_map
-        println params.eagle_genetic_map
-        eagle_genetic_map = params.eagle_genetic_map
-    }
 }
-println projectDir
-println eagle_genetic_map
+
 //// Create channel for the study data from ped and map files
 target_datasets = Channel
         .from(target_datasets)
