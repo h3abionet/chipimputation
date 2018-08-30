@@ -46,10 +46,13 @@ try {
             "============================================================"
 }
 
-println "|-- Project : $workflow.projectDir"
-println "|-- Git info: $workflow.repository - $workflow.revision [$workflow.commitId]"
-println "|-- Command line: $workflow.commandLine"
-println "|-- Datasets: ${params.target_datasets.values().join(', ')}"
+println "|-- Project directory : ${workflow.projectDir}"
+println "|-- Project working directory : ${workflow.workDir}"
+println "|-- Pipeline Launched from : ${workflow.launchDir}"
+println "|-- Pipeline result directory : ${params.impute_result}"
+println "|-- Git info : ${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
+println "|-- Command line : ${workflow.commandLine}"
+println "|-- Datasets : ${params.target_datasets.values().join(', ')}"
 
 // Help functions
 
@@ -59,8 +62,23 @@ params.target_datasets.each { target ->
     if (!file(target.value).exists()) exit 1, "VCF file ${target.value} not found. Please check your config file."
     target_datasets << [target.key, file(target.value)]
 }
-if (!file(params.eagle_genetic_map).exists()) exit 1, "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+//if (!file(params.eagle_genetic_map).exists()) exit 1, "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
 
+if (!file(params.eagle_genetic_map).exists()){
+    projectDir = "${workflow.projectDir}"
+    eagle_genetic_map = file("${projectDir}/${params.eagle_genetic_map}")
+    if(!file(eagle_genetic_map).exists()){
+        System.err.println "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+        exit 1
+    }
+    else{
+        params.eagle_genetic_map = eagle_genetic_map
+        println params.eagle_genetic_map
+        eagle_genetic_map = params.eagle_genetic_map
+    }
+}
+println projectDir
+println eagle_genetic_map
 //// Create channel for the study data from ped and map files
 target_datasets = Channel
         .from(target_datasets)
@@ -325,7 +343,7 @@ process phase_target_chunk {
             bcftools index --tbi -f ${target_vcfFile_chunk}
             eagle \
                 --vcfTarget=${target_vcfFile_chunk} \
-                --geneticMapFile=${params.eagle_genetic_map} \
+                --geneticMapFile=${eagle_genetic_map} \
                 --vcfRef=${ref_vcf} \
                 --vcfOutFormat=z \
                 --noImpMissing \
@@ -449,7 +467,7 @@ process impute_target {
             --haps ${target_phased_vcfFile} \
             --format GT \
             --allTypedSites \
-            --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.flanking_region} \
+            --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
             --prefix ${base}_imputed
         """
 }
