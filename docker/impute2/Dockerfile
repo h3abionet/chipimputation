@@ -10,22 +10,22 @@ FROM ubuntu:latest
 MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
 
 
-################## BEGIN INSTALLATION ######################
-# Install Basic tools
+################# BEGIN INSTALLATION ######################
+ Install Basic tools
 
-# Install wget
-#RUN apt-get update && apt-get install -y \
-#      autoconf \
-#      build-essential \
-#      git \
-#      libncurses5-dev \
-#      pkg-config \
-#      unzip \
-#      wget \
-#      zlib1g-dev && \
-#    apt-get clean && \
-#    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-#
+ Install wget
+RUN apt-get update && apt-get install -y \
+      autoconf \
+      build-essential \
+      git \
+      libncurses5-dev \
+      pkg-config \
+      unzip \
+      wget \
+      zlib1g-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
 ## Install IMPUTE2
 #RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
 #    tar -zxvf impute_v2.3.2_x86_64_static.tgz && \
