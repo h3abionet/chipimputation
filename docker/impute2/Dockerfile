@@ -11,9 +11,9 @@ MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
 
 
 ################# BEGIN INSTALLATION ######################
- Install Basic tools
+# Install Basic tools
 
- Install wget
+# Install wget
 RUN apt-get update && apt-get install -y \
       autoconf \
       build-essential \
