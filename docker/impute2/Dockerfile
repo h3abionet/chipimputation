@@ -26,14 +26,14 @@ RUN apt-get update && apt-get install -y \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-## Install IMPUTE2
-#RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
-#    tar -zxvf impute_v2.3.2_x86_64_static.tgz && \
-#        mv impute_v2.3.2_x86_64_static/impute2 /usr/local/bin/impute2 && \
-#           mkdir /opt/impute2/example -p && \
-#                 mv impute_v2.3.2_x86_64_static/Example/* /opt/impute2/example && \
-#                    rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
-#
+# Install IMPUTE2
+RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
+    tar -zxvf impute_v2.3.2_x86_64_static.tgz && \
+        mv impute_v2.3.2_x86_64_static/impute2 /usr/local/bin/impute2 && \
+           mkdir /opt/impute2/example -p && \
+                 mv impute_v2.3.2_x86_64_static/Example/* /opt/impute2/example && \
+                    rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
+
 ## Install PLINK2
 #RUN wget http://www.cog-genomics.org/static/bin/plink180410/plink_linux_x86_64.zip && \
 #    unzip plink_linux_x86_64.zip -d /usr/local/bin/ && \
