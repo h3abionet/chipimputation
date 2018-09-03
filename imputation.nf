@@ -467,7 +467,7 @@ imputeCombine_info_cha = Channel
 process imputeCombine {
     tag "impComb_chr${chromosome}"
     memory { 2.GB * task.attempt }
-    publishDir "${params.impute_result}/combined", overwrite: true, mode:'copy'
+    publishDir "${params.impute_result}/combined", mode:'copy'
     input:
         set chromosome, file(imputed_files) from imputeCombine_impute_cha
         set chromo, file(info_files) from imputeCombine_info_cha
