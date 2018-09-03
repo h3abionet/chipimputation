@@ -39,6 +39,7 @@ RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz &&
 #    unzip plink_linux_x86_64.zip -d /usr/local/bin/ && \
 #    rm -f plink_linux_x86_64.zip
 #
+
 # Install VCFTools
 ## Build from GitHub
 RUN git clone https://github.com/vcftools/vcftools.git  && \
