@@ -41,6 +41,7 @@ RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz &&
 #
 
 
+
 # Install VCFTools
 ## Build from GitHub
 RUN git clone https://github.com/vcftools/vcftools.git  && \
