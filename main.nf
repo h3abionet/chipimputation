@@ -49,18 +49,13 @@ try {
 println "|-- Project directory : ${workflow.projectDir}"
 println "|-- Project working directory : ${workflow.workDir}"
 println "|-- Pipeline Launched from : ${workflow.launchDir}"
-println "|-- Pipeline result directory : ${params.resultDir}"
+println "|-- Pipeline result directory : ${params.impute_result}"
 println "|-- Git info : ${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
 println "|-- Command line : ${workflow.commandLine}"
 println "|-- Datasets : ${params.target_datasets.values().join(', ')}"
 
 // Help functions
 
-println params.test
-exit 1
-if(params.test==false){
-    exit 1
-}
 // check if study genotype files exist
 target_datasets = []
 params.target_datasets.each { target ->
@@ -179,7 +174,7 @@ Identify chromosomes and start/stop positions per chromosome and generate chunks
 mapFile_cha.into{ mapFile_cha; mapFile_cha_chunks }
 process generate_chunks {
     tag "generate_chunks_${target_name}"
-//    publishDir "${params.outDir}", overwrite: true, mode:'copy'
+//    publishDir "${params.output_dir}", overwrite: true, mode:'copy'
     echo true
     input:
         set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
@@ -198,7 +193,7 @@ QC
 target_datasets.into{ target_datasets; target_datasets_qc }
 process check_mismach {
     tag "check_mismach_${target_name}"
-//    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
+//    publishDir "${params.output_dir}", overwrite: true, mode:'symlink'
     input:
         set val(target_name), file(target_vcfFile) from target_datasets_qc
     output:
@@ -245,7 +240,7 @@ QC
 check_mismach_noMis.into{ check_mismach_noMis; check_mismach_noMis_1 }
 process target_qc {
     tag "target_qc_${target_name}"
-//    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
+//    publishDir "${params.output_dir}", overwrite: true, mode:'symlink'
     input:
         set val(target_name), file(target_vcfFile), file(mismach_warn), file(mismach_summary) from check_mismach_noMis_1
     output:
@@ -309,7 +304,7 @@ target_qc_chunk = target_qc_1
 
 process split_target_to_chunk {
     tag "split_${target_name}_${chrm}:${chunk_start}-${chunk_end}"
-    publishDir "${params.outDir}/qc/${chrm}/chunks", overwrite: true, mode:'symlink'
+    publishDir "${params.output_dir}/qc/${chrm}/chunks", overwrite: true, mode:'symlink'
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from target_qc_chunk
     output:
@@ -405,7 +400,7 @@ process phase_target_chunk {
 //            tag "cross_impute_2refs_chr${chromosome}_${chunkStart}-${chunkEnd}_${params.ref_1.name}_${params.ref_2.name}"
 //            memory { 15.GB * task.attempt }
 //            time { 10.h * task.attempt }
-//            publishDir "${params.resultDir}/cross_impute_${params.ref_1.name}_${params.ref_2.name}/${chromosome}", overwrite: true, mode: 'symlink'
+//            publishDir "${params.impute_result}/cross_impute_${params.ref_1.name}_${params.ref_2.name}/${chromosome}", overwrite: true, mode: 'symlink'
 //            input:
 //                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(ref_1_hapFile), file(ref_1_legendFile), file(ref_2_mapFile), file(ref_1_sampleFile), file(ref_2_hapFile), file(ref_2_legendFile), file(ref_2_sampleFile) from cross_refs_data
 //            output:
@@ -459,7 +454,7 @@ process phase_target_chunk {
 
 process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
-    publishDir "${params.resultDir}/impute/${chromosome}", overwrite: true, mode:'symlink'
+    publishDir "${params.impute_result}/impute/${chromosome}", overwrite: true, mode:'symlink'
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
     output:
@@ -529,7 +524,7 @@ process impute_target {
 //process imputeCombine {
 //    tag "impComb_chr${chromosome}"
 //    memory { 2.GB * task.attempt }
-//    publishDir "${params.resultDir}/combined", overwrite: true, mode:'copy'
+//    publishDir "${params.impute_result}/combined", overwrite: true, mode:'copy'
 //    input:
 //        set chromosome, file(imputed_files) from imputeCombine_impute_cha
 //        set chromo, file(info_files) from imputeCombine_info_cha
@@ -551,7 +546,7 @@ process impute_target {
 //process imputeToPlink {
 //    tag "toPlink_chr${chromosome}"
 //    memory { 2.GB * task.attempt }
-//    publishDir "${params.resultDir}/plink", overwrite: true, mode:'copy'
+//    publishDir "${params.impute_result}/plink", overwrite: true, mode:'copy'
 //    input:
 //        set chromosome, file(chromosome_imputed_gz) from imputeCombine_1
 //        set chrom, chunk_start, chunk_end, file(prephased_haps), file(prephased_sample) from phase_data_2
@@ -583,7 +578,7 @@ process impute_target {
 //process filter_info {
 //    tag "filter_${projectName}_${chrms}"
 //    memory { 2.GB * task.attempt }
-//    publishDir "${params.outDir}/INFOS/${projectName}", overwrite: true, mode:'copy'
+//    publishDir "${params.output_dir}/INFOS/${projectName}", overwrite: true, mode:'copy'
 //    input:
 //        val(projectName) from params.project_name
 //    output:
@@ -612,7 +607,7 @@ process impute_target {
 //process report_well_imputed {
 //    tag "report_wellImputed_${projectName}_${chrms}"
 //    memory { 2.GB * task.attempt }
-//    publishDir "${params.outDir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
+//    publishDir "${params.output_dir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
 //    input:
 //        set val(projectName), file(well_in) from info_Well_1
 //    output:
@@ -637,7 +632,7 @@ process impute_target {
 //process report_SNP_acc {
 //    tag "report_SNP_acc_${projectName}_${chrms}"
 //    memory { 2.GB * task.attempt }
-//    publishDir "${params.outDir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
+//    publishDir "${params.output_dir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
 //    input:
 //        set val(projectName), file(acc_in) from info_Acc_2
 //    output:
