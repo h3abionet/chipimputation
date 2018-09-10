@@ -298,7 +298,6 @@ process phase_data {
                 --geneticMapFile=${params.eagle_genetic_map} \
                 --chrom=${chromosome} \
                 --genoErrProb 0.003 --pbwtOnly \
-                --allowRefAltSwap \
                 --outPrefix=${file_out} 2>&1 | tee ${file_out}.log
             if [ ! -f "${file_out}.haps.gz" ]; then
                 touch ${file_out}.haps && bgzip -f ${file_out}.haps
