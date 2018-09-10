@@ -9,3 +9,5 @@ testrun.sh
 logs/*
 .Trash*
 sample/small/*
+
+report\.sh
