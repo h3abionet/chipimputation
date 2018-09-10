@@ -151,7 +151,7 @@ process generate_chunks {
     output:
         file chunkFile into generate_chunks
     script:
-        chunkFile = "chunks.txt"
+        chunkFile = "${bim_data.baseName}_chunks.txt"
         """
         python ${params.scripts}/generate_chunks.py ${bim_data} ${chunkFile} ${params.chunk_size}
         """
