@@ -18,7 +18,7 @@ import argparse
 
 def get_all_chunks(infolder):
     """ Return a dict of all chunk tuples, key is chrm """
-    fin = open(os.path.join(infolder, "all_h3a_samples_chunks.txt"))
+    fin = open(os.path.join(infolder, "chunks.txt"))
     result = {}
     for line in fin:
         chrm, start, stop = line.strip().split(",")
@@ -82,15 +82,15 @@ if __name__ == '__main__':
             print("\n".join(stats))
     # HACK: shrink the last chunk of every chromosome
     for key in sorted(chunkdict):
-        print(key, len(chunkdict[key]))
-        last_chunk = chunkdict[key][-1]
         # HACK: worse hack, chrm 19 has a whole chunk that doesn't map
         if key == '19':
-            chunkdict[key] = chunkdict[key][:-1]
-        else:
-            chunkdict[key][-1] = (last_chunk[0], last_chunk[1],
-                                  last_chunk[2], last_chunk[2]+11111,
-                                  last_chunk[4])
+            #chunkdict[key] = chunkdict[key][:-1]
+            pass#continue
+        print(key, len(chunkdict[key]))
+        last_chunk = chunkdict[key][-1]
+        chunkdict[key][-1] = (last_chunk[0], last_chunk[1],
+                              last_chunk[2], last_chunk[2]+11111,
+                              last_chunk[4])
         print("\n".join(map(repr,chunkdict[key])))
     chunklist = []
     for key in sorted(chunkdict):
@@ -105,13 +105,17 @@ if __name__ == '__main__':
     all_chunks = get_all_chunks(args.infolder)
     progress = {}
     for chrm in chromosomes:
-        done = len(chunkdict[chrm])
-        wanted = len(all_chunks[chrm])
-        progress[chrm] = "%i%% (%i/%i)"%(100.0*done/wanted, done, wanted)
+        if chrm in chunkdict:
+            done = len(chunkdict[chrm])
+            wanted = len(all_chunks[chrm])
+            progress[chrm] = "%i%% (%i/%i)"%(100.0*done/wanted, done, wanted)
+    context["finished_chunks"] = sum(len(i) for i in chunkdict.values())
+    context["total_chunks"] = sum(len(i) for i in all_chunks.values())
     context["progress"] = repr(progress)
     context["all_chunks"] = all_chunks
     context["chunkstring"] = chunkstring
     context["chromosomes"] = repr(chromosomes)
+    context["rundetails"] = {}
     TPL = Template(open(args.template).read())
     with open(args.outfile, "wt") as fout:
         fout.write(TPL.substitute(**context))

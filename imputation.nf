@@ -151,7 +151,7 @@ process generate_chunks {
     output:
         file chunkFile into generate_chunks
     script:
-        chunkFile = "${bim_data.baseName}_chunks.txt"
+        chunkFile = "chunks.txt"
         """
         python ${params.scripts}/generate_chunks.py ${bim_data} ${chunkFile} ${params.chunk_size}
         """
@@ -185,16 +185,16 @@ process qc_plink_to_chrm {
         2- Remove duplicate sample (remove first)
         */
         """
-        plink2 --bfile ${data_bed.baseName} \
+        ${params.plink} --bfile ${data_bed.baseName} \
             --chr ${chromosome} --allow-no-sex --make-bed \
             --out ${data_bed.baseName}.chr${chromosome}
-        plink2 --bfile ${data_bed.baseName}.chr${chromosome} \
+        ${params.plink} --bfile ${data_bed.baseName}.chr${chromosome} \
             --allow-no-sex --recode \
             --out ${data_bed.baseName}.chr${chromosome}_clean_mind
-        plink2 --file ${data_bed.baseName}.chr${chromosome}_clean_mind \
+        ${params.plink} --file ${data_bed.baseName}.chr${chromosome}_clean_mind \
             --allow-no-sex --list-duplicate-vars ids-only suppress-first \
             --out ${data_bed.baseName}.chr${chromosome}_clean_mind
-        plink2 --file ${data_bed.baseName}.chr${chromosome}_clean_mind \
+        ${params.plink} --file ${data_bed.baseName}.chr${chromosome}_clean_mind \
             --allow-no-sex \
             --set-missing-var-ids @:# \
             --exclude ${data_bed.baseName}.chr${chromosome}_clean_mind.dupvar \
@@ -218,7 +218,7 @@ process plink_to_vcf_chrm {
         set val(chromosome), file("${data_bed.baseName}.vcf.gz") into plink_to_chrm
     script:
         """
-        plink2 --bfile ${data_bed.baseName} \
+        ${params.plink} --bfile ${data_bed.baseName} \
             --allow-no-sex \
             --keep-allele-order \
             --recode vcf \
@@ -272,7 +272,7 @@ process chunk_vcf_data {
 }
 
 """
-Pre-phase each chromosome using eagle
+Pre-phase each chunk using eagle
 """
 chunk_vcf_data.into{ chunk_vcf_data; chunk_vcf_data_1 }
 process phase_data {
@@ -288,7 +288,7 @@ process phase_data {
         nblines=\$(zcat ${vcfFile} | grep -v '^#' | wc -l)
         if (( \$nblines > 0 ))
         then
-            plink2 \
+            ${params.plink} \
                 --vcf ${vcfFile} \
                 --set-missing-var-ids @:# \
                 --double-id --recode --make-bed \
@@ -298,8 +298,6 @@ process phase_data {
                 --geneticMapFile=${params.eagle_genetic_map} \
                 --chrom=${chromosome} \
                 --genoErrProb 0.003 --pbwtOnly \
-                --maxMissingPerIndiv 1 \
-                --allowRefAltSwap \
                 --outPrefix=${file_out} 2>&1 | tee ${file_out}.log
             if [ ! -f "${file_out}.haps.gz" ]; then
                 touch ${file_out}.haps && bgzip -f ${file_out}.haps
@@ -467,7 +465,7 @@ imputeCombine_info_cha = Channel
 process imputeCombine {
     tag "impComb_chr${chromosome}"
     memory { 2.GB * task.attempt }
-    publishDir "${params.impute_result}/combined", overwrite: true, mode:'copy'
+    publishDir "${params.impute_result}/combined", mode:'copy'
     input:
         set chromosome, file(imputed_files) from imputeCombine_impute_cha
         set chromo, file(info_files) from imputeCombine_info_cha
@@ -498,12 +496,12 @@ process imputeToPlink {
     script:
         """
         gunzip -c ${chromosome_imputed_gz} > ${chromosome_imputed_gz.baseName}
-        plink2 \
+        ${params.plink} \
             --gen ${chromosome_imputed_gz.baseName} \
             --sample ${prephased_sample} \
             --oxford-single-chr ${chromosome} \
             --hard-call-threshold 0.1 \
-            --make-bed --out ${chromosome_imputed_gz.baseName} || true
+            --make-bed --out ${chromosome_imputed_gz.baseName}
         rm -f ${chromosome_imputed_gz.baseName}
         """
 }
@@ -569,7 +567,7 @@ process report_well_imputed {
 
 
 """
-Repor 2: Accuracy
+Report 2: Accuracy
 """
 info_Acc.into{ info_Acc; info_Acc_2}
 process report_SNP_acc {
