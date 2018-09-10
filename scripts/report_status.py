@@ -18,7 +18,7 @@ import argparse
 
 def get_all_chunks(infolder):
     """ Return a dict of all chunk tuples, key is chrm """
-    fin = open(os.path.join(infolder, "all_h3a_samples_chunks.txt"))
+    fin = open(os.path.join(infolder, "chunks.txt"))
     result = {}
     for line in fin:
         chrm, start, stop = line.strip().split(",")
