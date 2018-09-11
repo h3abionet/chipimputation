@@ -2,53 +2,25 @@
 
 /*
 ========================================================================================
-                       h3achipimputation
+=                                 h3achipimputation                                    =
 ========================================================================================
  h3achipimputation imputation pipeline.
- #### Homepage / Documentation
- https://github.com/h3abionet/chipimputation
 ----------------------------------------------------------------------------------------
+ @Authors
+
+----------------------------------------------------------------------------------------
+ @Homepage / @Documentation
+  https://github.com/h3abionet/chipimputation
+----------------------------------------------------------------------------------------
+
+----------------------------------------------------------------------------------------
+
+================================================================================
+=                           C O N F I G U R A T I O N                          =
+================================================================================
 */
 
-def helpMessage() {
-    log.info"""
-    =========================================
-    h3achipimputation v${manifest.pipelineVersion}
-    =========================================
-    Usage:
-
-    The typical command for running the pipeline is as follows:
-
-    nextflow run h3abionet/chipimputation --reads '*_R{1,2}.fastq.gz' -profile standard,docker
-
-    Mandatory arguments:
-      --reads                       Path to input data (must be surrounded with quotes)
-      --genome                      Name of iGenomes reference
-      -profile                      Configuration profile to use. Can use multiple (comma separated)
-                                    Available: standard, conda, docker, singularity, awsbatch, test
-
-    Options:
-      --singleEnd                   Specifies that the input is single end reads
-
-    References                      If not specified in the configuration file or you wish to overwrite any of the references.
-      --fasta                       Path to Fasta reference
-
-    Other options:
-      --outdir                      The output directory where the results will be saved
-      --email                       Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
-      -name                         Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
-
-    AWSBatch options:
-      --awsqueue                    The AWSBatch JobQueue that needs to be set when running on AWSBatch
-      --awsregion                   The AWS Region for your AWS Batch job to run on
-    """.stripIndent()
-}
-
-/*
- * SET UP CONFIGURATION VARIABLES
- */
-
-// Show help emssage
+// Show help message
 if (params.help){
     helpMessage()
     exit 0
@@ -56,111 +28,88 @@ if (params.help){
 
 // Configurable variables
 params.name = false
-params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
-params.multiqc_config = "$baseDir/conf/multiqc_config.yaml"
 params.email = false
 params.plaintext_email = false
 
-multiqc_config = file(params.multiqc_config)
 output_docs = file("$baseDir/docs/output.md")
 
-
-// AWSBatch sanity checking
-if(workflow.profile == 'awsbatch'){
-    if (!params.awsqueue || !params.awsregion) exit 1, "Specify correct --awsqueue and --awsregion parameters on AWSBatch!"
-    if (!workflow.workDir.startsWith('s3') || !params.outdir.startsWith('s3')) exit 1, "Specify S3 URLs for workDir and outdir parameters on AWSBatch!"
-}
-
 // Has the run name been specified by the user?
-//  this has the bonus effect of catching both -name and --name
+// this has the bonus effect of catching both -name and --name
 custom_runName = params.name
 if( !(workflow.runName ==~ /[a-z]+_[a-z]+/) ){
     custom_runName = workflow.runName
 }
 
-// Check workDir/outdir paths to be S3 buckets if running on AWSBatch
-// related: https://github.com/nextflow-io/nextflow/issues/813
-if( workflow.profile == 'awsbatch') {
-    if(!workflow.workDir.startsWith('s3:') || !params.outdir.startsWith('s3:')) exit 1, "Workdir or Outdir not on S3 - specify S3 Buckets for each to run on AWSBatch!"
-}
-
-println "|-- Project directory : ${workflow.projectDir}"
-println "|-- Project working directory : ${workflow.workDir}"
-println "|-- Pipeline Launched from : ${workflow.launchDir}"
-println "|-- Pipeline result directory : ${params.impute_result}"
-println "|-- Git info : ${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
-println "|-- Command line : ${workflow.commandLine}"
-println "|-- Datasets : ${params.target_datasets.values().join(', ')}"
-
-// Help functions
-
 // check if study genotype files exist
 target_datasets = []
-params.target_datasets.each { target ->
-    if (!file(target.value).exists()) exit 1, "Target VCF file ${target.value} not found. Please check your config file."
-    target_datasets << [target.key, file(target.value)]
+if(params.target_datasets) {
+    params.target_datasets.each { target ->
+        if (!file(target.value).exists()) exit 1, "Target VCF file ${target.value} not found. Please check your config file."
+        target_datasets << [target.key, file(target.value)]
+    }
 }
 
 // Validate eagle map file for phasing step
 eagle_genetic_map = params.eagle_genetic_map
-if (!file(params.eagle_genetic_map).exists()){
-    projectDir = "$workflow.projectDir"
-    eagle_genetic_map = file("$projectDir/${params.eagle_genetic_map}")
-    if(!file(eagle_genetic_map).exists()){
-        System.err.println "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
-        exit 1
+if(params.eagle_genetic_map) {
+    if (!file(params.eagle_genetic_map).exists()) {
+        projectDir = "$workflow.projectDir"
+        eagle_genetic_map = file("$projectDir/${params.eagle_genetic_map}")
+        if (!file(eagle_genetic_map).exists()) {
+            System.err.println "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+            exit 1
+        }
     }
 }
-
 // Validate reference genome
-if(!file(params.reference_genome).exists()){
-    System.err.println "Reference genome (reference_genome) file ${params.reference_genome} not found. Please check your config file."
-    exit 1
+if(params.reference_genome) {
+    if (!file(params.reference_genome).exists()) {
+        System.err.println "Reference genome (reference_genome) file ${params.reference_genome} not found. Please check your config file."
+        exit 1
+    }
 }
 
 // Create channel for the study data from VCF files
 Channel
         .from(target_datasets)
-        into{ target_datasets }
+        .set{ target_datasets }
 
 // TODO Be able to run just on a specified chunk
 
 
 // Header log info
-log.info """=======================================================
-                                          ,--./,-.
-          ___     __   __   __   ___     /,-._.--~\'
-    |\\ | |__  __ /  ` /  \\ |__) |__         }  {
-    | \\| |       \\__, \\__/ |  \\ |___     \\`-._,-`-,
-                                          `._,._,\'
+log.info """
+=======================================================
 
-h3abionet/chipimputation v${manifest.pipelineVersion}"
+h3achipimputation v${params.version}"
+
 ======================================================="""
 def summary = [:]
-summary['Pipeline Name']  = 'h3abionet/chipimputation'
-summary['Pipeline Version'] = manifest.pipelineVersion
-summary['Run Name']     = custom_runName ?: workflow.runName
-summary['Reads']        = params.reads
-summary['Fasta Ref']    = params.fasta
-summary['Data Type']    = params.singleEnd ? 'Single-End' : 'Paired-End'
-summary['Max Memory']   = params.max_memory
-summary['Max CPUs']     = params.max_cpus
-summary['Max Time']     = params.max_time
-summary['Output dir']   = params.outdir
-summary['Working dir']  = workflow.workDir
+summary['Pipeline Name']    = 'h3achipimputation'
+summary['Pipeline Version'] = params.version
+summary['Run Name']         = custom_runName ?: workflow.runName
+summary['Target datasets']  = params.target_datasets.values().join(', ')
+summary['Reference panels']  = params.ref_panels.keySet().join(', ')
+summary['Max Memory']       = params.max_memory
+summary['Max CPUs']         = params.max_cpus
+summary['Max Time']         = params.max_time
+summary['Output dir']       = params.outDir
+summary['Working dir']      = workflow.workDir
+summary['Current path']     = "$PWD"
 summary['Container Engine'] = workflow.containerEngine
-if(workflow.containerEngine) summary['Container'] = workflow.container
-summary['Current home']   = "$HOME"
-summary['Current user']   = "$USER"
-summary['Current path']   = "$PWD"
-summary['Working dir']    = workflow.workDir
-summary['Output dir']     = params.outdir
-summary['Script dir']     = workflow.projectDir
-summary['Config Profile'] = workflow.profile
-if(workflow.profile == 'awsbatch'){
-    summary['AWS Region'] = params.awsregion
-    summary['AWS Queue'] = params.awsqueue
+summary['Git info']         = "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
+summary['Command line']     = workflow.commandLine
+if(workflow.containerEngine) {
+    summary['Container'] = workflow.container
+    summary['Current home'] = "$HOME"
+    summary['Current user'] = "$USER"
+    summary['Current path'] = "$PWD"
+    summary['Working dir'] = workflow.workDir
+    summary['Output dir'] = params.outDir
+    summary['Script dir'] = workflow.projectDir
+    summary['Config Profile'] = workflow.profile
 }
+
 if(params.email) summary['E-mail Address'] = params.email
 log.info summary.collect { k,v -> "${k.padRight(15)}: $v" }.join("\n")
 log.info "========================================="
@@ -170,9 +119,9 @@ def create_workflow_summary(summary) {
 
     def yaml_file = workDir.resolve('workflow_summary_mqc.yaml')
     yaml_file.text  = """
-    id: 'nf-core-imp-summary'
+    id: 'h3achipimputation-summary'
     description: " - this information is collected when the pipeline is started."
-    section_name: 'h3abionet/chipimputation Workflow Summary'
+    section_name: 'h3achipimputation Workflow Summary'
     section_href: 'https://github.com/h3abionet/chipimputation'
     plot_type: 'html'
     data: |
@@ -185,28 +134,26 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 }
 
 
-/*
- * Parse software version numbers
- */
+///*
+// * STEP 1: Parse software version numbers
+// */
 process get_software_versions {
-
+    tag "get_software_versions"
     output:
-    file 'software_versions_mqc.yaml' into software_versions_yaml
-
+        file("software_versions_mqc.yaml") into software_versions_yaml
     script:
-    """
-    echo $manifest.pipelineVersion > v_pipeline.txt
-    echo $workflow.nextflow.version > v_nextflow.txt
-    fastqc --version > v_fastqc.txt
-    multiqc --version > v_multiqc.txt
-    scrape_software_versions.py > software_versions_mqc.yaml
-    """
+        """
+        echo $params.version > v_pipeline.txt
+        echo $workflow.nextflow.version > v_nextflow.txt
+        vcftools --version > v_vcftools.txt
+        plink2 --version > v_plink2.txt
+        scrape_software_versions.py > software_versions_mqc.yaml
+        """
 }
 
 
-
 /*
- * STEP 1 - Check user's provided chromosomes vs those in map file
+ * STEP 2 - Check user's provided chromosomes vs those in map file
  */
 target_datasets.into{ target_datasets; target_datasets_check }
 process check_chromosome {
@@ -285,32 +232,32 @@ params.ref_panels.each { ref ->
 }
 
 /*
- * STEP 2 - Identify chromosomes and start/stop positions per chromosome and generate chunks
-
- */
+ * STEP 3 - Identify chromosomes and start/stop positions per chromosome and generate chunks
+*/
 mapFile_cha.into{ mapFile_cha; mapFile_cha_chunks }
 process generate_chunks {
     tag "generate_chunks_${target_name}"
-//    publishDir "${params.output_dir}", overwrite: true, mode:'copy'
+//    publishDir "${params.outDir}", overwrite: true, mode:'copy'
     echo true
     input:
         set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
     output:
         set val(target_name), file(chunkFile) into generate_chunks
     script:
-        chunkFile = "${mapFile.baseName}_chunks.txt"
+        if(params.chunk){chunk = params.chunk}else{chunk=''} // To impute only a chunk like 1000000-1100000
+        chunkFile = "chunks.txt"
         chunk_size = params.chunk_size
         template "generate_chunks.py"
 }
 
 
-"""
-QC
-"""
+/*
+ * STEP 4: QC
+*/
 target_datasets.into{ target_datasets; target_datasets_qc }
 process check_mismach {
     tag "check_mismach_${target_name}"
-//    publishDir "${params.output_dir}", overwrite: true, mode:'symlink'
+//    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
     input:
         set val(target_name), file(target_vcfFile) from target_datasets_qc
     output:
@@ -339,25 +286,25 @@ process check_mismach {
 
 check_mismach.into{ check_mismach; check_mismach_1 }
 check_mismach_noMis = Channel.create()
-check_mismach_1.toSortedList().val.each{ target_name, target_vcfFile, warn, summary ->
+check_mismach_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sumary ->
     mismach = file(warn).readLines().size()-1
     if ( mismach != 0 ) {
         System.err.println "|-- ${mismach} ref mismach sites found in '${target_name}' dataset! The pipeline will exit."
         exit 1
     }
     else{
-        check_mismach_noMis << [ target_name, target_vcfFile, warn, summary ]
+        check_mismach_noMis << [ target_name, target_vcfFile, warn, sumary ]
     }
 }
 check_mismach_noMis.close()
 
-"""
-QC
-"""
+/*
+ * STEP 5: QC
+*/
 check_mismach_noMis.into{ check_mismach_noMis; check_mismach_noMis_1 }
 process target_qc {
     tag "target_qc_${target_name}"
-//    publishDir "${params.output_dir}", overwrite: true, mode:'symlink'
+//    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
     input:
         set val(target_name), file(target_vcfFile), file(mismach_warn), file(mismach_summary) from check_mismach_noMis_1
     output:
@@ -406,11 +353,7 @@ def transform_chunk = { target_name, target_vcfFile ->
             chunk_start = data[1]
             chunk_end = data[2]
             if (target_name == target_name_) {
-                params.ref_panels.each { ref ->
-                    ref_m3vcf = sprintf(params.ref_panels[ref.key].m3vcfFile, chrm)
-                    ref_vcf = sprintf(params.ref_panels[ref.key].vcfFile, chrm)
-                    chunks_datas << [chrm, chunk_start, chunk_end, target_name, file(target_vcfFile), ref.key, file(ref_vcf), file(ref_m3vcf)]
-                }
+                chunks_datas << [chrm, chunk_start, chunk_end, target_name, file(target_vcfFile)]
             }
         }
     }
@@ -419,13 +362,16 @@ def transform_chunk = { target_name, target_vcfFile ->
 target_qc_chunk = target_qc_1
         .flatMap{ it -> transform_chunk(it) }
 
+/*
+ * STEP 6:
+*/
 process split_target_to_chunk {
     tag "split_${target_name}_${chrm}:${chunk_start}-${chunk_end}"
-    publishDir "${params.output_dir}/qc/${chrm}/chunks", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/qc/${chrm}/chunks", overwrite: true, mode:'symlink'
     input:
-        set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from target_qc_chunk
+        set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile) from target_qc_chunk
     output:
-        set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile_chunk), ref_name, file(ref_vcf), file(ref_m3vcf) into split_vcf_to_chrm
+        set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile_chunk) into split_vcf_to_chrm
     script:
         base = file(target_vcfFile.baseName).baseName
         target_vcfFile_chunk = "${base}.chr${chrm}_${chunk_start}-${chunk_end}.vcf.gz"
@@ -439,15 +385,29 @@ process split_target_to_chunk {
         """
 }
 
+split_vcf_to_chrm.into{ split_vcf_to_chrm; split_vcf_to_chrm_1 }
+def transform_qc_chunk = { chrm, chunk_start, chunk_end, target_name, target_vcfFile ->
+    chunks_datas = []
+    params.ref_panels.each { ref ->
+        ref_m3vcf = sprintf(params.ref_panels[ref.key].m3vcfFile, chrm)
+        ref_vcf = sprintf(params.ref_panels[ref.key].vcfFile, chrm)
+        chunks_datas << [chrm, chunk_start, chunk_end, target_name, file(target_vcfFile), ref.key, file(ref_vcf), file(ref_m3vcf)]
+    }
+    return chunks_datas
+}
 
-"""
-Phase each chromosome using eagle
-"""
+target_qc_chunk_ref = split_vcf_to_chrm_1
+        .flatMap{ it -> transform_qc_chunk(it) }
+
+
+/*
+ * STEP 7: Phase each chunk using eagle
+*/
 split_vcf_to_chrm.into{ split_vcf_to_chrm; split_vcf_to_chrm_1 }
 process phase_target_chunk {
     tag "phase_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
     input:
-        set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile_chunk), ref_name, file(ref_vcf), file(ref_m3vcf) from split_vcf_to_chrm_1
+        set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile_chunk), ref_name, file(ref_vcf), file(ref_m3vcf) from target_qc_chunk_ref
     output:
         set chrm, chunk_start, chunk_end, target_name, file("${file_out}.vcf.gz"), ref_name, file(ref_vcf), file(ref_m3vcf) into phase_target
     script:
@@ -477,101 +437,14 @@ process phase_target_chunk {
         fi
         """
 }
-// TODO Record failed phasing chunks in report
 
-//phase_data.into{ phase_data; phase_data_1; phase_data_2 }
-//def combine_chunk_data_with_ref = { chromosome, chunk_start, chunk_end, study_haps, study_sample ->
-//    res = []
-//    ref_hapFile     = file( sprintf(params.ref_1.hapFile, chromosome) )
-//    ref_legendFile  = file( sprintf(params.ref_1.legendFile, chromosome) )
-//    ref_mapFile     = file( sprintf(params.ref_1.mapFile, chromosome) )
-//    ref_sampleFile  = file( params.ref_1.sampleFile )
-//    res << [chromosome, chunk_start, chunk_end, study_haps, study_sample, ref_hapFile, ref_legendFile, ref_mapFile, ref_sampleFile]
-//    return res
-//}
-//def combine_chunk_data_with_2refs = { chrm, chunk_start, chunk_end, study_haps, study_sample ->
-//    res = []
-//    ref_1_hapFile = file(sprintf(params.ref_1.hapFile, chrm))
-//    ref_1_legendFile = file(sprintf(params.ref_1.legendFile, chrm))
-//    ref_1_mapFile = file(sprintf(params.ref_1.mapFile, chrm))
-//    ref_1_sampleFile = file(params.ref_1.sampleFile)
-//    ref_2_hapFile = file(sprintf(params.ref_2.hapFile, chrm))
-//    ref_2_legendFile = file(sprintf(params.ref_2.legendFile, chrm))
-//    ref_2_mapFile = file(sprintf(params.ref_2.mapFile, chrm))
-//    ref_2_sampleFile = file(params.ref_2.sampleFile)
-//    res << [chrm, chunk_start, chunk_end, study_haps, study_sample, ref_1_hapFile, ref_1_legendFile, ref_2_mapFile, ref_1_sampleFile, ref_2_hapFile, ref_2_legendFile, ref_2_sampleFile]
-//    return res
-//}
-//if ( params.ref_1.name != null){
-//    if ( !('ref_2' in params.keySet()) || params.ref_2.name.length() == 0){
-//        '''
-//        Impute using the prephased genotypes with impute2 with 1 reference panel
-//        '''
-//        chunk_prephased = phase_data_1.
-//                flatMap { it -> combine_chunk_data_with_ref(it) }
-//    }
-//    else{
-//        cross_refs_data = phase_data_1.
-//                flatMap { it -> combine_chunk_data_with_2refs(it) }
-//        process cross_impute_2refs {
-//            tag "cross_impute_2refs_chr${chromosome}_${chunkStart}-${chunkEnd}_${params.ref_1.name}_${params.ref_2.name}"
-//            memory { 15.GB * task.attempt }
-//            time { 10.h * task.attempt }
-//            publishDir "${params.impute_result}/cross_impute_${params.ref_1.name}_${params.ref_2.name}/${chromosome}", overwrite: true, mode: 'symlink'
-//            input:
-//                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(ref_1_hapFile), file(ref_1_legendFile), file(ref_2_mapFile), file(ref_1_sampleFile), file(ref_2_hapFile), file(ref_2_legendFile), file(ref_2_sampleFile) from cross_refs_data
-//            output:
-//                set val(chromosome), val(chunkStart), val(chunkEnd), file(study_haps), file(study_sample), file(haps_file), file(legend_file), file(ref_2_mapFile), file(sample_file) into cross_impute_2refs
-//            shell:
-//                outfile = "${params.ref_1.name}_${params.ref_2.name}_chr${chromosome}_${chunkStart}-${chunkEnd}.impute2"
-//                haps_file = "${outfile}.hap.gz"
-//                legend_file = "${outfile}.legend.gz"
-//                sample_file = "${outfile}.sample"
-//                """
-//                gunzip -c ${ref_1_hapFile} > ${ref_1_hapFile.baseName}
-//                gunzip -c ${ref_2_hapFile} > ${ref_2_hapFile.baseName}
-//                gunzip -c ${ref_1_legendFile} > ${ref_1_legendFile.baseName}
-//                gunzip -c ${ref_2_legendFile} > ${ref_2_legendFile.baseName}
-//                impute2 \
-//                    -merge_ref_panels \
-//                    -m ${ref_2_mapFile} \
-//                    -h ${ref_1_hapFile.baseName} ${ref_2_hapFile.baseName} \
-//                    -l ${ref_1_legendFile.baseName} ${ref_2_legendFile.baseName} \
-//                    -Ne ${params.NE} \
-//                    -burnin ${params.impute_burnin} \
-//                    -iter ${params.impute_iter} \
-//                    -buffer ${params.buffer_size} \
-//                    -int ${chunkStart} ${chunkEnd} \
-//                    -include_buffer_in_output \
-//                    -merge_ref_panels_output_ref ${outfile} \
-//                    -fill_holes \
-//                    -no_remove \
-//                    -o ${outfile} \
-//                    -o_gz \
-//                    || true
-//                head -n 1 ${ref_1_sampleFile} > ${sample_file}
-//                tail -q -n +2 ${ref_1_sampleFile} ${ref_2_sampleFile} >> ${sample_file}
-//                rm -f ${ref_1_hapFile.baseName} ${ref_2_hapFile.baseName} ${ref_1_legendFile.baseName} ${ref_2_legendFile.baseName}
-//                ## Sometimes there are no (type2) SNP's in a region
-//                if [ ! -f "${outfile}.hap.gz" ]; then
-//                    if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}_summary || \
-//                        grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}_summary || \
-//                        grep 'There are no SNPs in the imputation interval' ${outfile}_summary; then
-//                        touch ${outfile}.hap
-//                        bgzip -f ${outfile}.hap.gz
-//                        touch ${outfile}.legend
-//                        bgzip -f ${outfile}.legend.gz
-//                        touch ${outfile}.sample
-//                    fi
-//                fi
-//                """
-//        }
-//        cross_impute_2refs.into{ cross_impute_2refs; chunk_prephased}
-//    }
 
+/*
+ * STEP 8:
+*/
 process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
-    publishDir "${params.impute_result}/impute/${chromosome}", overwrite: true, mode:'symlink'
+    publishDir "${params.resultDir}/impute/${chromosome}", overwrite: true, mode:'symlink'
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
     output:
@@ -589,179 +462,28 @@ process impute_target {
         """
 }
 
-//impute2 \
-//            -use_prephased_g \
-//            -known_haps_g ${study_haps} \
-//            -h ${ref_hapFile}  \
-//            -l ${ref_legendFile}  \
-//            -m ${ref_mapFile}  \
-//            -int ${chunkStart} ${chunkEnd} \
-//            -Ne 15000 \
-//            -buffer ${params.buffer_size} \
-//            -phase \
-//            -o_gz \
-//            -o ${outfile}.imputed || true
-//
-//## Sometimes there are no (type2) SNP's in a region
-//if [ ! -f "${outfile}.imputed.gz" ]; then
-//if grep 'ERROR: There are no type 2 SNPs after applying the command-line settings for this run' ${outfile}.imputed_summary || \
-//                grep 'Your current command-line settings imply that there will not be any SNPs in the output file, so IMPUTE2 will not perform any analysis or print output files.' ${outfile}.imputed_summary || \
-//                grep 'There are no SNPs in the imputation interval' ${outfile}.imputed_summary; then
-//touch ${outfile}.imputed
-//bgzip -f ${outfile}.imputed
-//touch ${outfile}.imputed_haps
-//bgzip -f ${outfile}.imputed_haps
-//touch ${outfile}.imputed_info
-//fi
-//fi
-//}
-//
-//
-//'''
-//Combine output
-//'''
-//impute_all.into{impute_all; impute__imputeCombine_cha}
-//
-//// Create a dataflow instance of all impute results
-//imputeCombine_impute = []
-//imputeCombine_info = []
-//impute__imputeCombine_cha_list = impute__imputeCombine_cha.toSortedList().val
-//impute__imputeCombine_cha_list.each{ chromosome, impute, haps, info, summary ->
-//    imputeCombine_impute << [chromosome, impute]
-//    imputeCombine_info << [chromosome, info]
-//}
-//// Create channels
-//imputeCombine_impute_cha = Channel
-//        .from(imputeCombine_impute)
-//        .groupTuple()
-//imputeCombine_info_cha = Channel
-//        .from(imputeCombine_info)
-//        .groupTuple()
-//
-//process imputeCombine {
-//    tag "impComb_chr${chromosome}"
-//    memory { 2.GB * task.attempt }
-//    publishDir "${params.impute_result}/combined", overwrite: true, mode:'copy'
-//    input:
-//        set chromosome, file(imputed_files) from imputeCombine_impute_cha
-//        set chromo, file(info_files) from imputeCombine_info_cha
-//    output:
-//        set chromosome, file(comb_impute) into imputeCombine
-//        set chromosome, file(comb_info) into infoCombine
-//    script:
-//        comb_impute = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed.gz"
-//        comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
-//        """
-//        zcat ${imputed_files.join(' ')} | bgzip -c > ${comb_impute}
-//        head -n 1 ${info_files[0]} > ${comb_info}
-//        tail -q -n +2 ${info_files.join(' ')}>> ${comb_info}
-//        """
-//}
-//
-//
-//imputeCombine.into { imputeCombine; imputeCombine_1 }
-//process imputeToPlink {
-//    tag "toPlink_chr${chromosome}"
-//    memory { 2.GB * task.attempt }
-//    publishDir "${params.impute_result}/plink", overwrite: true, mode:'copy'
-//    input:
-//        set chromosome, file(chromosome_imputed_gz) from imputeCombine_1
-//        set chrom, chunk_start, chunk_end, file(prephased_haps), file(prephased_sample) from phase_data_2
-//    output:
-//        set chromosome, file("${chromosome_imputed_gz.baseName}.bed"), file("${chromosome_imputed_gz.baseName}.bim"), file("${chromosome_imputed_gz.baseName}.fam") into imputeToPlink
-//    script:
-//        """
-//        gunzip -c ${chromosome_imputed_gz} > ${chromosome_imputed_gz.baseName}
-//        plink2 \
-//            --gen ${chromosome_imputed_gz.baseName} \
-//            --sample ${prephased_sample} \
-//            --oxford-single-chr ${chromosome} \
-//            --hard-call-threshold 0.1 \
-//            --make-bed --out ${chromosome_imputed_gz.baseName} || true
-//        rm -f ${chromosome_imputed_gz.baseName}
-//        """
-//}
-//
-//
-//"""
-//Generating report
-//"""
-//infoCombine.into { infoCombine; infoCombine_1 }
-//infoCombine_list = infoCombine_1.toSortedList().val
-//chrm_infos = []
-//infoCombine_list.each{ chrm, comb_info ->
-//    chrm_infos << chrm+"=="+comb_info
-//}
-//process filter_info {
-//    tag "filter_${projectName}_${chrms}"
-//    memory { 2.GB * task.attempt }
-//    publishDir "${params.output_dir}/INFOS/${projectName}", overwrite: true, mode:'copy'
-//    input:
-//        val(projectName) from params.project_name
-//    output:
-//        set val(projectName), file(well_out) into info_Well
-//        set val(projectName), file(acc_out) into info_Acc
-//    script:
-//        chrms = chromosomes[0]+"-"+chromosomes[-1]
-//        comb_info = "${projectName}_${chrms}.imputed_info"
-//        well_out = "${comb_info}_well_imputed"
-//        acc_out = "${comb_info}_accuracy"
-//        infos = chrm_infos.join(',')
-//        """
-//        python2.7 ${params.homedir}/scripts/report.py \
-//            --infoFiles ${infos} \
-//            --outWell_imputed ${well_out} \
-//            --outSNP_acc ${acc_out} \
-//            --infoCutoff ${params.impute_info_cutoff}
-//        """
-//}
-//
-//
-//"""
-//Report 1: Well imputed
-//"""
-//info_Well.into{ info_Well; info_Well_1}
-//process report_well_imputed {
-//    tag "report_wellImputed_${projectName}_${chrms}"
-//    memory { 2.GB * task.attempt }
-//    publishDir "${params.output_dir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
-//    input:
-//        set val(projectName), file(well_in) from info_Well_1
-//    output:
-//        set val(projectName), file(well_report_out) into report_well_imputed
-//    script:
-//        chrms = chromosomes[0]+"-"+chromosomes[-1]
-//        comb_info = "${projectName}_${chrms}.imputed_info"
-//        well_report_out = "${comb_info}_report_well_imputed.tsv"
-//        """
-//        python2.7 -u ${params.homedir}/scripts/report.py \
-//            --inWell_imputed ${well_in} \
-//            --outWell_imputed ${well_report_out} \
-//            --infoCutoff ${params.impute_info_cutoff}
-//        """
-//}
-//
-//
-//"""
-//Repor 2: Accuracy
-//"""
-//info_Acc.into{ info_Acc; info_Acc_2}
-//process report_SNP_acc {
-//    tag "report_SNP_acc_${projectName}_${chrms}"
-//    memory { 2.GB * task.attempt }
-//    publishDir "${params.output_dir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
-//    input:
-//        set val(projectName), file(acc_in) from info_Acc_2
-//    output:
-//        set val(projectName), file(SNP_acc_out) into report_SNP_acc
-//    script:
-//        chrms = chromosomes[0]+"-"+chromosomes[-1]
-//        comb_info = "${projectName}_${chrms}.imputed_info"
-//        SNP_acc_out = "${comb_info}_report_SNP_acc.tsv"
-//        """
-//        python2.7 -u ${params.homedir}/scripts/report.py \
-//            --inSNP_acc ${acc_in} \
-//            --outSNP_acc ${SNP_acc_out} \
-//            --infoCutoff ${params.impute_info_cutoff}
-//        """
-//}
+def helpMessage() {
+    log.info"""
+    =========================================
+    h3achipimputation v${params.version}
+    =========================================
+    Usage:
+
+    The typical command for running the pipeline is as follows:
+
+    nextflow run h3abionet/chipimputation --reads '*_R{1,2}.fastq.gz' -profile standard,docker
+
+    Mandatory arguments (Must be specified in the configuration file, and must be surrounded with quotes):
+      --target_datasets             Path to input study data (Can be one ou multiple for multiple runs)
+      --genome                      Human reference genome for checking REF mismatch
+      --ref_panels                  Reference panels to impute to (Can be one ou multiple for multiple runs)
+      -profile                      Configuration profile to use. Can use multiple (comma separated)
+                                    Available: standard, conda, docker, singularity, test
+
+    Other options:
+      --outDir                      The output directory where the results will be saved
+      --email                       Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
+      --name                        Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
+      --project_name                Project name. If not specified, target file name will be used as project name
+    """.stripIndent()
+}
