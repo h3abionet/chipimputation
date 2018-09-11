@@ -1,0 +1,15 @@
+# Use this file if you want to create a conda environment for the h3achipimputation pipeline:
+# Eagle (https://data.broadinstitute.org/alkesgroup/Eagle/) needs to be installed manually
+# conda env create -f environment.yml
+name: h3abionet/chipimputation
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - python=2.7
+  - bcftools=1.8
+  - vcftools=0.1.15
+  - impute2=2.3.2
+  - plink2=1.90b3.35
+  - htslib=1.9

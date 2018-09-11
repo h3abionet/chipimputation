@@ -1,12 +1,7 @@
-**.pyc
-.git/
 .nextflow*
 work/
-input/*
-output/*
-run.sh
-testrun.sh
-logs/*
-.Trash*
-sample/small/*
-../commit.sh
+data/
+results/
+.DS_Store
+tests/test_data
+/bin/markdown_to_html.r

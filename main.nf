@@ -1,49 +1,87 @@
 #!/usr/bin/env nextflow
 
 /*
- * Authors:
- *      Mamana Mbiyavanga
- *
- *  On behalf of the H3ABionet Consortium
- *  2017
- *
- *
- * Description  : Nextflow pipeline for ...
- *
+========================================================================================
+                       h3achipimputation
+========================================================================================
+ h3achipimputation imputation pipeline.
+ #### Homepage / Documentation
+ https://github.com/h3abionet/chipimputation
+----------------------------------------------------------------------------------------
 */
-
-//---- General definitions --------------------------------------------------//
-
-version = '1.0'
-
-println "=================================================="
-
 
 def helpMessage() {
     log.info"""
-        ${version}
+    =========================================
+    h3achipimputation v${manifest.pipelineVersion}
+    =========================================
+    Usage:
+
+    The typical command for running the pipeline is as follows:
+
+    nextflow run h3abionet/chipimputation --reads '*_R{1,2}.fastq.gz' -profile standard,docker
+
+    Mandatory arguments:
+      --reads                       Path to input data (must be surrounded with quotes)
+      --genome                      Name of iGenomes reference
+      -profile                      Configuration profile to use. Can use multiple (comma separated)
+                                    Available: standard, conda, docker, singularity, awsbatch, test
+
+    Options:
+      --singleEnd                   Specifies that the input is single end reads
+
+    References                      If not specified in the configuration file or you wish to overwrite any of the references.
+      --fasta                       Path to Fasta reference
+
+    Other options:
+      --outdir                      The output directory where the results will be saved
+      --email                       Set this parameter to your e-mail address to get a summary e-mail with details of the run sent to you when the workflow exits
+      -name                         Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
+
+    AWSBatch options:
+      --awsqueue                    The AWSBatch JobQueue that needs to be set when running on AWSBatch
+      --awsregion                   The AWS Region for your AWS Batch job to run on
     """.stripIndent()
 }
 
-// Show help emssage
-//if (params.help){
-//    helpMessage()
-//    exit 0
-//}
+/*
+ * SET UP CONFIGURATION VARIABLES
+ */
 
-// Check that Nextflow version is up to date enough
-// try / throw / catch works for NF versions < 0.25 when this was implemented
-nf_required_version = '0.31.1'
-try {
-    if( ! nextflow.version.matches(">= $nf_required_version") ){
-        throw GroovyException('Nextflow version too old')
-    }
-} catch (all) {
-    log.error "====================================================\n" +
-            "  Nextflow version $nf_required_version required! You are running v$workflow.nextflow.version.\n" +
-            "  Pipeline execution will continue, but things may break.\n" +
-            "  Please run `nextflow self-update` to update Nextflow.\n" +
-            "============================================================"
+// Show help emssage
+if (params.help){
+    helpMessage()
+    exit 0
+}
+
+// Configurable variables
+params.name = false
+params.fasta = params.genome ? params.genomes[ params.genome ].fasta ?: false : false
+params.multiqc_config = "$baseDir/conf/multiqc_config.yaml"
+params.email = false
+params.plaintext_email = false
+
+multiqc_config = file(params.multiqc_config)
+output_docs = file("$baseDir/docs/output.md")
+
+
+// AWSBatch sanity checking
+if(workflow.profile == 'awsbatch'){
+    if (!params.awsqueue || !params.awsregion) exit 1, "Specify correct --awsqueue and --awsregion parameters on AWSBatch!"
+    if (!workflow.workDir.startsWith('s3') || !params.outdir.startsWith('s3')) exit 1, "Specify S3 URLs for workDir and outdir parameters on AWSBatch!"
+}
+
+// Has the run name been specified by the user?
+//  this has the bonus effect of catching both -name and --name
+custom_runName = params.name
+if( !(workflow.runName ==~ /[a-z]+_[a-z]+/) ){
+    custom_runName = workflow.runName
+}
+
+// Check workDir/outdir paths to be S3 buckets if running on AWSBatch
+// related: https://github.com/nextflow-io/nextflow/issues/813
+if( workflow.profile == 'awsbatch') {
+    if(!workflow.workDir.startsWith('s3:') || !params.outdir.startsWith('s3:')) exit 1, "Workdir or Outdir not on S3 - specify S3 Buckets for each to run on AWSBatch!"
 }
 
 println "|-- Project directory : ${workflow.projectDir}"
@@ -63,6 +101,7 @@ params.target_datasets.each { target ->
     target_datasets << [target.key, file(target.value)]
 }
 
+// Validate eagle map file for phasing step
 eagle_genetic_map = params.eagle_genetic_map
 if (!file(params.eagle_genetic_map).exists()){
     projectDir = "$workflow.projectDir"
@@ -73,23 +112,102 @@ if (!file(params.eagle_genetic_map).exists()){
     }
 }
 
-
+// Validate reference genome
 if(!file(params.reference_genome).exists()){
     System.err.println "Reference genome (reference_genome) file ${params.reference_genome} not found. Please check your config file."
     exit 1
 }
 
-
-//// Create channel for the study data from ped and map files
-target_datasets = Channel
+// Create channel for the study data from VCF files
+Channel
         .from(target_datasets)
+        into{ target_datasets }
 
 // TODO Be able to run just on a specified chunk
 
 
-"""
-Check user's provided chromosomes vs those in map file
-"""
+// Header log info
+log.info """=======================================================
+                                          ,--./,-.
+          ___     __   __   __   ___     /,-._.--~\'
+    |\\ | |__  __ /  ` /  \\ |__) |__         }  {
+    | \\| |       \\__, \\__/ |  \\ |___     \\`-._,-`-,
+                                          `._,._,\'
+
+h3abionet/chipimputation v${manifest.pipelineVersion}"
+======================================================="""
+def summary = [:]
+summary['Pipeline Name']  = 'h3abionet/chipimputation'
+summary['Pipeline Version'] = manifest.pipelineVersion
+summary['Run Name']     = custom_runName ?: workflow.runName
+summary['Reads']        = params.reads
+summary['Fasta Ref']    = params.fasta
+summary['Data Type']    = params.singleEnd ? 'Single-End' : 'Paired-End'
+summary['Max Memory']   = params.max_memory
+summary['Max CPUs']     = params.max_cpus
+summary['Max Time']     = params.max_time
+summary['Output dir']   = params.outdir
+summary['Working dir']  = workflow.workDir
+summary['Container Engine'] = workflow.containerEngine
+if(workflow.containerEngine) summary['Container'] = workflow.container
+summary['Current home']   = "$HOME"
+summary['Current user']   = "$USER"
+summary['Current path']   = "$PWD"
+summary['Working dir']    = workflow.workDir
+summary['Output dir']     = params.outdir
+summary['Script dir']     = workflow.projectDir
+summary['Config Profile'] = workflow.profile
+if(workflow.profile == 'awsbatch'){
+    summary['AWS Region'] = params.awsregion
+    summary['AWS Queue'] = params.awsqueue
+}
+if(params.email) summary['E-mail Address'] = params.email
+log.info summary.collect { k,v -> "${k.padRight(15)}: $v" }.join("\n")
+log.info "========================================="
+
+
+def create_workflow_summary(summary) {
+
+    def yaml_file = workDir.resolve('workflow_summary_mqc.yaml')
+    yaml_file.text  = """
+    id: 'nf-core-imp-summary'
+    description: " - this information is collected when the pipeline is started."
+    section_name: 'h3abionet/chipimputation Workflow Summary'
+    section_href: 'https://github.com/h3abionet/chipimputation'
+    plot_type: 'html'
+    data: |
+        <dl class=\"dl-horizontal\">
+${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style=\"color:#999999;\">N/A</a>'}</samp></dd>" }.join("\n")}
+        </dl>
+    """.stripIndent()
+
+    return yaml_file
+}
+
+
+/*
+ * Parse software version numbers
+ */
+process get_software_versions {
+
+    output:
+    file 'software_versions_mqc.yaml' into software_versions_yaml
+
+    script:
+    """
+    echo $manifest.pipelineVersion > v_pipeline.txt
+    echo $workflow.nextflow.version > v_nextflow.txt
+    fastqc --version > v_fastqc.txt
+    multiqc --version > v_multiqc.txt
+    scrape_software_versions.py > software_versions_mqc.yaml
+    """
+}
+
+
+
+/*
+ * STEP 1 - Check user's provided chromosomes vs those in map file
+ */
 target_datasets.into{ target_datasets; target_datasets_check }
 process check_chromosome {
     tag "check_chromosome_${target_name}"
@@ -109,14 +227,13 @@ process check_chromosome {
 }
 
 check_chromosome.into{ check_chromosome; check_chromosome1 }
-// Check if specified chromosomes exist in bim file or VCF
+// Check if specified chromosomes exist in VCF file
 chromosomes_ = []
 check_chromosome1.toSortedList().val.each{ check_file ->
     chromosomes_ = chromosomes_ + file(check_file).readLines()
 }
 chromosomes_ = chromosomes_.unique().collect { it as int }.sort()
-// Chromosomes from the dataset map file
-// Check if chromosomes
+// Chromosomes from the dataset VCF file
 if (params.chromosomes == '' || params.chromosomes == 'ALL'){
     chromosomes = chromosomes_
 }
@@ -167,10 +284,10 @@ params.ref_panels.each { ref ->
     }
 }
 
+/*
+ * STEP 2 - Identify chromosomes and start/stop positions per chromosome and generate chunks
 
-"""
-Identify chromosomes and start/stop positions per chromosome and generate chunks
-"""
+ */
 mapFile_cha.into{ mapFile_cha; mapFile_cha_chunks }
 process generate_chunks {
     tag "generate_chunks_${target_name}"
