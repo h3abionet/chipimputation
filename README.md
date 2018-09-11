@@ -50,3 +50,25 @@ nextflow run imputation.nf -c nextflow.test.small.config
 ```
 wc -l output/impute_results/FINAL_VCFS/*
 ```
+
+### AWS Batch
+
+This workflow can be run on AWS Batch, an Amazon service that streamlines the running of containerised workflows. Nextflow
+
+1. Set up the AWS environment. The requirements are:
+  - an AWS account with credits. See the [AWS grants page](https://aws.amazon.com/grants/) for grants
+  - a configured Compute Environment and associated AWS Job Queue
+  - a configured S3 bucket
+
+2. Populate the `awsbatch` profile in 
+```
+aws.region = 'eu-west-1'
+aws.client.storageEncryption = 'AES256'
+process.queue = 'large'
+executor.name = 'awsbatch'
+executor.awscli = '/home/ec2-user/miniconda/bin/aws'
+```
+3. run with the `awsbatch` profile
+```
+nextflow run imputation.nf -c nextflow.test.small.config -profile awsbatch
+```
