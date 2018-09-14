@@ -4,7 +4,7 @@
 ############################################################
 
 # Set the base image to Ubuntu
-FROM ubuntu:latest
+FROM ubuntu:16.04
 
 # File Author / Maintainer
 MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
