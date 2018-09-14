@@ -1,8 +1,3 @@
-############################################################
-# Dockerfile to build Genotype imputation
-# Based on Ubuntu 16.04
-############################################################
-
 # Set the base image to Ubuntu
 FROM ubuntu:latest
 
