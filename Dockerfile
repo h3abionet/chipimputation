@@ -7,11 +7,7 @@
 FROM ubuntu:latest
 
 # File Author / Maintainer
-LABEL
-    authors="Mamana.Mbiyavanga@uct.ac.za, ayton.meintjes@uct.ac.za" \
-    description="Docker image containing all requirements for h3achipimputation pipeline" \
-    maintainer="Mamana Mbiyavanga <mamana.mbiyavanga@uct.ac.za>, Ayton Meintjes <ayton.meintjes@uct.ac.za>"
-
+MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za", Ayton Meintjes "ayton.meintjes@uct.ac.za"
 
 ################## BEGIN INSTALLATION ######################
 # Install Basic tools
