@@ -271,7 +271,7 @@ process check_mismach {
             bcftools norm --check-ref w \
                 -f ${params.reference_genome} \
                 ${target_vcfFile} \
-                -Ou -o /dev/null
+                -Oz -o /dev/null
             cp .command.err ${base}_checkRef_warn.log
             bcftools +fixref \
                 ${target_vcfFile} \
