@@ -137,19 +137,19 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 ///*
 // * STEP 1: Parse software version numbers
 // */
-process get_software_versions {
-    tag "get_software_versions"
-    output:
-        file("software_versions_mqc.yaml") into software_versions_yaml
-    script:
-        """
-        echo $params.version > v_pipeline.txt
-        echo $workflow.nextflow.version > v_nextflow.txt
-        vcftools --version > v_vcftools.txt
-        plink2 --version > v_plink2.txt
-        scrape_software_versions.py > software_versions_mqc.yaml
-        """
-}
+//process get_software_versions {
+//    tag "get_software_versions"
+//    output:
+//        file("software_versions_mqc.yaml") into software_versions_yaml
+//    script:
+//        """
+//        echo $params.version > v_pipeline.txt
+//        echo $workflow.nextflow.version > v_nextflow.txt
+//        vcftools --version > v_vcftools.txt
+//        plink2 --version > v_plink2.txt
+//        scrape_software_versions.py > software_versions_mqc.yaml
+//        """
+//}
 
 
 /*
