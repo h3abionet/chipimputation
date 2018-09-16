@@ -1,3 +1,4 @@
-[submodule "testdata_imputation"]
-	path = testdata_imputation
-	url = https://github.com/h3abionet/chipimputation/blob/test_data/testdata_imputation
+[submodule "test_data_imputation"]
+	path = test_data_imputation
+	url = git@github.com:h3abionet/chipimputation.git
+	branch = test_data
