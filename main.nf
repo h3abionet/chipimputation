@@ -441,7 +441,7 @@ process phase_target_chunk {
 */
 process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
-    publishDir "${params.resultDir}/impute/${chromosome}", overwrite: true, mode:'symlink'
+    publishDir "${params.resultDir}/impute/${chrm}", overwrite: true, mode:'symlink'
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
     output:
