@@ -3,7 +3,7 @@
 Reads map file, chunk size
 Returns file with chromosome chunk_start chunk_end
 """
-import sys
+
 
 def chunk_split(map_file, output, chunk, chrms=''):
     '''
@@ -34,6 +34,8 @@ def chunk_split(map_file, output, chunk, chrms=''):
         for pos in myPos:
             start_ = pos
             end_ = start_ + chunk - 1
+            if end_ >= max_:
+                end_ = max_
             out.writelines(','.join([str(chrm), str(start_), str(end_)])+'\\n')
     out.close()
 
