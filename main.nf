@@ -49,18 +49,15 @@ if(params.target_datasets) {
     }
 }
 
-// Validate eagle map file for phasing step
+// Validate eagle map file for phasing step and create channel if file exists
 eagle_genetic_map = params.eagle_genetic_map
 if(params.eagle_genetic_map) {
-    if (!file(params.eagle_genetic_map).exists()) {
-        projectDir = "$workflow.projectDir"
-        eagle_genetic_map = file("$projectDir/${params.eagle_genetic_map}")
-        if (!file(eagle_genetic_map).exists()) {
-            System.err.println "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
-            exit 1
-        }
+    if (!file(eagle_genetic_map).exists()) {
+        System.err.println "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+        exit 1
     }
 }
+
 // Validate reference genome
 if(params.reference_genome) {
     if (!file(params.reference_genome).exists()) {
@@ -391,7 +388,7 @@ def transform_qc_chunk = { chrm, chunk_start, chunk_end, target_name, target_vcf
     params.ref_panels.each { ref ->
         ref_m3vcf = sprintf(params.ref_panels[ref.key].m3vcfFile, chrm)
         ref_vcf = sprintf(params.ref_panels[ref.key].vcfFile, chrm)
-        chunks_datas << [chrm, chunk_start, chunk_end, target_name, file(target_vcfFile), ref.key, file(ref_vcf), file(ref_m3vcf)]
+        chunks_datas << [chrm, chunk_start, chunk_end, target_name, file(target_vcfFile), ref.key, file(ref_vcf), file(ref_m3vcf), file(params.eagle_genetic_map)]
     }
     return chunks_datas
 }
@@ -407,7 +404,7 @@ split_vcf_to_chrm.into{ split_vcf_to_chrm; split_vcf_to_chrm_1 }
 process phase_target_chunk {
     tag "phase_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
     input:
-        set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile_chunk), ref_name, file(ref_vcf), file(ref_m3vcf) from target_qc_chunk_ref
+        set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile_chunk), ref_name, file(ref_vcf), file(ref_m3vcf), file(eagle_genetic_map) from target_qc_chunk_ref
     output:
         set chrm, chunk_start, chunk_end, target_name, file("${file_out}.vcf.gz"), ref_name, file(ref_vcf), file(ref_m3vcf) into phase_target
     script:
@@ -486,4 +483,5 @@ def helpMessage() {
       --name                        Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
       --project_name                Project name. If not specified, target file name will be used as project name
     """.stripIndent()
+    println "${NXF_HOME}/assets/h3abionet/chipimputation"
 }
