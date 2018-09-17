@@ -39,22 +39,22 @@ RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz &&
 #    unzip plink_linux_x86_64.zip -d /usr/local/bin/ && \
 #    rm -f plink_linux_x86_64.zip
 #
-## Install VCFTools
-#### Build from GitHub
-#RUN git clone https://github.com/vcftools/vcftools.git  && \
-#    cd vcftools && \
-#    ./autogen.sh && \
-#    ./configure && \
-#    make -j && \
-#    make install && \
-#    cd .. && rm -rf vcftools
-#
-## Install Eagle
-#RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.tar.gz && \
-#    gunzip Eagle_v2.4.tar.gz && \
-#    tar xvf Eagle_v2.4.tar && \
-#    mv Eagle_v2.4/eagle /usr/local/bin/ && \
-#    rm -rf Eagle_v2.4
+# Install VCFTools
+### Build from GitHub
+RUN git clone https://github.com/vcftools/vcftools.git  && \
+    cd vcftools && \
+    ./autogen.sh && \
+    ./configure && \
+    make -j && \
+    make install && \
+    cd .. && rm -rf vcftools
+
+# Install Eagle
+RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.tar.gz && \
+    gunzip Eagle_v2.4.tar.gz && \
+    tar xvf Eagle_v2.4.tar && \
+    mv Eagle_v2.4/eagle /usr/local/bin/ && \
+    rm -rf Eagle_v2.4
 
 RUN useradd --create-home --shell /bin/bash ubuntu && \
   chown -R ubuntu:ubuntu /home/ubuntu
