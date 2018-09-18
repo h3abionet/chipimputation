@@ -460,7 +460,7 @@ process impute_target {
                 --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
                 --prefix ${base}_imputed
         else
-             touch ${base}_imputed.dose.vcf && bgzip -f ${file_out}.vcf
+             touch ${base}_imputed.dose.vcf && bgzip -f ${base}_imputed.dose.vcf
              touch ${base}_imputed.info
         fi
         """
