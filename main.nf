@@ -91,6 +91,7 @@ summary['Max Memory']       = params.max_memory
 summary['Max CPUs']         = params.max_cpus
 summary['Max Time']         = params.max_time
 summary['Output dir']       = params.outDir
+summary['Result dir']       = params.resultDir
 summary['Working dir']      = workflow.workDir
 summary['Current path']     = "$PWD"
 summary['Container Engine'] = workflow.containerEngine
@@ -229,27 +230,7 @@ params.ref_panels.each { ref ->
 }
 
 /*
- * STEP 3 - Identify chromosomes and start/stop positions per chromosome and generate chunks
-*/
-mapFile_cha.into{ mapFile_cha; mapFile_cha_chunks }
-process generate_chunks {
-    tag "generate_chunks_${target_name}"
-//    publishDir "${params.outDir}", overwrite: true, mode:'copy'
-    echo true
-    input:
-        set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
-    output:
-        set val(target_name), file(chunkFile) into generate_chunks
-    script:
-        if(params.chunk){chunk = params.chunk}else{chunk=''} // To impute only a chunk like 1000000-1100000
-        chunkFile = "chunks.txt"
-        chunk_size = params.chunk_size
-        template "generate_chunks.py"
-}
-
-
-/*
- * STEP 4: QC
+ * STEP 3: QC
 */
 target_datasets.into{ target_datasets; target_datasets_qc }
 process check_mismatch {
@@ -285,6 +266,12 @@ check_mismatch.into{ check_mismatch; check_mismatch_1 }
 check_mismatch_noMis = Channel.create()
 check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sumary ->
     mismatch = file(warn).readLines().size()-1
+    file(warn).readLines().each{ it ->
+        if(it.contains("total/split/realigned/skipped")){
+            println it
+        }
+    }
+
     if ( mismatch != 0 ) {
         System.err.println "|-- ${mismatch} ref mismatch sites found in '${target_name}' dataset! The pipeline will exit."
         exit 1
@@ -294,6 +281,26 @@ check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sum
     }
 }
 check_mismatch_noMis.close()
+
+/*
+ * STEP 4 - Identify chromosomes and start/stop positions per chromosome and generate chunks
+*/
+mapFile_cha.into{ mapFile_cha; mapFile_cha_chunks }
+process generate_chunks {
+    tag "generate_chunks_${target_name}"
+//    publishDir "${params.outDir}", overwrite: true, mode:'copy'
+    echo true
+    input:
+    set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
+    output:
+    set val(target_name), file(chunkFile) into generate_chunks
+    script:
+    if(params.chunk){chunk = params.chunk}else{chunk=''} // To impute only a chunk like 1000000-1100000
+    chunkFile = "chunks.txt"
+    chunk_size = params.chunk_size
+    template "generate_chunks.py"
+}
+
 
 /*
  * STEP 5: QC
@@ -441,7 +448,8 @@ process phase_target_chunk {
 */
 process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
-    publishDir "${params.resultDir}/impute/${chrm}", overwrite: true, mode:'symlink'
+    publishDir "${params.resultDir}/impute/${ref_name}/${target_name}/${chrm}", overwrite: true, mode:'symlink'
+    publishDir "${params.resultDir}/impute/${target_name}/${ref_name}/${chrm}", overwrite: true, mode:'symlink'
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
     output:
