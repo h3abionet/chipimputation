@@ -252,13 +252,13 @@ process generate_chunks {
  * STEP 4: QC
 */
 target_datasets.into{ target_datasets; target_datasets_qc }
-process check_mismach {
-    tag "check_mismach_${target_name}"
+process check_mismatch {
+    tag "check_mismatch_${target_name}"
 //    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
     input:
         set val(target_name), file(target_vcfFile) from target_datasets_qc
     output:
-        set val(target_name), file(target_vcfFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismach
+        set val(target_name), file(target_vcfFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
         base = file(target_vcfFile.baseName).baseName
         """
@@ -281,29 +281,29 @@ process check_mismach {
         """
 }
 
-check_mismach.into{ check_mismach; check_mismach_1 }
-check_mismach_noMis = Channel.create()
-check_mismach_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sumary ->
-    mismach = file(warn).readLines().size()-1
-    if ( mismach != 0 ) {
-        System.err.println "|-- ${mismach} ref mismach sites found in '${target_name}' dataset! The pipeline will exit."
+check_mismatch.into{ check_mismatch; check_mismatch_1 }
+check_mismatch_noMis = Channel.create()
+check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sumary ->
+    mismatch = file(warn).readLines().size()-1
+    if ( mismatch != 0 ) {
+        System.err.println "|-- ${mismatch} ref mismatch sites found in '${target_name}' dataset! The pipeline will exit."
         exit 1
     }
     else{
-        check_mismach_noMis << [ target_name, target_vcfFile, warn, sumary ]
+        check_mismatch_noMis << [ target_name, target_vcfFile, warn, sumary ]
     }
 }
-check_mismach_noMis.close()
+check_mismatch_noMis.close()
 
 /*
  * STEP 5: QC
 */
-check_mismach_noMis.into{ check_mismach_noMis; check_mismach_noMis_1 }
+check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_1 }
 process target_qc {
     tag "target_qc_${target_name}"
 //    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
     input:
-        set val(target_name), file(target_vcfFile), file(mismach_warn), file(mismach_summary) from check_mismach_noMis_1
+        set val(target_name), file(target_vcfFile), file(mismatch_warn), file(mismatch_summary) from check_mismatch_noMis_1
     output:
         set val(target_name), file("${base}_clean.vcf.gz") into target_qc
     script:
@@ -449,13 +449,20 @@ process impute_target {
     shell:
         base = "${file(target_phased_vcfFile.baseName).baseName}"
         """
-        minimac4 \
-            --refHaps ${ref_m3vcf} \
-            --haps ${target_phased_vcfFile} \
-            --format GT \
-            --allTypedSites \
-            --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
-            --prefix ${base}_imputed
+        nblines=\$(zcat ${target_phased_vcfFile} | grep -v '^#' | wc -l)
+        if (( \$nblines > 0 ))
+        then
+            minimac4 \
+                --refHaps ${ref_m3vcf} \
+                --haps ${target_phased_vcfFile} \
+                --format GT \
+                --allTypedSites \
+                --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
+                --prefix ${base}_imputed
+        else
+             touch ${base}_imputed.dose.vcf && bgzip -f ${file_out}.vcf
+             touch ${base}_imputed.info
+        fi
         """
 }
 
@@ -483,5 +490,4 @@ def helpMessage() {
       --name                        Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
       --project_name                Project name. If not specified, target file name will be used as project name
     """.stripIndent()
-    println "${NXF_HOME}/assets/h3abionet/chipimputation"
 }
