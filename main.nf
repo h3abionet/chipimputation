@@ -265,13 +265,12 @@ process check_mismatch {
 check_mismatch.into{ check_mismatch; check_mismatch_1 }
 check_mismatch_noMis = Channel.create()
 check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sumary ->
-    mismatch = file(warn).readLines().size()-1
+    mismatch = 0
     file(warn).readLines().each{ it ->
-        if(it.contains("total/split/realigned/skipped")){
-            println it
+        if(it.contains("REF_MISMATCH")){
+            mismatch += 1
         }
     }
-
     if ( mismatch != 0 ) {
         System.err.println "|-- ${mismatch} ref mismatch sites found in '${target_name}' dataset! The pipeline will exit."
         exit 1
