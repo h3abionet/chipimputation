@@ -144,7 +144,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 //        echo $params.version > v_pipeline.txt
 //        echo $workflow.nextflow.version > v_nextflow.txt
 //        vcftools --version > v_vcftools.txt
-//        plink2 --version > v_plink2.txt
+//        ${params.plink} --version > v_${params.plink}.txt
 //        scrape_software_versions.py > software_versions_mqc.yaml
 //        """
 //}
@@ -171,8 +171,8 @@ process check_chromosome {
         """
 }
 
-check_chromosome.into{ check_chromosome; check_chromosome1 }
 // Check if specified chromosomes exist in VCF file
+check_chromosome.into{ check_chromosome; check_chromosome1 }
 chromosomes_ = []
 check_chromosome1.toSortedList().val.each{ check_file ->
     chromosomes_ = chromosomes_ + file(check_file).readLines()
@@ -195,7 +195,7 @@ else{
     }
     if (in_chrs.isEmpty()){
         if (chromosomes_.isEmpty()) {
-            println "|-- No Chromosome(s) found not in target(s) dataset(s)! The pipeline will exit."
+            System.err.println "|-- No Chromosome(s) found not in target(s) dataset(s)! The pipeline will exit."
             exit 1
         }
         else{
@@ -204,7 +204,7 @@ else{
     }
 
     if (!(not_chrs.isEmpty())){
-        println "|-- Chromosome(s) ${not_chrs.join(', ')} not in target datasets and will be ignored."
+        System.err.println "|-- Chromosome(s) ${not_chrs.join(', ')} not in target datasets and will be ignored."
         if (in_chrs.isEmpty()){
             chromosomes = chromosomes_
         }
@@ -290,14 +290,14 @@ process generate_chunks {
 //    publishDir "${params.outDir}", overwrite: true, mode:'copy'
     echo true
     input:
-    set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
+        set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
     output:
-    set val(target_name), file(chunkFile) into generate_chunks
+        set val(target_name), file(chunkFile) into generate_chunks
     script:
-    if(params.chunk){chunk = params.chunk}else{chunk=''} // To impute only a chunk like 1000000-1100000
-    chunkFile = "chunks.txt"
-    chunk_size = params.chunk_size
-    template "generate_chunks.py"
+        if(params.chunk){chunk = params.chunk}else{chunk=''} // To impute only a chunk like 1000000-1100000
+        chunkFile = "chunks.txt"
+        chunk_size = params.chunk_size
+        template "generate_chunks.py"
 }
 
 
@@ -307,7 +307,6 @@ process generate_chunks {
 check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_1 }
 process target_qc {
     tag "target_qc_${target_name}"
-//    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
     input:
         set val(target_name), file(target_vcfFile), file(mismatch_warn), file(mismatch_summary) from check_mismatch_noMis_1
     output:
@@ -323,13 +322,13 @@ process target_qc {
         bcftools view \
             -e 'ALT="."' ${target_vcfFile} \
             -Oz -o ${base}_noALT.vcf.gz
-        plink2 --vcf ${base}_noALT.vcf.gz \
+        ${params.plink} --vcf ${base}_noALT.vcf.gz \
             --keep-allele-order \
             --list-duplicate-vars ids-only suppress-first \
             --allow-no-sex \
             --recode vcf-iid \
             --out ${base}_clean_mind
-        plink2 --vcf ${base}_clean_mind.vcf \
+        ${params.plink} --vcf ${base}_clean_mind.vcf \
             --keep-allele-order \
             --exclude ${base}_clean_mind.dupvar \
             --recode vcf-iid \
@@ -370,7 +369,6 @@ target_qc_chunk = target_qc_1
 */
 process split_target_to_chunk {
     tag "split_${target_name}_${chrm}:${chunk_start}-${chunk_end}"
-    publishDir "${params.outDir}/qc/${chrm}/chunks", overwrite: true, mode:'symlink'
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile) from target_qc_chunk
     output:
