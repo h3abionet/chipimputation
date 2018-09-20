@@ -132,22 +132,24 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 }
 
 
-///*
-// * STEP 1: Parse software version numbers
-// */
-//process get_software_versions {
-//    tag "get_software_versions"
-//    output:
-//        file("software_versions_mqc.yaml") into software_versions_yaml
-//    script:
-//        """
-//        echo $params.version > v_pipeline.txt
-//        echo $workflow.nextflow.version > v_nextflow.txt
-//        vcftools --version > v_vcftools.txt
-//        ${params.plink} --version > v_${params.plink}.txt
-//        scrape_software_versions.py > software_versions_mqc.yaml
-//        """
-//}
+/*
+ * STEP 1: Parse software version numbers
+ */
+process get_software_versions {
+    tag "get_software_versions"
+    output:
+        file("software_versions_mqc.yaml") into software_versions_yaml
+    script:
+        """
+        echo $params.version > v_pipeline.txt
+        echo $workflow.nextflow.version > v_nextflow.txt
+        minimac4 --version > v_minimac4.txt
+        eagle --version > v_eagle.txt
+        bcftools --version > v_bcftools.txt
+        ${params.plink} --version > v_${params.plink}.txt
+        scrape_software_versions.py > software_versions_mqc.yaml
+        """
+}
 
 
 /*
@@ -237,7 +239,7 @@ process check_mismatch {
     tag "check_mismatch_${target_name}"
 //    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
     input:
-        set val(target_name), file(target_vcfFile) from target_datasets_qc
+        set val(target_name), file(target_vcfFile), file(reference_genome) from target_datasets_qc.combine([params.reference_genome])
     output:
         set val(target_name), file(target_vcfFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
