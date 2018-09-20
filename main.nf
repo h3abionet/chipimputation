@@ -328,6 +328,7 @@ process target_qc {
         ${params.plink} --vcf ${base}_noALT.vcf.gz \
             --set-missing-var-ids @_# --rm-dup force-first \
             --recode vcf \
+            --memory ${params.plink_memory} \
             --out ${base}_clean_mind
         ${params.plink} --vcf ${base}_clean_mind.vcf \
             --exclude ${base}_clean_mind.dupvar \
