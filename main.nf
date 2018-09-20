@@ -332,7 +332,7 @@ process target_qc {
             --out ${base}_clean_mind
         ${params.plink} --vcf ${base}_clean_mind.vcf \
             --exclude ${base}_clean_mind.dupvar \
-            --recode vcf-iid \
+            --recode vcf \
             --out ${base}_clean
         bgzip -f ${base}_clean.vcf
         """
