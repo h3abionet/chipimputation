@@ -325,19 +325,11 @@ process target_qc {
         bcftools view \
             -e 'ALT="."' ${target_vcfFile} \
             -Oz -o ${base}_noALT.vcf.gz
-        cp ${base}_noALT.vcf.gz ${base}_clean.vcf.gz
-        #bgzip -f ${base}_clean.vcf
+        bcftools norm \
+            --rm-dup both \
+            ${base}_noALT.vcf.gz \
+            -Oz -o ${base}_clean.vcf.gz
         """
-//        ${params.plink} --vcf ${base}_noALT.vcf.gz \
-//            --set-missing-var-ids @_# --rm-dup force-first \
-//            --recode vcf \
-//            --memory ${params.plink_memory} \
-//            --out ${base}_clean_mind
-//        ${params.plink} --vcf ${base}_clean_mind.vcf \
-//            --exclude ${base}_clean_mind.dupvar \
-//            --recode vcf \
-//            --out ${base}_clean
-//    """
 }
 // TODO include number of each filtered SNPs from QC in the report
 
@@ -379,10 +371,13 @@ process split_target_to_chunk {
     script:
         base = file(target_vcfFile.baseName).baseName
         target_vcfFile_chunk = "${base}.chr${chrm}_${chunk_start}-${chunk_end}.vcf.gz"
+        start = chunk_start - params.buffer_size
+        if(chunk_start - params.buffer_size <= 0){ end = chunk_start}
+        end = chunk_end + params.buffer_size
         """
         bcftools index --tbi -f ${target_vcfFile}
         bcftools view \
-            --regions ${chrm}:${chunk_start}-${chunk_end} \
+            --regions ${chrm}:${start}-${end} \
             -m2 -M2 -v snps \
             ${target_vcfFile} \
             -Oz -o ${target_vcfFile_chunk}
@@ -463,7 +458,7 @@ process impute_target {
             minimac4 \
                 --refHaps ${ref_m3vcf} \
                 --haps ${target_phased_vcfFile} \
-                --format GT \
+                --format GT,GS \
                 --allTypedSites \
                 --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
                 --prefix ${base}_imputed
@@ -473,6 +468,72 @@ process impute_target {
         fi
         """
 }
+
+
+'''
+Combine output
+'''
+impute_target.into{impute_target; impute_target_1}
+
+// Create a dataflow instance of all impute results
+imputeCombine_impute = [:]
+imputeCombine_info = [:]
+impute_target_list = impute_target_1.toSortedList().val
+impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, impute, info ->
+    id = target_name +"__"+ ref_name +"__"+ chrm
+    if(!(id in imputeCombine_impute)){
+        imputeCombine_impute[id] = [chrm, '']
+    }
+    imputeCombine_impute[id] = imputeCombine_impute[id][1] + ' ' + impute
+//    imputeCombine_info << [chrm, target_name, ref_name, info]
+}
+println(imputeCombine_impute)
+// Create channels
+//imputeCombine_impute_cha = Channel
+//        .from(imputeCombine_impute)
+//        .groupTuple()
+//imputeCombine_info_cha = Channel
+//        .from(imputeCombine_info)
+//        .groupTuple()
+//
+//"""
+//Combine impute chunks to chromosomes
+//"""
+//process imputeCombine {
+//    tag "impComb_chr${chromosome}"
+//    memory { 2.GB * task.attempt }
+//    time { 10.h * task.attempt }
+//    input:
+//        set chromosome, file(imputed_files) from imputeCombine_impute_cha
+//    output:
+//        set chromosome, file(comb_impute) into imputeCombine
+//    script:
+//        comb_impute = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed.gz"
+//        """
+//        zcat ${imputed_files.join(' ')} | bgzip -c > ${comb_impute}
+//        """
+//}
+//
+//
+//"""
+//Combine impute info chunks to chromosomes
+//"""
+//process infoCombine {
+//    tag "infoComb_chr${chromosome}"
+//    memory { 2.GB * task.attempt }
+//    publishDir "${params.projectName}_${params.ref_1.name}_results/INFOS", overwrite: true, mode:'copy'
+//    input:
+//        set chromosome, file(info_files) from imputeCombine_info_cha
+//    output:
+//        set chromosome, file(comb_info) into infoCombine
+//    script:
+//        comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
+//        """
+//        echo "snp_id rs_id position a0 a1 exp_freq_a1 info certainty type info_type0 concord_type0 r2_type0" > ${comb_info}
+//        tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
+//        """
+//}
+
 
 def helpMessage() {
     log.info"""
