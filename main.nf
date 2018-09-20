@@ -250,14 +250,14 @@ process check_mismatch {
         if (( \$nblines > 1 ))
         then
             bcftools norm --check-ref w \
-                -f ${params.reference_genome} \
+                -f ${reference_genome} \
                 ${target_vcfFile} \
                 -Oz -o /dev/null
             cp .command.err ${base}_checkRef_warn.log
             bcftools +fixref \
                 ${target_vcfFile} \
                 -- \
-                -f ${params.reference_genome} \
+                -f ${reference_genome} \
                 2>&1 | tee "${base}_checkRef_summary.log"
             rm -f ${base}_clean_mind.*
         fi
