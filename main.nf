@@ -326,7 +326,7 @@ process target_qc {
             -e 'ALT="."' ${target_vcfFile} \
             -Oz -o ${base}_noALT.vcf.gz
         ${params.plink} --vcf ${base}_noALT.vcf.gz \
-            --set-missing-var-ids --rm-dup suppress-first \
+            --set-missing-var-ids --rm-dup force-first \
             --allow-no-sex \
             --recode vcf \
             --out ${base}_clean_mind
