@@ -326,13 +326,11 @@ process target_qc {
             -e 'ALT="."' ${target_vcfFile} \
             -Oz -o ${base}_noALT.vcf.gz
         ${params.plink} --vcf ${base}_noALT.vcf.gz \
-            --keep-allele-order \
-            --list-duplicate-vars ids-only suppress-first \
+            --set-missing-var-ids --rm-dup suppress-first \
             --allow-no-sex \
-            --recode vcf-iid \
+            --recode vcf \
             --out ${base}_clean_mind
         ${params.plink} --vcf ${base}_clean_mind.vcf \
-            --keep-allele-order \
             --exclude ${base}_clean_mind.dupvar \
             --recode vcf-iid \
             --out ${base}_clean
