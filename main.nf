@@ -325,17 +325,19 @@ process target_qc {
         bcftools view \
             -e 'ALT="."' ${target_vcfFile} \
             -Oz -o ${base}_noALT.vcf.gz
-        ${params.plink} --vcf ${base}_noALT.vcf.gz \
-            --set-missing-var-ids @_# --rm-dup force-first \
-            --recode vcf \
-            --memory ${params.plink_memory} \
-            --out ${base}_clean_mind
-        ${params.plink} --vcf ${base}_clean_mind.vcf \
-            --exclude ${base}_clean_mind.dupvar \
-            --recode vcf \
-            --out ${base}_clean
-        bgzip -f ${base}_clean.vcf
+        cp ${base}_noALT.vcf.gz ${base}_clean.vcf.gz
+        #bgzip -f ${base}_clean.vcf
         """
+//        ${params.plink} --vcf ${base}_noALT.vcf.gz \
+//            --set-missing-var-ids @_# --rm-dup force-first \
+//            --recode vcf \
+//            --memory ${params.plink_memory} \
+//            --out ${base}_clean_mind
+//        ${params.plink} --vcf ${base}_clean_mind.vcf \
+//            --exclude ${base}_clean_mind.dupvar \
+//            --recode vcf \
+//            --out ${base}_clean
+//    """
 }
 // TODO include number of each filtered SNPs from QC in the report
 
