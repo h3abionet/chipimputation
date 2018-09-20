@@ -239,7 +239,7 @@ process check_mismatch {
     tag "check_mismatch_${target_name}"
 //    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
     input:
-        set val(target_name), file(target_vcfFile), file(reference_genome) from target_datasets_qc.combine([params.reference_genome])
+        set val(target_name), file(target_vcfFile), file(reference_genome) from target_datasets_qc.combine([file(params.reference_genome)])
     output:
         set val(target_name), file(target_vcfFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
