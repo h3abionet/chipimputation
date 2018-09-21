@@ -476,51 +476,55 @@ Combine output
 impute_target.into{impute_target; impute_target_1}
 
 // Create a dataflow instance of all impute results
-imputeCombine_impute = [:]
-imputeCombine_info = [:]
+imputeCombine = [:]
+infoCombine = [:]
 impute_target_list = impute_target_1.toSortedList().val
 impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, impute, info ->
     id = target_name +"__"+ ref_name +"__"+ chrm
-    if(!(id in imputeCombine_impute)){
-        imputeCombine_impute[id] = [target_name, ref_name, chrm, []]
+    if(!(id in imputeCombine)){
+        imputeCombine[id] = [target_name, ref_name, chrm, []]
     }
-    imputeCombine_impute[id][3] << impute
-    if(!(id in imputeCombine_info)){
-        imputeCombine_info[id] = [target_name, ref_name, chrm, []]
+    imputeCombine[id][3] << impute
+    if(!(id in infoCombine)){
+        infoCombine[id] = [target_name, ref_name, chrm, []]
     }
-    imputeCombine_info[id][3] << info
+    infoCombine[id][3] << info
 }
-//println(imputeCombine_impute)
-//println(imputeCombine_info.values())
+//println(imputeCombine)
+//println(infoCombine.values())
 
-//"""
-//Combine impute chunks to chromosomes
-//"""
-//process imputeCombine {
-//    tag "impComb_chr${chromosome}"
-//    memory { 2.GB * task.attempt }
-//    time { 10.h * task.attempt }
-//    input:
-//        set chromosome, file(imputed_files) from imputeCombine_impute_cha
-//    output:
-//        set chromosome, file(comb_impute) into imputeCombine
-//    script:
-//        comb_impute = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed.gz"
-//        """
-//        zcat ${imputed_files.join(' ')} | bgzip -c > ${comb_impute}
-//        """
-//}
-//
-//
+"""
+Combine impute chunks to chromosomes
+"""
+process combineImpute {
+    tag "impComb_${target_name}_${ref_name}_${chrm}"
+    input:
+        set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
+    output:
+        set target_name, ref_name, chrm, file(comb_impute) into combineImpute
+    script:
+        comb_impute = "${target_name}_${ref_name}_chr${chrm}.imputed.gz"
+        """
+        bcftools concat \
+            ${imputed_files} \
+            -Oz -o ${target_name}.tmp.vcf.gz
+        ## Recalculate AC, AN, AF
+        bcftools +fill-tags ${target_name}.tmp.vcf.gz -Oz -o ${target_name}.tmp1.vcf.gz
+        bcftools sort ${target_name}.tmp1.vcf.gz -Oz -o ${comb_impute}
+        rm ${target_name}.tmp*.vcf.gz
+        """
+}
+
+
 """
 Combine impute info chunks to chromosomes
 """
-process infoCombine {
+process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
     input:
-        set target_name, ref_name, chrm, file(info_files) from imputeCombine_info.values()
+        set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
     output:
-        set target_name, ref_name, chrm, file(comb_info) into infoCombine
+        set target_name, ref_name, chrm, file(comb_info) into combineInfo
     script:
         comb_info = "${target_name}_${ref_name}_chr${chrm}.imputed_info"
         """
