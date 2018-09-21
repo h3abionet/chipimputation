@@ -269,6 +269,7 @@ check_mismatch.into{ check_mismatch; check_mismatch_1 }
 check_mismatch_noMis = Channel.create()
 check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sumary ->
     mismatch = 0
+    // use summary instead, print mismatch, non-biallelic, non-ACGT
     file(warn).readLines().each{ it ->
         if(it.contains("REF_MISMATCH")){
             mismatch += 1
@@ -331,7 +332,6 @@ process target_qc {
             -Oz -o ${base}_clean.vcf.gz
         """
 }
-// TODO include number of each filtered SNPs from QC in the report
 
 
 """
@@ -372,8 +372,8 @@ process split_target_to_chunk {
         base = file(target_vcfFile.baseName).baseName
         target_vcfFile_chunk = "${base}.chr${chrm}_${chunk_start}-${chunk_end}.vcf.gz"
         start = chunk_start - params.buffer_size
-        if(chunk_start - params.buffer_size <= 0){ end = chunk_start}
-        end = chunk_end + params.buffer_size
+        if(chunk_start.toInteger() - params.buffer_size.toInteger() <= 0){ end = 1 }
+        end = chunk_end.toInteger() + params.buffer_size.toInteger()
         """
         bcftools index --tbi -f ${target_vcfFile}
         bcftools view \
@@ -458,7 +458,7 @@ process impute_target {
             minimac4 \
                 --refHaps ${ref_m3vcf} \
                 --haps ${target_phased_vcfFile} \
-                --format GT,GS \
+                --format GT,DS \
                 --allTypedSites \
                 --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
                 --prefix ${base}_imputed
@@ -482,20 +482,17 @@ impute_target_list = impute_target_1.toSortedList().val
 impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, impute, info ->
     id = target_name +"__"+ ref_name +"__"+ chrm
     if(!(id in imputeCombine_impute)){
-        imputeCombine_impute[id] = [chrm, '']
+        imputeCombine_impute[id] = [target_name, ref_name, chrm, []]
     }
-    imputeCombine_impute[id] = imputeCombine_impute[id][1] + ' ' + impute
-//    imputeCombine_info << [chrm, target_name, ref_name, info]
+    imputeCombine_impute[id][3] << impute
+    if(!(id in imputeCombine_info)){
+        imputeCombine_info[id] = [target_name, ref_name, chrm, []]
+    }
+    imputeCombine_info[id][3] << info
 }
-println(imputeCombine_impute)
-// Create channels
-//imputeCombine_impute_cha = Channel
-//        .from(imputeCombine_impute)
-//        .groupTuple()
-//imputeCombine_info_cha = Channel
-//        .from(imputeCombine_info)
-//        .groupTuple()
-//
+//println(imputeCombine_impute)
+//println(imputeCombine_info.values())
+
 //"""
 //Combine impute chunks to chromosomes
 //"""
@@ -515,24 +512,22 @@ println(imputeCombine_impute)
 //}
 //
 //
-//"""
-//Combine impute info chunks to chromosomes
-//"""
-//process infoCombine {
-//    tag "infoComb_chr${chromosome}"
-//    memory { 2.GB * task.attempt }
-//    publishDir "${params.projectName}_${params.ref_1.name}_results/INFOS", overwrite: true, mode:'copy'
-//    input:
-//        set chromosome, file(info_files) from imputeCombine_info_cha
-//    output:
-//        set chromosome, file(comb_info) into infoCombine
-//    script:
-//        comb_info = "${file(params.bedFile).getBaseName()}_chr${chromosome}.imputed_info"
-//        """
-//        echo "snp_id rs_id position a0 a1 exp_freq_a1 info certainty type info_type0 concord_type0 r2_type0" > ${comb_info}
-//        tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
-//        """
-//}
+"""
+Combine impute info chunks to chromosomes
+"""
+process infoCombine {
+    tag "infoComb_${target_name}_${ref_name}_${chrm}"
+    input:
+        set target_name, ref_name, chrm, file(info_files) from imputeCombine_info.values()
+    output:
+        set target_name, ref_name, chrm, file(comb_info) into infoCombine
+    script:
+        comb_info = "${target_name}_${ref_name}_chr${chrm}.imputed_info"
+        """
+        head -n1 ${info_files[0]} > ${comb_info}
+        tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
+        """
+}
 
 
 def helpMessage() {
