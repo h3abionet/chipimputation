@@ -460,6 +460,7 @@ process impute_target {
                 --haps ${target_phased_vcfFile} \
                 --format GT,DS \
                 --allTypedSites \
+                --minRatio ${params.minRatio} \
                 --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
                 --prefix ${base}_imputed
         else
