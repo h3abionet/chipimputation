@@ -59,3 +59,4 @@ args.outWell_imputed = "${well_out}"
 args.outSNP_acc = "${acc_out}"
 if args.infoFiles and args.infoCutoff:
     filter_info(args.infoFiles, args.infoCutoff, args.outWell_imputed, args.outSNP_acc)
+

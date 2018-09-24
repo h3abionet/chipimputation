@@ -222,25 +222,38 @@ else{
         chromosomes = in_chrs
     }
 }
-println chromosomes
-println chromosomes_
 ignore_chrms = [:]
-mapFile_cha.toSortedList().val.each { target_name, mapFile ->
+toImpute_chrms = [:]
+mapFile_cha.into{ mapFile_cha; mapFile_cha_1}
+mapFile_cha_1.toSortedList().val.each { target_name, mapFile ->
     chromosomes_[target_name].each{ chrm ->
-        println chrm
-        if(!(chrm.toInteger() in chromosomes)){
+        if(!(chrm.toString() in chromosomes)){
             if(!(target_name in ignore_chrms)){
                 ignore_chrms[target_name] = []
             }
             ignore_chrms[target_name] << chrm
         }
+        else{
+            if(!(target_name in toImpute_chrms)){
+                toImpute_chrms[target_name] = []
+            }
+            toImpute_chrms[target_name] << chrm
+        }
     }
 }
-println ignore_chrms
-//check_mismatch_noMis = Channel.create()
+targets_toImpute = Channel.create()
+mapFile_cha.into{ mapFile_cha; mapFile_cha_2}
+mapFile_cha_2.toSortedList().val.each { target_name, mapFile ->
+    if(target_name in toImpute_chrms){
+        targets_toImpute << [ target_name, mapFile ]
+    }
+    else{
+        System.err.println "|-- Dataset ${target_name} does not contain the specified chromosome(s) ${chromosomes.join(', ')} and will be ignored."
+    }
+}
+targets_toImpute.close()
 println "|-- Chromosomes used: ${chromosomes.join(', ')}"
 
-exit 0
 // check if ref files exist
 params.ref_panels.each { ref ->
     chromosomes.each { chrm ->
@@ -308,17 +321,18 @@ check_mismatch_noMis.close()
 /*
  * STEP 4 - Identify chromosomes and start/stop positions per chromosome and generate chunks
 */
-mapFile_cha.into{ mapFile_cha; mapFile_cha_chunks }
+targets_toImpute.into{ targets_toImpute; targets_toImpute_1 }
 process generate_chunks {
     tag "generate_chunks_${target_name}"
 //    publishDir "${params.outDir}", overwrite: true, mode:'copy'
     echo true
     input:
-        set target_name, file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
+        set target_name, file(mapFile) from targets_toImpute_1
     output:
         set target_name, file(chunkFile) into generate_chunks
     script:
-        if(params.chunk){chunk = params.chunk}else{chunk=''} // To impute only a chunk like 1000000-1100000
+        if(params.chunk){chunk = params.chunk} else{chunk=''} // To impute only a chunk like 1000000-1100000
+        chrms = chromosomes_[target_name].join(',')
         chunkFile = "chunks.txt"
         chunk_size = params.chunk_size
         template "generate_chunks.py"
