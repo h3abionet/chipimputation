@@ -595,7 +595,7 @@ process filter_info {
         set target_name, ref_name, file(well_out) into info_Well
         set target_name, ref_name, file(acc_out) into info_Acc
     script:
-        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         comb_info = "${target_name}_${ref_name}_${chrms}.imputed_info"
         well_out = "${comb_info}_well_imputed"
         acc_out = "${comb_info}_accuracy"
@@ -617,7 +617,7 @@ process report_well_imputed {
     output:
         set target_name, ref_name, file(outWell_imputed) into report_well_imputed
     script:
-        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         outWell_imputed = "${target_name}_${ref_name}_${chrms}.imputed_info_report_well_imputed.tsv"
         template "report_well_imputed.py"
 }
