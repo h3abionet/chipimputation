@@ -604,6 +604,49 @@ process filter_info {
         template "filter_info_minimac.py"
 }
 
+
+"""
+Report 1: Well imputed
+"""
+info_Well.into{ info_Well; info_Well_1}
+process report_well_imputed {
+    tag "report_wellImputed_${target_name}_${ref_name}_${chrms}"
+    publishDir "${params.outDir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
+    input:
+        set target_name, ref_name, file(inWell_imputed) from info_Well_1
+    output:
+        set target_name, ref_name, file(outWell_imputed) into report_well_imputed
+    script:
+        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        outWell_imputed = "${target_name}_${ref_name}_${chrms}.imputed_info_report_well_imputed.tsv"
+        template "report_well_imputed.py"
+}
+
+
+//"""
+//Repor 2: Accuracy
+//"""
+//info_Acc.into{ info_Acc; info_Acc_2}
+//process report_SNP_acc {
+//    tag "report_SNP_acc_${projectName}_${chrms}"
+//    memory { 2.GB * task.attempt }
+//    publishDir "${params.outDir}/REPORTS/${projectName}", overwrite: true, mode:'copy'
+//    input:
+//        set val(projectName), file(acc_in) from info_Acc_2
+//    output:
+//        set val(projectName), file(SNP_acc_out) into report_SNP_acc
+//    script:
+//        chrms = chromosomes[0]+"-"+chromosomes[-1]
+//        comb_info = "${projectName}_${chrms}.imputed_info"
+//        SNP_acc_out = "${comb_info}_report_SNP_acc.tsv"
+//        """
+//        python2.7 -u ${params.homedir}/scripts/report.py \
+//            --inSNP_acc ${acc_in} \
+//            --outSNP_acc ${SNP_acc_out} \
+//            --infoCutoff ${params.impute_info_cutoff}
+//        """
+//}
+
 def helpMessage() {
     log.info"""
     =========================================
