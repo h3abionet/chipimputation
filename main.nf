@@ -159,10 +159,10 @@ target_datasets.into{ target_datasets; target_datasets_check }
 process check_chromosome {
     tag "check_chromosome_${target_name}"
     input:
-        set val(target_name), file(target_vcfFile) from target_datasets_check
+        set target_name, file(target_vcfFile) from target_datasets_check
     output:
-        file(chromFile) into check_chromosome
-        set val(target_name), file(mapFile) into mapFile_cha
+        set target_name, file(chromFile) into check_chromosome
+        set target_name, file(mapFile) into mapFile_cha
     script:
         base = file(target_vcfFile.baseName).baseName
         chromFile = "${base}_chromosomes.txt"
@@ -175,20 +175,24 @@ process check_chromosome {
 
 // Check if specified chromosomes exist in VCF file
 check_chromosome.into{ check_chromosome; check_chromosome1 }
-chromosomes_ = []
-check_chromosome1.toSortedList().val.each{ check_file ->
-    chromosomes_ = chromosomes_ + file(check_file).readLines()
+chromosomes_ = [:]
+chromosomes_['ALL'] = []
+check_chromosome1.toSortedList().val.each{ target_name, check_file ->
+    chromosomes_[target_name] = file(check_file).readLines().unique().collect { it as int }.sort()
+    chromosomes_[target_name].each { chrm ->
+        if(!(chrm in chromosomes_['ALL']))
+        chromosomes_['ALL'] << chrm
+    }
 }
-chromosomes_ = chromosomes_.unique().collect { it as int }.sort()
-// Chromosomes from the dataset VCF file
+
 if (params.chromosomes == '' || params.chromosomes == 'ALL'){
-    chromosomes = chromosomes_
+    chromosomes = chromosomes_['ALL']
 }
 else{
     not_chrs = []
     in_chrs = []
     params.chromosomes.split(',').each { chrm ->
-        if (!(chrm.toInteger() in chromosomes_)){
+        if (!(chrm.toInteger() in chromosomes_['ALL'])){
             not_chrs << chrm
         }
         else{
@@ -196,19 +200,19 @@ else{
         }
     }
     if (in_chrs.isEmpty()){
-        if (chromosomes_.isEmpty()) {
+        if (chromosomes_['ALL'].isEmpty()) {
             System.err.println "|-- No Chromosome(s) found not in target(s) dataset(s)! The pipeline will exit."
             exit 1
         }
         else{
-            chromosomes = chromosomes_
+            chromosomes = chromosomes_['ALL']
         }
     }
 
     if (!(not_chrs.isEmpty())){
         System.err.println "|-- Chromosome(s) ${not_chrs.join(', ')} not in target datasets and will be ignored."
         if (in_chrs.isEmpty()){
-            chromosomes = chromosomes_
+            chromosomes = chromosomes_['ALL']
         }
         else {
             chromosomes = in_chrs
@@ -218,9 +222,25 @@ else{
         chromosomes = in_chrs
     }
 }
+println chromosomes
+println chromosomes_
+ignore_chrms = [:]
+mapFile_cha.toSortedList().val.each { target_name, mapFile ->
+    chromosomes_[target_name].each{ chrm ->
+        println chrm
+        if(!(chrm.toInteger() in chromosomes)){
+            if(!(target_name in ignore_chrms)){
+                ignore_chrms[target_name] = []
+            }
+            ignore_chrms[target_name] << chrm
+        }
+    }
+}
+println ignore_chrms
+//check_mismatch_noMis = Channel.create()
 println "|-- Chromosomes used: ${chromosomes.join(', ')}"
 
-
+exit 0
 // check if ref files exist
 params.ref_panels.each { ref ->
     chromosomes.each { chrm ->
@@ -239,9 +259,9 @@ process check_mismatch {
     tag "check_mismatch_${target_name}"
 //    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
     input:
-        set val(target_name), file(target_vcfFile), file(reference_genome) from target_datasets_qc.combine([file(params.reference_genome)])
+        set target_name, file(target_vcfFile), file(reference_genome) from target_datasets_qc.combine([file(params.reference_genome)])
     output:
-        set val(target_name), file(target_vcfFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
+        set target_name, file(target_vcfFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
         base = file(target_vcfFile.baseName).baseName
         """
@@ -294,9 +314,9 @@ process generate_chunks {
 //    publishDir "${params.outDir}", overwrite: true, mode:'copy'
     echo true
     input:
-        set val(target_name), file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
+        set target_name, file(mapFile), chromosomes from mapFile_cha_chunks.combine([chromosomes.join(',')])
     output:
-        set val(target_name), file(chunkFile) into generate_chunks
+        set target_name, file(chunkFile) into generate_chunks
     script:
         if(params.chunk){chunk = params.chunk}else{chunk=''} // To impute only a chunk like 1000000-1100000
         chunkFile = "chunks.txt"
@@ -312,9 +332,9 @@ check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_1 }
 process target_qc {
     tag "target_qc_${target_name}"
     input:
-        set val(target_name), file(target_vcfFile), file(mismatch_warn), file(mismatch_summary) from check_mismatch_noMis_1
+        set target_name, file(target_vcfFile), file(mismatch_warn), file(mismatch_summary) from check_mismatch_noMis_1
     output:
-        set val(target_name), file("${base}_clean.vcf.gz") into target_qc
+        set target_name, file("${base}_clean.vcf.gz") into target_qc
     script:
         base = file(target_vcfFile.baseName).baseName
         """
@@ -491,14 +511,15 @@ impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, im
     }
     infoCombine[id][3] << info
 }
-//println(imputeCombine)
-//println(infoCombine.values())
+
 
 """
 Combine impute chunks to chromosomes
 """
 process combineImpute {
     tag "impComb_${target_name}_${ref_name}_${chrm}"
+    publishDir "${params.resultDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.resultDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     input:
         set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
     output:
@@ -522,6 +543,8 @@ Combine impute info chunks to chromosomes
 """
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
+    publishDir "${params.resultDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.resultDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     input:
         set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
     output:
@@ -534,6 +557,38 @@ process combineInfo {
         """
 }
 
+
+"""
+Generating report
+"""
+combineInfo.into { combineInfo; combineInfo_1 }
+combineInfo_list = combineInfo_1.toSortedList().val
+chrm_infos = [:]
+combineInfo_list.each{ target_name, ref_name, chrm, comb_info ->
+    id = target_name +"__"+ ref_name
+    if(!(id in chrm_infos)){
+        chrm_infos[id] = [ target_name, ref_name, []]
+    }
+    chrm_infos[id][2] << chrm+"=="+comb_info
+}
+process filter_info {
+    tag "filter_${target_name}_${ref_name}_${chrms}"
+    publishDir "${params.resultDir}/impute/INFOS/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.resultDir}/impute/INFOS/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    input:
+        set target_name, ref_name, infos from chrm_infos.values()
+    output:
+        set target_name, ref_name, file(well_out) into info_Well
+        set target_name, ref_name, file(acc_out) into info_Acc
+    script:
+        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        comb_info = "${target_name}_${ref_name}_${chrms}.imputed_info"
+        well_out = "${comb_info}_well_imputed"
+        acc_out = "${comb_info}_accuracy"
+        infos = infos.join(',')
+        impute_info_cutoff = params.impute_info_cutoff
+        template "filter_info_minimac.py"
+}
 
 def helpMessage() {
     log.info"""
