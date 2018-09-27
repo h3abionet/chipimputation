@@ -16,7 +16,9 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed):
     """
     datas = {}
     outWell_imputed_out = open(outWell_imputed, 'w')
-    outWell_imputed_out.writelines('\t'.join(['CHRM', 'MAF<1%', 'MAF 1-5%', 'MAF>5%', 'TOTAL']) + '\\n')
+    outWell_imputed_out_1 = open(outWell_imputed + "_summary.tsv", 'w')
+    outWell_imputed_out_1.writelines('\\t'.join(['CHRM', 'MAF<1%', 'MAF 1-5%', 'MAF>5%', 'TOTAL']) + '\\n')
+    outWell_imputed_out.writelines('\\t'.join(['CHRM', 'MAF<1%', 'MAF 1-5%', 'MAF>5%']) + '\\n')
     info_datas = open(inWell_imputed).readlines()
     for line in info_datas:
         data = line.strip().split()
@@ -31,15 +33,17 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed):
             idx_exp_freq_a1 = data.index('MAF')
         else:
             maf = float(data[idx_exp_freq_a1])
-            datas[dataset]['total'] += 1
             if maf >= 0.5:
                 maf = 1 - maf
             if maf < 0.01:
                 datas[dataset]['rare'].append(maf)
-            if maf > 0.05:
+                datas[dataset]['total'] += 1
+            elif maf > 0.05:
                 datas[dataset]['common'].append(maf)
-            if maf <= 0.05 and maf >= 0.01:
+                datas[dataset]['total'] += 1
+            elif maf <= 0.05 and maf >= 0.01:
                 datas[dataset]['moderate'].append(maf)
+                datas[dataset]['total'] += 1
     for dataset in sorted(datas):
         tot = datas[dataset]['total']
         rare = len(datas[dataset]['rare'])
@@ -59,13 +63,18 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed):
             common_ = str(format(common, '0,')) + ' ('
         if tot == 0:
             outWell_imputed_out.write("dataset {} is empty (tot=0)".format(dataset))
+            outWell_imputed_out_1.write("dataset {} is empty (tot=0)".format(dataset))
         else:
             outWell_imputed_out.writelines('\\t'.join([dataset, \
-                                                       rare_ + str(rare * 100 / tot) + '%)', \
+                                                       str(len(datas[dataset]['rare'])), \
+                                                       str(len(datas[dataset]['moderate'])), \
+                                                       str(len(datas[dataset]['common']))]) + '\\n')
+            outWell_imputed_out_1.writelines('\\t'.join([dataset, \
+                                                         rare_ + str(rare * 100 / tot) + '%)', \
                                                        moderate_ + str(moderate * 100 / tot) + '%)', \
                                                        common_ + str(common * 100 / tot) + '%)', \
                                                        str(format(tot / 1000000., '0,.1f')) + 'M']) + '\\n')
-            # outWell_imputed_out.writelines('\t'.join([dataset, str(format(len(datas[dataset]['5'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['5']) * 100/tot)+'%)', str(format(len(datas[dataset]['1'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['1']) * 100/tot)+'%)', str(format(len(datas[dataset]['1_5'])/1000000., '0,.1f'))+'M ('+str(len(datas[dataset]['1_5']) * 100/tot)+'%)', str(format(tot, '0,.0f'))])+'\\n')
+    outWell_imputed_out_1.close()
     outWell_imputed_out.close()
 
 
