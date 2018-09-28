@@ -44,15 +44,14 @@ if( !(workflow.runName ==~ /[a-z]+_[a-z]+/) ){
 target_datasets = []
 if(params.target_datasets) {
     params.target_datasets.each { target ->
-        if (!file(target.value).exists()) exit 1, "Target VCF file ${target.value} not found. Please check your config file."
+        if (!file(target.value).exists() && !file(target.value).isFile()) exit 1, "Target VCF file ${target.value} not found. Please check your config file."
         target_datasets << [target.key, file(target.value)]
     }
 }
 
 // Validate eagle map file for phasing step and create channel if file exists
-eagle_genetic_map = params.eagle_genetic_map
 if(params.eagle_genetic_map) {
-    if (!file(eagle_genetic_map).exists()) {
+    if (!file(params.eagle_genetic_map).exists() && !file(params.eagle_genetic_map).isFile()) {
         System.err.println "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
         exit 1
     }
@@ -60,7 +59,7 @@ if(params.eagle_genetic_map) {
 
 // Validate reference genome
 if(params.reference_genome) {
-    if (!file(params.reference_genome).exists()) {
+    if (!file(params.reference_genome).exists() && !file(params.reference_genome).isFile()) {
         System.err.println "Reference genome (reference_genome) file ${params.reference_genome} not found. Please check your config file."
         exit 1
     }
@@ -91,7 +90,6 @@ summary['Max Memory']       = params.max_memory
 summary['Max CPUs']         = params.max_cpus
 summary['Max Time']         = params.max_time
 summary['Output dir']       = params.outDir
-summary['Result dir']       = params.resultDir
 summary['Working dir']      = workflow.workDir
 summary['Current path']     = "$PWD"
 summary['Container Engine'] = workflow.containerEngine
@@ -181,7 +179,7 @@ check_chromosome1.toSortedList().val.each{ target_name, check_file ->
     chromosomes_[target_name] = file(check_file).readLines().unique().collect { it as int }.sort()
     chromosomes_[target_name].each { chrm ->
         if(!(chrm in chromosomes_['ALL']))
-        chromosomes_['ALL'] << chrm
+        chromosomes_['ALL'] << chrm.toInteger()
     }
 }
 
@@ -192,6 +190,7 @@ else{
     not_chrs = []
     in_chrs = []
     params.chromosomes.split(',').each { chrm ->
+        chrm = chrm.toInteger()
         if (!(chrm.toInteger() in chromosomes_['ALL'])){
             not_chrs << chrm
         }
@@ -227,7 +226,8 @@ toImpute_chrms = [:]
 mapFile_cha.into{ mapFile_cha; mapFile_cha_1}
 mapFile_cha_1.toSortedList().val.each { target_name, mapFile ->
     chromosomes_[target_name].each{ chrm ->
-        if(!(chrm.toString() in chromosomes)){
+        chrm = chrm.toInteger()
+        if(!(chrm in chromosomes)){
             if(!(target_name in ignore_chrms)){
                 ignore_chrms[target_name] = []
             }
@@ -254,6 +254,7 @@ mapFile_cha_2.toSortedList().val.each { target_name, mapFile ->
 targets_toImpute.close()
 println "|-- Chromosomes used: ${chromosomes.join(', ')}"
 
+
 // check if ref files exist
 params.ref_panels.each { ref ->
     chromosomes.each { chrm ->
@@ -269,14 +270,14 @@ params.ref_panels.each { ref ->
 */
 target_datasets.into{ target_datasets; target_datasets_qc }
 process check_mismatch {
-    tag "check_mismatch_${target_name}"
-//    publishDir "${params.outDir}", overwrite: true, mode:'symlink'
+    tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
     input:
         set target_name, file(target_vcfFile), file(reference_genome) from target_datasets_qc.combine([file(params.reference_genome)])
     output:
-        set target_name, file(target_vcfFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
+        set target_name, file(target_vcfFile), file("${base}.map"), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
         base = file(target_vcfFile.baseName).baseName
+        chrms = chromosomes_[target_name]
         """
         samtools faidx ${reference_genome} 
         nblines=\$(zcat ${target_vcfFile} | wc -l)
@@ -294,13 +295,13 @@ process check_mismatch {
                 2>&1 | tee "${base}_checkRef_summary.log"
             rm -f ${base}_clean_mind.*
         fi
-
+        zcat ${target_vcfFile} | grep -v "^#" | awk -F' ' '{print \$1"\t"\$2"\t"\$3"\t"\$4"\t"\$5}' | sort -n | uniq > ${base}.map
         """
 }
 
 check_mismatch.into{ check_mismatch; check_mismatch_1 }
 check_mismatch_noMis = Channel.create()
-check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sumary ->
+check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, mapFile, warn, sumary ->
     mismatch = 0
     // use summary instead, print mismatch, non-biallelic, non-ACGT
     file(warn).readLines().each{ it ->
@@ -313,7 +314,7 @@ check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, warn, sum
         exit 1
     }
     else{
-        check_mismatch_noMis << [ target_name, target_vcfFile, warn, sumary ]
+        check_mismatch_noMis << [ target_name, target_vcfFile, mapFile, warn, sumary, chromosomes_[target_name]]
     }
 }
 check_mismatch_noMis.close()
@@ -321,18 +322,18 @@ check_mismatch_noMis.close()
 /*
  * STEP 4 - Identify chromosomes and start/stop positions per chromosome and generate chunks
 */
-targets_toImpute.into{ targets_toImpute; targets_toImpute_1 }
+check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_2 }
 process generate_chunks {
-    tag "generate_chunks_${target_name}"
-//    publishDir "${params.outDir}", overwrite: true, mode:'copy'
+    tag "generate_chunks_${target_name}_${chromosomes[0]}_${chromosomes[-1]}"
+    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
     echo true
     input:
-        set target_name, file(mapFile) from targets_toImpute_1
+        set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chromosomes from check_mismatch_noMis_2
     output:
         set target_name, file(chunkFile) into generate_chunks
     script:
         if(params.chunk){chunk = params.chunk} else{chunk=''} // To impute only a chunk like 1000000-1100000
-        chrms = chromosomes_[target_name].join(',')
+        chrms = chromosomes.join(',')
         chunkFile = "chunks.txt"
         chunk_size = params.chunk_size
         template "generate_chunks.py"
@@ -344,9 +345,9 @@ process generate_chunks {
 */
 check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_1 }
 process target_qc {
-    tag "target_qc_${target_name}"
+    tag "target_qc_${target_name}_${chrms[0]}_${chrms[-1]}"
     input:
-        set target_name, file(target_vcfFile), file(mismatch_warn), file(mismatch_summary) from check_mismatch_noMis_1
+        set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chrms from check_mismatch_noMis_1
     output:
         set target_name, file("${base}_clean.vcf.gz") into target_qc
     script:
