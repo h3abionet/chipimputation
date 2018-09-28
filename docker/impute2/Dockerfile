@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
       pkg-config \
       unzip \
       wget \
+      python python-dev \
       zlib1g-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -34,11 +35,11 @@ RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz &&
                  mv impute_v2.3.2_x86_64_static/Example/* /opt/impute2/example && \
                     rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
 
-## Install PLINK2
-#RUN wget http://www.cog-genomics.org/static/bin/plink180807/plink_linux_x86_64.zip && \
-#    unzip plink_linux_x86_64.zip -d /usr/local/bin/ && \
-#    rm -f plink_linux_x86_64.zip
-#
+# Install PLINK2
+RUN wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20180912.zip -O plink.zip && \
+    unzip plink.zip -d /usr/local/bin/ && \
+    rm -f plink.zip
+
 # Install VCFTools
 ### Build from GitHub
 RUN git clone https://github.com/vcftools/vcftools.git  && \
