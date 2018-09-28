@@ -42,7 +42,7 @@ From: ubuntu:16.04
     dpkg -i minimac4_1.0.0-1_amd64.deb
 
     # Install PLINK2
-    wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20180912.zip -O plink.zip && \
+    wget https://www.cog-genomics.org/static/bin/plink180913/plink_linux_x86_64.zip -O plink.zip && \
         unzip plink.zip -d /usr/local/bin/ && \
         rm -f plink.zip
 

@@ -36,7 +36,7 @@ RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz &&
                     rm -rf impute_v2.3.2_x86_64_static impute_v2.3.2_x86_64_static.tgz
 
 # Install PLINK2
-RUN wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_20180912.zip -O plink.zip && \
+RUN wget https://www.cog-genomics.org/static/bin/plink180913/plink_linux_x86_64.zip -O plink.zip && \
     unzip plink.zip -d /usr/local/bin/ && \
     rm -f plink.zip
 
