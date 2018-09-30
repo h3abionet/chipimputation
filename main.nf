@@ -70,8 +70,6 @@ Channel
         .from(target_datasets)
         .set{ target_datasets }
 
-// TODO Be able to run just on a specified chunk
-
 
 // Header log info
 log.info """
@@ -160,7 +158,7 @@ process check_chromosome {
         set target_name, file(target_vcfFile) from target_datasets_check
     output:
         set target_name, file(chromFile) into check_chromosome
-        set target_name, file(mapFile) into mapFile_cha
+        set target_name, file(target_vcfFile), file(mapFile) into mapFile_cha
     script:
         base = file(target_vcfFile.baseName).baseName
         chromFile = "${base}_chromosomes.txt"
@@ -191,7 +189,7 @@ else{
     in_chrs = []
     params.chromosomes.split(',').each { chrm ->
         chrm = chrm.toInteger()
-        if (!(chrm.toInteger() in chromosomes_['ALL'])){
+        if (!(chrm in chromosomes_['ALL'])){
             not_chrs << chrm
         }
         else{
@@ -199,32 +197,20 @@ else{
         }
     }
     if (in_chrs.isEmpty()){
-        if (chromosomes_['ALL'].isEmpty()) {
-            System.err.println "|-- No Chromosome(s) found not in target(s) dataset(s)! The pipeline will exit."
-            exit 1
-        }
-        else{
-            chromosomes = chromosomes_['ALL']
-        }
+        System.err.println "|-- ERROR- No Chromosome(s) found not in target(s) dataset(s)! The pipeline will exit."
+        exit 1
     }
 
     if (!(not_chrs.isEmpty())){
-        System.err.println "|-- Chromosome(s) ${not_chrs.join(', ')} not in target datasets and will be ignored."
-        if (in_chrs.isEmpty()){
-            chromosomes = chromosomes_['ALL']
-        }
-        else {
-            chromosomes = in_chrs
-        }
+        System.err.println "|-- WARN- Chromosome(s) ${not_chrs.join(', ')} not in target datasets and will be ignored."
     }
-    else {
-        chromosomes = in_chrs
-    }
+    chromosomes = in_chrs
+
 }
 ignore_chrms = [:]
 toImpute_chrms = [:]
 mapFile_cha.into{ mapFile_cha; mapFile_cha_1}
-mapFile_cha_1.toSortedList().val.each { target_name, mapFile ->
+mapFile_cha_1.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
     chromosomes_[target_name].each{ chrm ->
         chrm = chrm.toInteger()
         if(!(chrm in chromosomes)){
@@ -243,12 +229,12 @@ mapFile_cha_1.toSortedList().val.each { target_name, mapFile ->
 }
 targets_toImpute = Channel.create()
 mapFile_cha.into{ mapFile_cha; mapFile_cha_2}
-mapFile_cha_2.toSortedList().val.each { target_name, mapFile ->
+mapFile_cha_2.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
     if(target_name in toImpute_chrms){
-        targets_toImpute << [ target_name, mapFile ]
+        targets_toImpute << [ target_name, target_vcfFile, mapFile ]
     }
     else{
-        System.err.println "|-- Dataset ${target_name} does not contain the specified chromosome(s) ${chromosomes.join(', ')} and will be ignored."
+        System.err.println "|-- WARN- Dataset ${target_name} does not contain the specified chromosome(s) ${chromosomes.join(', ')} and will be ignored."
     }
 }
 targets_toImpute.close()
@@ -268,18 +254,19 @@ params.ref_panels.each { ref ->
 /*
  * STEP 3: QC
 */
-target_datasets.into{ target_datasets; target_datasets_qc }
+targets_toImpute.into{ targets_toImpute; targets_toImpute_qc }
 process check_mismatch {
     tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
+    label "medium"
     input:
-        set target_name, file(target_vcfFile), file(reference_genome) from target_datasets_qc.combine([file(params.reference_genome)])
+        set target_name, file(target_vcfFile), file(mapFile), file(reference_genome) from targets_toImpute_qc.combine([file(params.reference_genome)])
     output:
-        set target_name, file(target_vcfFile), file("${base}.map"), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
+        set target_name, file(target_vcfFile), file(mapFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
         base = file(target_vcfFile.baseName).baseName
-        chrms = chromosomes_[target_name]
+        chrms = toImpute_chrms[target_name]
         """
-        samtools faidx ${reference_genome} 
+        samtools faidx ${reference_genome}
         nblines=\$(zcat ${target_vcfFile} | wc -l)
         if (( \$nblines > 1 ))
         then
@@ -295,7 +282,6 @@ process check_mismatch {
                 2>&1 | tee "${base}_checkRef_summary.log"
             rm -f ${base}_clean_mind.*
         fi
-        zcat ${target_vcfFile} | grep -v "^#" | awk -F' ' '{print \$1"\t"\$2"\t"\$3"\t"\$4"\t"\$5}' | sort -n | uniq > ${base}.map
         """
 }
 
@@ -314,7 +300,7 @@ check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, mapFile, 
         exit 1
     }
     else{
-        check_mismatch_noMis << [ target_name, target_vcfFile, mapFile, warn, sumary, chromosomes_[target_name]]
+        check_mismatch_noMis << [ target_name, target_vcfFile, mapFile, warn, sumary, toImpute_chrms[target_name]]
     }
 }
 check_mismatch_noMis.close()
@@ -324,16 +310,16 @@ check_mismatch_noMis.close()
 */
 check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_2 }
 process generate_chunks {
-    tag "generate_chunks_${target_name}_${chromosomes[0]}_${chromosomes[-1]}"
+    tag "generate_chunks_${target_name}_${chrms[0]}_${chrms[-1]}"
     publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
-    echo true
+    label "small"
     input:
-        set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chromosomes from check_mismatch_noMis_2
+        set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chrms from check_mismatch_noMis_2
     output:
         set target_name, file(chunkFile) into generate_chunks
     script:
-        if(params.chunk){chunk = params.chunk} else{chunk=''} // To impute only a chunk like 1000000-1100000
-        chrms = chromosomes.join(',')
+        if(params.chunk){chunk = params.chunk} else{chunk=''}
+        chromosomes = chrms.join(',')
         chunkFile = "chunks.txt"
         chunk_size = params.chunk_size
         template "generate_chunks.py"
@@ -346,6 +332,7 @@ process generate_chunks {
 check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_1 }
 process target_qc {
     tag "target_qc_${target_name}_${chrms[0]}_${chrms[-1]}"
+    label "medium"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chrms from check_mismatch_noMis_1
     output:
@@ -399,6 +386,7 @@ target_qc_chunk = target_qc_1
 */
 process split_target_to_chunk {
     tag "split_${target_name}_${chrm}:${chunk_start}-${chunk_end}"
+    label "medium"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile) from target_qc_chunk
     output:
@@ -440,6 +428,7 @@ target_qc_chunk_ref = split_vcf_to_chrm_1
 split_vcf_to_chrm.into{ split_vcf_to_chrm; split_vcf_to_chrm_1 }
 process phase_target_chunk {
     tag "phase_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
+    label "bigmem"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_vcfFile_chunk), ref_name, file(ref_vcf), file(ref_m3vcf), file(eagle_genetic_map) from target_qc_chunk_ref
     output:
@@ -480,6 +469,7 @@ process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
     publishDir "${params.resultDir}/impute/${ref_name}/${target_name}/${chrm}", overwrite: true, mode:'symlink'
     publishDir "${params.resultDir}/impute/${target_name}/${ref_name}/${chrm}", overwrite: true, mode:'symlink'
+    label "bigmem"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
     output:
@@ -535,6 +525,7 @@ process combineImpute {
     tag "impComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.resultDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
     publishDir "${params.resultDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    label "bigmem"
     input:
         set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
     output:
@@ -560,6 +551,7 @@ process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.resultDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
     publishDir "${params.resultDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    label "medium"
     input:
         set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
     output:
@@ -590,6 +582,7 @@ process filter_info {
     tag "filter_${target_name}_${ref_name}_${chrms}"
     publishDir "${params.resultDir}/impute/INFOS/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
     publishDir "${params.resultDir}/impute/INFOS/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    label "medium"
     input:
         set target_name, ref_name, infos from chrm_infos.values()
     output:
@@ -614,6 +607,7 @@ process report_well_imputed {
     tag "report_wellImputed_${target_name}_${ref_name}_${chrms}"
     publishDir "${params.outDir}/Reports/${target_name}/${ref_name}", overwrite: true, mode:'copy'
     publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
+    label "medium"
     input:
         set target_name, ref_name, file(inWell_imputed) from info_Well_1
     output:
@@ -633,6 +627,7 @@ process report_accuracy {
     tag "report_acc_${target_name}_${ref_name}_${chrms}"
     publishDir "${params.outDir}/Reports/${target_name}/${ref_name}", overwrite: true, mode:'copy'
     publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
+    label "medium"
     input:
         set target_name, ref_name, file(inSNP_acc) from info_Acc_2
     output:

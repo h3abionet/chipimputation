@@ -67,6 +67,6 @@ def chunk_split(map_file, output, chunk_size, chrms='', chunk=''):
 mapFile = "${mapFile}"
 outputFile = "${chunkFile}"
 chunk_size = "${chunk_size}"
-chromosomes = "${chrms}"
+chromosomes = "${chromosomes}"
 chunk = "${chunk}"
 chunk_split(mapFile, outputFile, chunk_size, chromosomes, chunk)
