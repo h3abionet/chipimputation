@@ -604,7 +604,7 @@ process filter_info {
 Report 1: Well imputed
 """
 info_Well.into{ info_Well; info_Well_1}
-process report_well_imputed {
+process report_well_imputed_dataset {
     tag "report_wellImputed_${target_name}_${ref_name}_${chrms}"
     publishDir "${params.outDir}/Reports/${target_name}/${ref_name}", overwrite: true, mode:'copy'
     publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
@@ -612,11 +612,29 @@ process report_well_imputed {
     input:
         set target_name, ref_name, file(inWell_imputed) from info_Well_1
     output:
-        set target_name, ref_name, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed
+        set target_name, ref_name, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_dataset
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         outWell_imputed = "${target_name}_${ref_name}_${chrms}.imputed_info_report_well_imputed.tsv"
         template "report_well_imputed.py"
+}
+
+
+"""
+Plot performance all tags by maf
+"""
+report_well_imputed_dataset.into{ report_well_imputed_dataset; report_well_imputed_dataset_1 }
+process plot_performance_dataset{
+    tag "plot_performance_dataset_${target_name}_${ref_name}_${chrms}"
+    publishDir "${params.outDir}/Reports/${target_name}/plots", overwrite: true, mode:'copy'
+    input:
+        set target_name, ref_name, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_dataset_1
+    output:
+        set target_name, ref_name, file(performance_by_maf_plot) into plot_performance_dataset
+    script:
+        performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+        group = "CHRM"
+        template "plot_performance_by_maf.R"
 }
 
 
