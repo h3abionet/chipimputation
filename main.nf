@@ -289,7 +289,7 @@ check_mismatch.into{ check_mismatch; check_mismatch_1 }
 check_mismatch_noMis = Channel.create()
 check_mismatch_1.toSortedList().val.each{ target_name, target_vcfFile, mapFile, warn, sumary ->
     mismatch = 0
-    // use summary instead, print mismatch, non-biallelic, non-ACGT
+    // TODO use summary instead, print mismatch, non-biallelic, non-ACGT
     file(warn).readLines().each{ it ->
         if(it.contains("REF_MISMATCH")){
             mismatch += 1
@@ -380,6 +380,7 @@ def transform_chunk = { target_name, target_vcfFile ->
 }
 target_qc_chunk = target_qc_1
         .flatMap{ it -> transform_chunk(it) }
+
 
 /*
  * STEP 6:

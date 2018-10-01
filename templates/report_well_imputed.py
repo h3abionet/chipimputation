@@ -44,7 +44,11 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed):
             elif maf <= 0.05 and maf >= 0.01:
                 datas[dataset]['moderate'].append(maf)
                 datas[dataset]['total'] += 1
-    for dataset in sorted(datas):
+    try:
+        datasets = [str(it) for it in sorted([int(it) for it in datas])]
+    except:
+        datasets = sorted(datas)
+    for dataset in datasets:
         tot = datas[dataset]['total']
         rare = len(datas[dataset]['rare'])
         moderate = len(datas[dataset]['moderate'])
