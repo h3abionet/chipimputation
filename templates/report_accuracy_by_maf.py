@@ -42,7 +42,11 @@ def acc_by_maf(inSNP_acc, outSNP_acc):
                 datas[dataset]['common'].append(acc)
             elif maf <= 0.05 and maf >= 0.01:
                 datas[dataset]['moderate'].append(acc)
-    for dataset in sorted(datas):
+    try:
+        datasets = [str(it) for it in sorted([int(it) for it in datas])]
+    except:
+        datasets = sorted(datas)
+    for dataset in datasets:
         tot = datas[dataset]['total']
 
         if len(datas[dataset]['common']) == 0:
