@@ -13,9 +13,10 @@ superpop.plot.colours <- c("#8A2BE2", "#CC0066", "#6495ED", "#66CDAA", "#A52A2A"
 linetypes <- c("dashed", "solid", "dotted", "dotdash", "longdash", "twodash", "twodash")
 
 data <- read.table("${well_imputed_report}", h = T, sep = '\\t')
+
 colnames(data) <- c("${group}", "MAF<1%", "MAF 1-5%", "MAF>5%")
 mdata <- melt(data, id = c("${group}"))
-mdata\$CHRM = as.factor(mdata\$CHRM)
+mdata\$"${group}" = as.factor(mdata\$"${group}")
 
 p <- ggplot(mdata, aes(x = variable, y = value, fill = ${group}))+
 geom_bar(stat="identity", position=position_dodge()) +
