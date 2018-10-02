@@ -734,7 +734,7 @@ process report_well_imputed_ref {
     script:
         chrms = chromosomes[0]+"-"+chromosomes[-1]
         outWell_imputed = "${ref_name}_${target_names}_${chrms}.imputed_info_report_well_imputed.tsv"
-        group = "REF_PANEL"
+        group = "DATASET"
         template "report_well_imputed.py"
 }
 
@@ -753,7 +753,7 @@ process plot_performance_ref{
     script:
         performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes[0]+"-"+chromosomes[-1]
-        group = "REF_PANEL"
+        group = "DATASET"
         template "plot_performance_by_maf.R"
 }
 
