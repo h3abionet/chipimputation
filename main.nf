@@ -613,8 +613,8 @@ process filter_info {
     input:
         set target_name, ref_name, infos from target_infos.values()
     output:
-        set target_name, ref_name, file(well_out) into info_Well
-        set target_name, ref_name, file(acc_out) into info_Acc
+        set target_name, ref_panels, file(well_out) into info_Well
+        set target_name, ref_panels, file(acc_out) into info_Acc
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         comb_info = "${target_name}_${ref_panels}_${chrms}.imputed_info"
@@ -631,17 +631,17 @@ Report 1: Well imputed
 """
 info_Well.into{ info_Well; info_Well_1}
 process report_well_imputed_dataset {
-    tag "report_wellImputed_${target_name}_${ref_name}_${chrms}"
-    publishDir "${params.outDir}/Reports/${target_name}/${ref_name}", overwrite: true, mode:'copy'
-    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
+    tag "report_wellImputed_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
+//    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_name, file(inWell_imputed) from info_Well_1
+        set target_name, ref_panels, file(inWell_imputed) from info_Well_1
     output:
-        set target_name, ref_name, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_dataset
+        set target_name, ref_panels, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_dataset
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        outWell_imputed = "${target_name}_${ref_name}_${chrms}.imputed_info_report_well_imputed.tsv"
+        outWell_imputed = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_well_imputed.tsv"
         template "report_well_imputed.py"
 }
 
@@ -651,12 +651,12 @@ Plot performance all tags by maf
 """
 report_well_imputed_dataset.into{ report_well_imputed_dataset; report_well_imputed_dataset_1 }
 process plot_performance_dataset{
-    tag "plot_performance_dataset_${target_name}_${ref_name}_${chrms}"
+    tag "plot_performance_dataset_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/Reports/${target_name}/plots", overwrite: true, mode:'copy'
     input:
-        set target_name, ref_name, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_dataset_1
+        set target_name, ref_panels, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_dataset_1
     output:
-        set target_name, ref_name, file(performance_by_maf_plot) into plot_performance_dataset
+        set target_name, ref_panels, file(performance_by_maf_plot) into plot_performance_dataset
     script:
         performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
@@ -670,17 +670,17 @@ Repor 2: Accuracy
 """
 info_Acc.into{ info_Acc; info_Acc_2}
 process report_accuracy {
-    tag "report_acc_${target_name}_${ref_name}_${chrms}"
-    publishDir "${params.outDir}/Reports/${target_name}/${ref_name}", overwrite: true, mode:'copy'
-    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
+    tag "report_acc_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
+//    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_name, file(inSNP_acc) from info_Acc_2
+        set target_name, ref_panels, file(inSNP_acc) from info_Acc_2
     output:
-        set target_name, ref_name, file(outSNP_acc) into report_SNP_acc
+        set target_name, ref_panels, file(outSNP_acc) into report_SNP_acc
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        outSNP_acc = "${target_name}_${ref_name}_${chrms}.imputed_info_report_accuracy.tsv"
+        outSNP_acc = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_accuracy.tsv"
         template "report_accuracy_by_maf.py"
 }
 
