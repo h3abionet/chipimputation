@@ -633,6 +633,7 @@ process plot_performance_dataset{
         set target_name, ref_name, file(performance_by_maf_plot) into plot_performance_dataset
     script:
         performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         group = "DATASETS"
         template "plot_performance_by_maf.R"
 }
