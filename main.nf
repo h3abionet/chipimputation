@@ -468,8 +468,8 @@ process phase_target_chunk {
 */
 process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
-    publishDir "${params.resultDir}/impute/${ref_name}/${target_name}/${chrm}", overwrite: true, mode:'symlink'
-    publishDir "${params.resultDir}/impute/${target_name}/${ref_name}/${chrm}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/${ref_name}/${target_name}/${chrm}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/${target_name}/${ref_name}/${chrm}", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
@@ -530,8 +530,8 @@ Combine impute chunks to chromosomes
 """
 process combineImpute {
     tag "impComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.resultDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
-    publishDir "${params.resultDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
         set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
@@ -556,8 +556,8 @@ Combine impute info chunks to chromosomes
 """
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.resultDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
-    publishDir "${params.resultDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
@@ -577,7 +577,7 @@ Combine all impute info chunks by dataset
 """
 process combineInfo_all {
     tag "infoComb_${target_name}_${ref_name}_${chrms}"
-    publishDir "${params.resultDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, file(info_files) from infoCombine_all.values()
@@ -599,22 +599,33 @@ Generating report
 combineInfo_all.into { combineInfo_all; combineInfo_all_1 }
 combineInfo_all_list = combineInfo_all_1.toSortedList().val
 target_infos = [:]
+ref_infos = [:]
 ref_panels = params.ref_panels.keySet().join('_')
+target_names = params.target_datasets.keySet().join('_')
 combineInfo_all_list.each{ target_name, ref_name, comb_info ->
     if(!(target_name in target_infos)){
         target_infos[target_name] = [ target_name, ref_name, []]
     }
     target_infos[target_name][2] << ref_name+"=="+comb_info
+    if(!(ref_name in ref_infos)){
+        ref_infos[ref_name] = [ ref_name, target_name, []]
+    }
+    ref_infos[ref_name][2] << target_name+"=="+comb_info
 }
-process filter_info {
+
+
+"""
+Filtering all reference panels by maf for a dataset
+"""
+process filter_info_target {
     tag "filter_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.resultDir}/impute/INFOS/${target_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${target_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
     output:
-        set target_name, ref_panels, file(well_out) into info_Well
-        set target_name, ref_panels, file(acc_out) into info_Acc
+        set target_name, ref_panels, file(well_out) into target_info_Well
+        set target_name, ref_panels, file(acc_out) into target_info_Acc
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         comb_info = "${target_name}_${ref_panels}_${chrms}.imputed_info"
@@ -627,62 +638,125 @@ process filter_info {
 
 
 """
-Report 1: Well imputed
+Report 1: Well imputed all reference panels by maf for a dataset
 """
-info_Well.into{ info_Well; info_Well_1}
-process report_well_imputed_dataset {
+target_info_Well.into{ target_info_Well; target_info_Well_1}
+process report_well_imputed_target {
     tag "report_wellImputed_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
-//    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_panels, file(inWell_imputed) from info_Well_1
+        set target_name, ref_panels, file(inWell_imputed) from target_info_Well_1
     output:
-        set target_name, ref_panels, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_dataset
+        set target_name, ref_panels, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_target
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         outWell_imputed = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_well_imputed.tsv"
+        group = "REF_PANEL"
         template "report_well_imputed.py"
 }
 
 
 """
-Plot performance all tags by maf
+Plot performance all reference panels by maf for a dataset
 """
-report_well_imputed_dataset.into{ report_well_imputed_dataset; report_well_imputed_dataset_1 }
-process plot_performance_dataset{
+report_well_imputed_target.into{ report_well_imputed_target; report_well_imputed_target_1 }
+process plot_performance_target{
     tag "plot_performance_dataset_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/Reports/${target_name}/plots", overwrite: true, mode:'copy'
     input:
-        set target_name, ref_panels, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_dataset_1
+        set target_name, ref_panels, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_target_1
     output:
-        set target_name, ref_panels, file(performance_by_maf_plot) into plot_performance_dataset
+        set target_name, ref_panels, file(performance_by_maf_plot) into plot_performance_target
     script:
         performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        group = "DATASET"
+        group = "REF_PANEL"
         template "plot_performance_by_maf.R"
 }
 
 
 """
-Repor 2: Accuracy
+Repor 2: Accuracy all reference panels by maf for a dataset
 """
-info_Acc.into{ info_Acc; info_Acc_2}
-process report_accuracy {
+target_info_Acc.into{ target_info_Acc; target_info_Acc_2}
+process report_accuracy_target {
     tag "report_acc_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
 //    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_panels, file(inSNP_acc) from info_Acc_2
+        set target_name, ref_panels, file(inSNP_acc) from target_info_Acc_2
     output:
-        set target_name, ref_panels, file(outSNP_acc) into report_SNP_acc
+        set target_name, ref_panels, file(outSNP_acc) into report_SNP_acc_target
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         outSNP_acc = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_accuracy.tsv"
         template "report_accuracy_by_maf.py"
 }
+
+
+"""
+Filtering all targets by maf for a reference panel
+"""
+process filter_info_ref {
+    tag "filter_${ref_name}_${target_names}_${chrms}"
+    publishDir "${params.outDir}/impute/combined/${ref_name}", overwrite: true, mode:'symlink'
+    label "medium"
+    input:
+        set ref_name, target_names, infos from ref_infos.values()
+    output:
+        set ref_name, target_names, file(well_out) into ref_info_Well
+        set ref_name, target_names, file(acc_out) into ref_info_Acc
+    script:
+        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        comb_info = "${ref_name}_${target_names}_${chrms}.imputed_info"
+        well_out = "${comb_info}_well_imputed"
+        acc_out = "${comb_info}_accuracy"
+        infos = infos.join(',')
+        impute_info_cutoff = params.impute_info_cutoff
+        template "filter_info_minimac.py"
+}
+
+
+"""
+Report: Well imputed all targets by maf for a reference panel
+"""
+ref_info_Well.into{ ref_info_Well; ref_info_Well_1}
+process report_well_imputed_ref {
+    tag "report_wellImputed_${ref_name}_${target_names}_${chrms}"
+    publishDir "${params.outDir}/Reports/${ref_name}", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        set ref_name, target_names, file(inWell_imputed) from ref_info_Well_1
+    output:
+        set ref_name, target_names, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_ref
+    script:
+        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        outWell_imputed = "${ref_name}_${target_names}_${chrms}.imputed_info_report_well_imputed.tsv"
+        group = "REF_PANEL"
+        template "report_well_imputed.py"
+}
+
+
+"""
+Plot performance all targets by maf for a reference panel
+"""
+report_well_imputed_ref.into{ report_well_imputed_ref; report_well_imputed_ref_1 }
+process plot_performance_ref{
+    tag "plot_performance_dataset_${ref_name}_${target_names}_${chrms}"
+    publishDir "${params.outDir}/Reports/${ref_name}/plots", overwrite: true, mode:'copy'
+    input:
+        set ref_name, target_names, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_ref_1
+    output:
+        set ref_name, target_names, file(performance_by_maf_plot) into plot_performance_ref
+    script:
+        performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+        chrms = chromosomes[0]+"-"+chromosomes[-1]
+        group = "REF_PANEL"
+        template "plot_performance_by_maf.R"
+}
+
 
 def helpMessage() {
     log.info"""
