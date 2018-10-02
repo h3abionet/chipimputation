@@ -505,6 +505,7 @@ impute_target.into{impute_target; impute_target_1}
 // Create a dataflow instance of all impute results
 imputeCombine = [:]
 infoCombine = [:]
+infoCombine_all = [:]
 impute_target_list = impute_target_1.toSortedList().val
 impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, impute, info ->
     id = target_name +"__"+ ref_name +"__"+ chrm
@@ -516,6 +517,11 @@ impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, im
         infoCombine[id] = [target_name, ref_name, chrm, []]
     }
     infoCombine[id][3] << info
+    id1 = target_name +"__"+ ref_name
+    if(!(id1 in infoCombine_all)){
+        infoCombine_all[id1] = [target_name, ref_name, []]
+    }
+    infoCombine_all[id1][2] << info
 }
 
 
@@ -567,12 +573,33 @@ process combineInfo {
 
 
 """
+Combine all impute info chunks by dataset
+"""
+process combineInfo_all {
+    tag "infoComb_${target_name}_${ref_name}_${chrms}"
+    publishDir "${params.resultDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    label "medium"
+    input:
+        set target_name, ref_name, file(info_files) from infoCombine_all.values()
+    output:
+        set target_name, ref_name, file(comb_info) into combineInfo_all
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        comb_info = "${target_name}_${ref_name}_chrs${chrms}.imputed_info"
+        """
+        head -n1 ${info_files[0]} > ${comb_info}
+        tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
+        """
+}
+
+
+"""
 Generating report
 """
-combineInfo.into { combineInfo; combineInfo_1 }
-combineInfo_list = combineInfo_1.toSortedList().val
+combineInfo_all.into { combineInfo_all; combineInfo_all_1 }
+combineInfo_all_list = combineInfo_all_1.toSortedList().val
 chrm_infos = [:]
-combineInfo_list.each{ target_name, ref_name, chrm, comb_info ->
+combineInfo_all_list.each{ target_name, ref_name, comb_info ->
     id = target_name +"__"+ ref_name
     if(!(id in chrm_infos)){
         chrm_infos[id] = [ target_name, ref_name, []]
@@ -634,7 +661,7 @@ process plot_performance_dataset{
     script:
         performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        group = "DATASETS"
+        group = "DATASET"
         template "plot_performance_by_maf.R"
 }
 
