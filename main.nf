@@ -598,27 +598,26 @@ Generating report
 """
 combineInfo_all.into { combineInfo_all; combineInfo_all_1 }
 combineInfo_all_list = combineInfo_all_1.toSortedList().val
-chrm_infos = [:]
+target_infos = [:]
+ref_panels = params.ref_panels.keySet().join('_')
 combineInfo_all_list.each{ target_name, ref_name, comb_info ->
-    id = target_name +"__"+ ref_name
-    if(!(id in chrm_infos)){
-        chrm_infos[id] = [ target_name, ref_name, []]
+    if(!(target_name in target_infos)){
+        target_infos[target_name] = [ target_name, ref_name, []]
     }
-    chrm_infos[id][2] << chrm+"=="+comb_info
+    target_infos[target_name][2] << ref_name+"=="+comb_info
 }
 process filter_info {
-    tag "filter_${target_name}_${ref_name}_${chrms}"
-    publishDir "${params.resultDir}/impute/INFOS/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
-    publishDir "${params.resultDir}/impute/INFOS/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    tag "filter_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.resultDir}/impute/INFOS/${target_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
-        set target_name, ref_name, infos from chrm_infos.values()
+        set target_name, ref_name, infos from target_infos.values()
     output:
         set target_name, ref_name, file(well_out) into info_Well
         set target_name, ref_name, file(acc_out) into info_Acc
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        comb_info = "${target_name}_${ref_name}_${chrms}.imputed_info"
+        comb_info = "${target_name}_${ref_panels}_${chrms}.imputed_info"
         well_out = "${comb_info}_well_imputed"
         acc_out = "${comb_info}_accuracy"
         infos = infos.join(',')
