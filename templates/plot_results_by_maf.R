@@ -18,7 +18,7 @@ colnames(data) <- c("${group}", "(0,0.001]", "(0.001,0.01]", "(0.01,0.02]", "(0.
 mdata <- melt(data, id = c("${group}"))
 mdata\$"${group}" = as.factor(mdata\$"${group}")
 
-p <- ggplot(mdata, aes(x = variable, y = value, fill = "${group}"))+
+p <- ggplot(mdata, aes(x = variable, y = value, fill = $ {group}))+
 geom_bar(stat="identity", position=position_dodge()) +
 scale_fill_manual(values=superpop.plot.colours) +
 ylab("${ylab}") + xlab("${xlab}") +
