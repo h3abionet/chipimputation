@@ -532,7 +532,7 @@ process combineImpute {
     maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
     tag "impComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
-    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+//    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
         set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
@@ -558,7 +558,7 @@ Combine impute info chunks to chromosomes
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
-    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+//    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
@@ -668,32 +668,15 @@ process plot_performance_target{
     input:
         set target_name, ref_panels, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_target_1
     output:
-        set target_name, ref_panels, file(performance_by_maf_plot) into plot_performance_target
+        set target_name, ref_panels, file(plot_by_maf) into plot_performance_target
     script:
-        performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+        plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        report = well_imputed_report
         group = "REF_PANEL"
-        template "plot_performance_by_maf.R"
-}
-
-
-"""
-Repor 2: Accuracy all reference panels by maf for a dataset
-"""
-target_info_Acc.into{ target_info_Acc; target_info_Acc_2}
-process report_accuracy_target {
-    tag "report_acc_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
-//    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
-    label "medium"
-    input:
-        set target_name, ref_panels, file(inSNP_acc) from target_info_Acc_2
-    output:
-        set target_name, ref_panels, file(outSNP_acc) into report_SNP_acc_target
-    script:
-        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        outSNP_acc = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_accuracy.tsv"
-        template "report_accuracy_by_maf.py"
+        xlab = "MAF bins"
+        ylab = "Number of well imputed SNPs"
+        template "plot_results_by_maf.R"
 }
 
 
@@ -750,14 +733,59 @@ process plot_performance_ref{
     input:
         set ref_name, target_names, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_ref_1
     output:
-        set ref_name, target_names, file(performance_by_maf_plot) into plot_performance_ref
+        set ref_name, target_names, file(plot_by_maf) into plot_performance_ref
     script:
-        performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+        plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes[0]+"-"+chromosomes[-1]
+        report = well_imputed_report
         group = "DATASET"
-        template "plot_performance_by_maf.R"
+        xlab = "MAF bins"
+        ylab = "Number of well imputed SNPs"
+        template "plot_results_by_maf.R"
 }
 
+
+"""
+Repor 2: Accuracy all reference panels by maf for a dataset
+"""
+target_info_Acc.into{ target_info_Acc; target_info_Acc_2}
+process report_accuracy_target {
+    tag "report_acc_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
+//    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        set target_name, ref_panels, file(inSNP_acc) from target_info_Acc_2
+    output:
+        set target_name, ref_panels, file(outSNP_acc) into report_SNP_acc_target
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        outSNP_acc = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_accuracy.tsv"
+        group = "REF_PANEL"
+        template "report_accuracy_by_maf.py"
+}
+
+
+"""
+Plot accuracy all reference panels by maf for a dataset
+"""
+report_SNP_acc_target.into{ report_SNP_acc_target; report_SNP_acc_target_1 }
+process plot_accuracy_target{
+    tag "plot_accuracy_dataset_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/Reports/${target_name}/plots", overwrite: true, mode:'copy'
+    input:
+        set target_name, ref_panels, file(accuracy_report) from report_SNP_acc_target_1
+    output:
+        set target_name, ref_panels, file(plot_by_maf) into plot_accuracy_target
+    script:
+        plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf.tiff"
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        report = accuracy_report
+        group = "REF_PANEL"
+        xlab = "MAF bins"
+        ylab = "Concordance rate"
+        template "plot_results_by_maf.R"
+}
 
 def helpMessage() {
     log.info"""
