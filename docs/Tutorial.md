@@ -59,12 +59,11 @@ For this tutorial, the 1000 Genomes Project data will be used as reference panel
 [https://genome.sph.umich.edu/wiki/Minimac4](https://genome.sph.umich.edu/wiki/Minimac4).
  - VCF files for phasing can be downloaded with the command 
     ```bash
-    wget -np ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/supporting/GRCh38_positions/*
+    wget -np ftp://share.sph.umich.edu/minimac3/G1K_P3_VCF_Files.tar.gz
     ``` 
 - M3VCF files for imputation can be dowmloaded with the command 
     ```bash
-    wget -np ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/supporting/GRCh38_positions/*
+    wget -np ftp://share.sph.umich.edu/minimac3/G1K_P3_M3VCF_FILES_WITH_ESTIMATES.tar.gz*
     ``` 
-  
- Save the phased reference panel VCF files per chromosome as follows (for consistency with the commands in the protocol):
- panel_phased_chr#.vcf.gz (where # is chromosome number)
+    
+These phased reference panel VCF and M3VCF files are in chromosome.
