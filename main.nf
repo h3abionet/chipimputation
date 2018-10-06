@@ -156,7 +156,6 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 target_datasets.into{ target_datasets; target_datasets_check }
 process check_chromosome {
     tag "check_chromosome_${target_name}"
-    label "bigmem"
     input:
         set target_name, file(target_vcfFile) from target_datasets_check
     output:
@@ -176,20 +175,27 @@ process check_chromosome {
 check_chromosome.into{ check_chromosome; check_chromosome1 }
 chromosomes_ = [:]
 chromosomes_['ALL'] = []
+valid_chrms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+not_chrs = []
+in_chrs = []
+notValid_chrs = []
 check_chromosome1.toSortedList().val.each{ target_name, check_file ->
     chromosomes_[target_name] = file(check_file).readLines().unique().collect { it as int }.sort()
     chromosomes_[target_name].each { chrm ->
-        if(!(chrm in chromosomes_['ALL']))
-        chromosomes_['ALL'] << chrm.toInteger()
+        if(!(chrm in chromosomes_['ALL'])) {
+            if (chrm.toInteger() in valid_chrms){
+                chromosomes_['ALL'] << chrm.toInteger()
+            }
+            else{
+                notValid_chrs << chrm.toInteger()
+            }
+        }
     }
 }
-
 if (params.chromosomes == '' || params.chromosomes == 'ALL'){
     chromosomes = chromosomes_['ALL']
 }
 else{
-    not_chrs = []
-    in_chrs = []
     params.chromosomes.split(',').each { chrm ->
         chrm = chrm.toInteger()
         if (!(chrm in chromosomes_['ALL'])){
@@ -209,6 +215,10 @@ else{
     }
     chromosomes = in_chrs
 
+}
+// Ignore invalid chromosome in VCF
+if (!(notValid_chrs.isEmpty())){
+    System.err.println "|-- WARN- Chromosome(s) ${notValid_chrs.join(', ')} not valid chromosomes and will be ignored."
 }
 ignore_chrms = [:]
 toImpute_chrms = [:]
@@ -259,7 +269,7 @@ params.ref_panels.each { ref ->
 targets_toImpute.into{ targets_toImpute; targets_toImpute_qc }
 process check_mismatch {
     tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
-    label "bigmem"
+    label "medium"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(reference_genome), file(reference_genome_ai) from targets_toImpute_qc
     output:
@@ -268,6 +278,7 @@ process check_mismatch {
         base = file(target_vcfFile.baseName).baseName
         chrms = toImpute_chrms[target_name]
         """
+        #samtools faidx ${reference_genome}
         nblines=\$(zcat ${target_vcfFile} | wc -l)
         if (( \$nblines > 1 ))
         then
@@ -313,7 +324,7 @@ check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_2 }
 process generate_chunks {
     tag "generate_chunks_${target_name}_${chrms[0]}_${chrms[-1]}"
     publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
-    label "medium"
+    label "small"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chrms from check_mismatch_noMis_2
     output:
@@ -471,7 +482,7 @@ process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
     publishDir "${params.outDir}/impute/${ref_name}/${target_name}/${chrm}", overwrite: true, mode:'symlink'
     publishDir "${params.outDir}/impute/${target_name}/${ref_name}/${chrm}", overwrite: true, mode:'symlink'
-    label "medium"
+    label "bigmem"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
     output:
