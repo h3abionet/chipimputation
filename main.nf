@@ -156,6 +156,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 target_datasets.into{ target_datasets; target_datasets_check }
 process check_chromosome {
     tag "check_chromosome_${target_name}"
+    label "bigmem"
     input:
         set target_name, file(target_vcfFile) from target_datasets_check
     output:
@@ -258,7 +259,7 @@ params.ref_panels.each { ref ->
 targets_toImpute.into{ targets_toImpute; targets_toImpute_qc }
 process check_mismatch {
     tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
-    label "medium"
+    label "bigmem"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(reference_genome), file(reference_genome_ai) from targets_toImpute_qc
     output:
@@ -267,7 +268,6 @@ process check_mismatch {
         base = file(target_vcfFile.baseName).baseName
         chrms = toImpute_chrms[target_name]
         """
-        #samtools faidx ${reference_genome}
         nblines=\$(zcat ${target_vcfFile} | wc -l)
         if (( \$nblines > 1 ))
         then
@@ -313,7 +313,7 @@ check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_2 }
 process generate_chunks {
     tag "generate_chunks_${target_name}_${chrms[0]}_${chrms[-1]}"
     publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
-    label "small"
+    label "medium"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chrms from check_mismatch_noMis_2
     output:
@@ -471,7 +471,7 @@ process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
     publishDir "${params.outDir}/impute/${ref_name}/${target_name}/${chrm}", overwrite: true, mode:'symlink'
     publishDir "${params.outDir}/impute/${target_name}/${ref_name}/${chrm}", overwrite: true, mode:'symlink'
-    label "bigmem"
+    label "medium"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
     output:

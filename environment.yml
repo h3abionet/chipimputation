@@ -13,3 +13,6 @@ dependencies:
   - impute2=2.3.2
   - plink2=1.90b3.35
   - htslib=1.9
+  - r=3.3.1
+  - r-ggplot2=2.1.0
+  - readline
