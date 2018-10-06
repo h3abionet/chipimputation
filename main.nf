@@ -218,7 +218,8 @@ else{
 }
 // Ignore invalid chromosome in VCF
 if (!(notValid_chrs.isEmpty())){
-    System.err.println "|-- WARN- Chromosome(s) ${notValid_chrs.join(', ')} not valid chromosomes and will be ignored."
+    System.err.println "|-- ERROR- Chromosome(s) ${notValid_chrs.join(', ')} not valid chromosomes. Check your VCF file and remove invalid chromosomes! The pipeline will exit."
+    exit 1
 }
 ignore_chrms = [:]
 toImpute_chrms = [:]
