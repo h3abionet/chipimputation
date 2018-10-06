@@ -57,10 +57,12 @@ if(params.eagle_genetic_map) {
     }
 }
 
+
+
 // Validate reference genome
 if(params.reference_genome) {
-    if (!file(params.reference_genome).exists() && !file(params.reference_genome).isFile()) {
-        System.err.println "Reference genome (reference_genome) file ${params.reference_genome} not found. Please check your config file."
+    if ((!file(params.reference_genome).exists() && !file(params.reference_genome).isFile()) || (!file("${params.reference_genome}.fai").exists())) {
+        System.err.println "Reference genome file ${params.reference_genome} not found. Please check your config file."
         exit 1
     }
 }
@@ -231,7 +233,7 @@ targets_toImpute = Channel.create()
 mapFile_cha.into{ mapFile_cha; mapFile_cha_2}
 mapFile_cha_2.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
     if(target_name in toImpute_chrms){
-        targets_toImpute << [ target_name, target_vcfFile, mapFile ]
+        targets_toImpute << [ target_name, target_vcfFile, mapFile, file(params.reference_genome), file("${params.reference_genome}.fai") ]
     }
     else{
         System.err.println "|-- WARN- Dataset ${target_name} does not contain the specified chromosome(s) ${chromosomes.join(', ')} and will be ignored."
@@ -239,7 +241,6 @@ mapFile_cha_2.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
 }
 targets_toImpute.close()
 println "|-- Chromosomes used: ${chromosomes.join(', ')}"
-
 
 // check if ref files exist
 params.ref_panels.each { ref ->
@@ -259,14 +260,14 @@ process check_mismatch {
     tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
     label "medium"
     input:
-        set target_name, file(target_vcfFile), file(mapFile), file(reference_genome) from targets_toImpute_qc.combine([file(params.reference_genome)])
+        set target_name, file(target_vcfFile), file(mapFile), file(reference_genome), file(reference_genome_ai) from targets_toImpute_qc
     output:
         set target_name, file(target_vcfFile), file(mapFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
         base = file(target_vcfFile.baseName).baseName
         chrms = toImpute_chrms[target_name]
         """
-        samtools faidx ${reference_genome}
+        #samtools faidx ${reference_genome}
         nblines=\$(zcat ${target_vcfFile} | wc -l)
         if (( \$nblines > 1 ))
         then

@@ -24,4 +24,3 @@ scale_fill_manual(values=superpop.plot.colours) +
 ylab("${ylab}") + xlab("${xlab}") +
 theme_bw()
 ggsave("${plot_by_maf}", height=6, width=10, units='in', dpi=150)
-
