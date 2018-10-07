@@ -80,10 +80,10 @@ Extract chunk 6:8428721-8928720 for `sample.vcf.gz` with 5 samples only
 bcftools index --tbi -f sample.vcf.gz
 
 # Generate a list of sample IDs present in the vcf file, one line per sample ID. Retaining only 5 samples
-bcftools query -l sample.vcf.gz | head -n2 > panel_2sample_IDs.txt
+bcftools query -l sample.vcf.gz | head -n5 > panel_5sample_IDs.txt
 
 # Subset the vcf only retaining the region of interest panel_5sample_IDs.txt
-bcftools view --regions 6:8428721-8928720 --samples-list panel_2sample_IDs.txt --force-samples -m2 -M2 -v snps sample.vcf.gz -Oz -o sample2_chr6_8428721_8928720.vcf.gz
+bcftools view --regions 6:8428721-8928720 --samples-file panel_5sample_IDs.txt --force-samples -m2 -M2 -v snps sample.vcf.gz -Oz -o sample5_chr6_8428721_8928720.vcf.gz
 ```
 > `bcftools index` parameters:   
 --tbi generate index for VCF file  
@@ -100,15 +100,15 @@ bcftools view --regions 6:8428721-8928720 --samples-list panel_2sample_IDs.txt -
 
 Only autosomal chromosomes are kept for this imputation tutorial.  
 **Input file:**  
--- sample2_chr6_8428721_8928720.vcf.gz  
+-- sample5_chr6_8428721_8928720.vcf.gz  
 **Outpt file:**  
--- sample2_chr6_8428721_8928720_aut.vcf.gz 
+-- sample5_chr6_8428721_8928720_aut.vcf.gz 
 ```bash
 # Generate a comma-separated string of chromosome names to keep
 chrs=$(paste -d ' ' <(echo {1..22}) | tr ' ' ',')
 
 # Keep only those wanted chromosomes
-bcftools view -t $chrs sample2_chr6_8428721_8928720.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut.vcf.gz
+bcftools view -t $chrs sample5_chr6_8428721_8928720.vcf.gz -Oz -o sample5_chr6_8428721_8928720_aut.vcf.gz
 ```
 > `paste` parameter:  
 -d delimiter  
@@ -124,20 +124,18 @@ Ensure that only biallelic sites are kept in the target data, as `bcftools norm`
 Finally, replace the ID column with a 'SNP ID' in format CHROM_POS_REF_ALT ie. chromosome_position_<reference allele>_<alternative allele>.
  
 **Input files:**  
--- sample2_chr6_8428721_8928720_aut.vcf.gz  
+-- sample5_chr6_8428721_8928720_aut.vcf.gz  
 -- human_g1k_v37_decoy.fasta  
 **Outpt file:**  
--- sample2_chr6_8428721_8928720_aut_fixmis.vcf.gz
--- sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz
+-- sample5_chr6_8428721_8928720_aut_fixmis.vcf.gz
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz
 
 ```bash
-# Align the alleles to the reference genome
-bcftools norm -f /data/refs/common/human_g1k_v37_decoy.fasta -c ws sample2_chr6_8428721_8928720_aut.vcf.gz -Ou | \
-# Keep only biallelic records
-bcftools view -m 2 -M 2 -Oz -o sample2_chr6_8428721_8928720_aut_fixmis.vcf.gz
+# Align the alleles to the reference genome # Keep only biallelic records
+bcftools +fixref sample5_chr6_8428721_8928720_aut.vcf.gz -Oz -o sample5_chr6_8428721_8928720_aut_fixmis.vcf.gz -- -f /data/refs/common/human_g1k_v37_decoy.fasta -m flip -d 
 
 # Replace the ID column with a CHR_POS_REF_ALT 'SNP ID'
-bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' sample2_chr6_8428721_8928720_aut_fixmis.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz
+bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' sample5_chr6_8428721_8928720_aut_fixmis.vcf.gz -Oz -o sample5_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz
 ```
 >`bcftools norm` parameters:  
 -f reference genome  
@@ -159,11 +157,11 @@ Ensure that duplicate individuals do not exist in the chip data or between the c
 First, we nned to generate a list of sample IDs from the reference panel, this can be done from any of the VCF files (here chr22) as in the example below (assuming that all chromosomes contain the same set of samples)
 
 **Input files:**  
--- sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz  
 -- /data/refs/KGP/vcf/1000GP_Phase3_chr1.vcf.gz  
 **Output file:**   
 -- panel_sample_IDs.txt
--- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz
 
 /*TODO*/ cp path
 ```bash
@@ -171,13 +169,13 @@ First, we nned to generate a list of sample IDs from the reference panel, this c
 bcftools query -l /data/refs/KGP/vcf/1000GP_Phase3_chr22.vcf.gz > panel_sample_IDs.txt
 
 # Copy the panel sample ID file with a different name
-cp panel_sample_IDs.txt sample2_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt
+cp panel_sample_IDs.txt sample5_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt
 
 # Generate a list of sample IDs from the chip data, keep only duplicates and append to the list of reference panel sample IDs
-bcftools query -l sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz | uniq -d >> sample2_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt
+bcftools query -l sample5_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz | uniq -d >> sample5_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt
 
 # Remove the listed sample IDs from the chip data VCF
-bcftools view -S ^sample2_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt --force-samples sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz
+bcftools view -S ^sample5_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt --force-samples sample5_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz -Oz -o sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz
 ```
 >`bcftools query` parameters:  
 -l list of sample IDs  
@@ -203,15 +201,15 @@ Duplicate variants will need to be removed before imputation.
  
 ```bash
 # Store a list of duplicate positions
-bcftools query -f '%ID\n' sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz | uniq -d > sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.txt
+bcftools query -f '%ID\n' sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz | uniq -d > sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.txt
 
 # Check whether the file contains any variants
-if [ -s sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_duplicate_variants.txt ]; then
+if [ -s sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_duplicate_variants.txt ]; then
    # Then remove the duplicate variants
-   bcftools view -e ID=@sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_duplicate_variants.txt sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
+   bcftools view -e ID=@sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_duplicate_variants.txt sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz -Oz -o sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
 else
   # If the file is empty i.e. no duplicate variants are present, only rename the file to be compatible with the next step
-  cp sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
+  cp sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
 fi
 ```
 >`bcftools query` parameters:  
@@ -227,19 +225,21 @@ ID=@file IDs included in the file
 
 
 ### 2.6. Exclude rare variants
-Exclude rare variants if not already removed in quality control steps, and re-calculate the allele frequency to correctly represent the current samples in the dataset.
+
+Generate a tab-delimited file of the target data allele frequencies, one variant per line, with columns CHR, SNP (in generated file header replaced with CHR_POS_REF_ALT), REF, ALT, AF (including the header line).  
+First, exclude rare variants if not already removed in quality control steps, and re-calculate the allele frequency to correctly represent the current samples in the dataset.
  
-**Input file:**
--- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
+**Input file:**  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
  
-**Output file:**
--- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz
+**Output file:**  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz
 
 ```bash
 # Remove low allele count variants if they are not already removed
-bcftools view -e 'INFO/AC<1 | (INFO/AN-INFO/AC)<1' sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz -Ou |\
+bcftools view -e 'INFO/AC<1 | (INFO/AN-INFO/AC)<1' sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz -Ou |\
 # Re-calculate allele frequency
-bcftools +fill-tags  -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz -- -t AF
+bcftools +fill-tags  -Oz -o sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz -- -t AF
 ```
 >`bcftools view` parameters:   
 -e exclude based on expression  
@@ -248,6 +248,63 @@ bcftools +fill-tags  -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_nodupl
 +fill-tags re-calculates/adds INFO field tags  
 -Oz compressed output  
 -- separator for plugin-specific parameters  
--t define the tags to be re-calculated/added. Alternatively, if all INFO field tags are wanted (see BCFtools documentation for complete list), remove the tag parameter: bcftools +fill-tags sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz
+-t define the tags to be re-calculated/added. Alternatively, if all INFO field tags are wanted (see BCFtools documentation for complete list), remove the tag parameter: bcftools +fill-tags sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz -Oz -o sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz
 
+
+### 2.7. Generate target and reference panel allele frequencies
+
+#### 2.6.1. Target data allele frequencies
+
+Generate a frequency file for target data and reference panel allele frequency comparison
+
+**Input file:**  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz
+ 
+**Outpt file:**  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.frq
+
+```bash
+# First generate a tab-delimited header for the allele frequency file
+echo -e 'CHR\tSNP\tREF\tALT\tAF' > sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.frq
+
+# Query the required fields from the VCF file and append to the allele frequency file
+bcftools query -f '%CHROM\t%ID\t%REF\t%ALT\t%INFO/AF\n' sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz >> sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.frq
+```
+
+`echo` parameter:  
+-e enable interpretation of backslash escapes  
+`bcftools query` parameter and syntax:  
+-f format, where  
+%field refers to a column in VCF file  
+expression '%CHROM\t%ID\t%REF\t%ALT\t%INFO/AF\n' generates for each variant line tab-delimited format of: CHR, CHR_POS_REF_ALT, REF, ALT, AF
+
+
+#### 2.7.2. Reference panel allele frequencies
+
+Generate a tab-delimited file of the reference panel allele frequencies, one variant per line, with columns CHR, SNP (in generated file header replaced with CHR_POS_REF_ALT), REF, ALT, AF (including the header line); note last for loop in following Bash script.
+ 
+Use the phased reference panel VCF files as input with the example command below and save the file as
+panel.frq
+
+Check your reference panel VCF and if it does NOT contain AF in the INFO field, calculate it with +fill-tags plugin  # Note: it requires environmental variable BCFTOOLS_PLUGINS exported (Step 1.2) for chr in {1..23}; do     bcftools +fill-tags panel_phased_chr${chr}.vcf.gz -Oz -o panel_phased_chr${chr}_AF.vcf.gz -- -t AF done  # Generate a tab-delimited header for the allele frequency file echo -e 'CHR\tSNP\tREF\tALT\tAF' > panel.frq  # Query the required fields from the VCF file and append to the allele frequency file for chr in {1..23}; do     bcftools query -f '%CHROM\t%CHROM\_%POS\_%REF\_%ALT\t%REF\t%ALT\t%INFO/AF\n' panel_phased_chr${chr}.vcf.gz >> panel.frq done
+
+
+### 2.8. Plot allele frequency differences between target and reference panel data and remove highly divergent variants
+
+Compare the chip data and reference panel allele frequencies and generate an exclusion list of those variants where AF values differ more than 10 pp.
+ 
+Download the R script given in 'FILE' link at the end of this step and save it as 'plot_AF.R'.
+Set the script as executable for instance with 'chmod +x plot_AF.R' before running it for the first time.
+ 
+Run the script as indicated in the example command by giving the two frequency files as input arguments.
+ 
+Input files:
+• <dataset>_chip.frq
+• panel.frq
+ 
+Outpt files:
+
+• <dataset>_AFs.jpg
+• <dataset>_AF_hist.jpg
+• <dataset>_exclude.txt
 
