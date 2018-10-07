@@ -241,13 +241,13 @@ bcftools view -e 'INFO/AC<1 | (INFO/AN-INFO/AC)<1' sample2_chr6_8428721_8928720_
 # Re-calculate allele frequency
 bcftools +fill-tags  -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz -- -t AF
 ```
-`bcftools view` parameters:   
+>`bcftools view` parameters:   
 -e exclude based on expression  
 -Ou uncompressed output  
 `bcftools plugin` syntax and parameters:  
 +fill-tags re-calculates/adds INFO field tags  
 -Oz compressed output  
 -- separator for plugin-specific parameters  
--t define the tags to be re-calculated/added Alternatively, if all INFO field tags are wanted (see BCFtools documentation for complete list), remove the tag parameter: bcftools +fill-tags <dataset>_noduplicate_variants.vcf.gz -Oz -o <dataset>_AF.vcf.gz
+-t define the tags to be re-calculated/added. Alternatively, if all INFO field tags are wanted (see BCFtools documentation for complete list), remove the tag parameter: bcftools +fill-tags sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz
 
 
