@@ -100,7 +100,7 @@ bcftools view --regions 6:8428721-8928720 --samples-list panel_2sample_IDs.txt -
 
 Only autosomal chromosomes are kept for this imputation tutorial.  
 **Input file:**  
--- sample2_chr6_8428721_8928720.vcf.gz 
+-- sample2_chr6_8428721_8928720.vcf.gz  
 **Outpt file:**  
 -- sample2_chr6_8428721_8928720_aut.vcf.gz 
 ```bash
@@ -160,8 +160,8 @@ First, we nned to generate a list of sample IDs from the reference panel, this c
 
 **Input files:**  
 -- sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz  
--- /data/refs/KGP/vcf/1000GP_Phase3_chr1.vcf.gz
-**Outpt file:**   
+-- /data/refs/KGP/vcf/1000GP_Phase3_chr1.vcf.gz  
+**Output file:**   
 -- panel_sample_IDs.txt
 -- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz
 
@@ -232,7 +232,7 @@ Exclude rare variants if not already removed in quality control steps, and re-ca
 **Input file:**
 -- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
  
-**Outpt file:**
+**Output file:**
 -- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz
 
 ```bash
@@ -243,11 +243,11 @@ bcftools +fill-tags  -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_nodupl
 ```
 `bcftools view` parameters:   
 -e exclude based on expression  
--Ou uncompressed output 
-`bcftools plugin` syntax and parameters: 
-+fill-tags re-calculates/adds INFO field tags 
--Oz compressed output 
--- separator for plugin-specific parameters 
+-Ou uncompressed output  
+`bcftools plugin` syntax and parameters:  
++fill-tags re-calculates/adds INFO field tags  
+-Oz compressed output  
+-- separator for plugin-specific parameters  
 -t define the tags to be re-calculated/added Alternatively, if all INFO field tags are wanted (see BCFtools documentation for complete list), remove the tag parameter: bcftools +fill-tags <dataset>_noduplicate_variants.vcf.gz -Oz -o <dataset>_AF.vcf.gz
 
 
