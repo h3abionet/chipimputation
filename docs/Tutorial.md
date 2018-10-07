@@ -62,7 +62,7 @@ For this tutorial, the 1000 Genomes Project data will be used as reference panel
     ``` 
 - M3VCF files for imputation can be dowmloaded with the command 
     ```bash
-    wget -np ftp://share.sph.umich.edu/minimac3/G1K_P3_M3VCF_FILES_WITH_ESTIMATES.tar.gz*
+    wget -np ftp://share.sph.umich.edu/minimac3/G1K_P3_M3VCF_FILES_WITH_ESTIMATES.tar.gz
     ``` 
     
 These phased reference panel VCF and M3VCF files are in chromosome.  
@@ -71,13 +71,19 @@ These phased reference panel VCF and M3VCF files are in chromosome.
 
 ## 2. Target/Chip data preparation
 
-### 2.0. Get target data
+### 2.1. Get target data
 
 For this tutorial, only a region on the genome will be used to reduce running time.
-Extract chunk 6:428721-20428720 for `sample.vcf.gz`
+Extract chunk 6:8428721-8928720 for `sample.vcf.gz` with 5 samples only
 ```bash
+# Index the vcf file
 bcftools index --tbi -f sample.vcf.gz
-bcftools view --regions 6:428721-20428720 -m2 -M2 -v snps sample.vcf.gz -Oz -o sample_chr6_428721_20428720 .vcf.gz
+
+# Generate a list of sample IDs present in the vcf file, one line per sample ID. Retaining only 5 samples
+bcftools query -l sample.vcf.gz | head -n2 > panel_2sample_IDs.txt
+
+# Subset the vcf only retaining the region of interest panel_5sample_IDs.txt
+bcftools view --regions 6:8428721-8928720 --samples-list panel_2sample_IDs.txt --force-samples -m2 -M2 -v snps sample.vcf.gz -Oz -o sample2_chr6_8428721_8928720.vcf.gz
 ```
 > `bcftools index` parameters:   
 --tbi generate index for VCF file  
@@ -86,21 +92,23 @@ bcftools view --regions 6:428721-20428720 -m2 -M2 -v snps sample.vcf.gz -Oz -o s
 -m2 minimum allele count   
 -M2 maximum allele count   
 -v type of variants to include 
+--samples-list list of samples to include
+--force-samples only warn about unknown subset of samples  
 -Oz compressed output  
 
-### 2.1. Check and remove invalid chromosomes
+### 2.2. Check and remove invalid chromosomes
 
 Only autosomal chromosomes are kept for this imputation tutorial.  
 **Input file:**  
--- sample.vcf.gz  
+-- sample2_chr6_8428721_8928720.vcf.gz 
 **Outpt file:**  
--- sample_autosome.vcf.gz 
+-- sample2_chr6_8428721_8928720_aut.vcf.gz 
 ```bash
 # Generate a comma-separated string of chromosome names to keep
 chrs=$(paste -d ' ' <(echo {1..22}) | tr ' ' ',')
 
 # Keep only those wanted chromosomes
-bcftools view -t $chrs sample.vcf.gz -Oz -o sample_autosome.vcf.gz
+bcftools view -t $chrs sample2_chr6_8428721_8928720.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut.vcf.gz
 ```
 > `paste` parameter:  
 -d delimiter  
@@ -109,26 +117,27 @@ bcftools view -t $chrs sample.vcf.gz -Oz -o sample_autosome.vcf.gz
 ^ exclusion prefix  
 -Oz compressed output  
 
-### 2.2. Check REF/ALT flips
+### 2.3. Check REF/ALT flips
 
 Align the variant alleles to human reference genome to correct for any dataset-specific REF/ALT flips.  
 Ensure that only biallelic sites are kept in the target data, as `bcftools norm` may introduce false multiallelic sites.  
 Finally, replace the ID column with a 'SNP ID' in format CHROM_POS_REF_ALT ie. chromosome_position_<reference allele>_<alternative allele>.
  
 **Input files:**  
--- sample_autosome.vcf.gz  
+-- sample2_chr6_8428721_8928720_aut.vcf.gz  
 -- human_g1k_v37_decoy.fasta  
 **Outpt file:**  
--- sample_fixmis.vcf.gz
+-- sample2_chr6_8428721_8928720_aut_fixmis.vcf.gz
+-- sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz
 
 ```bash
 # Align the alleles to the reference genome
-bcftools norm -f hg38_v0_Homo_sapiens_assembly38.fasta -c ws <dataset>_chrfiltered.vcf.gz -Ou | \
+bcftools norm -f /data/refs/common/human_g1k_v37_decoy.fasta -c ws sample2_chr6_8428721_8928720_aut.vcf.gz -Ou | \
 # Keep only biallelic records
-bcftools view -m 2 -M 2 -Oz -o <dataset>_refcorrected.vcf.gz
+bcftools view -m 2 -M 2 -Oz -o sample2_chr6_8428721_8928720_aut_fixmis.vcf.gz
 
 # Replace the ID column with a CHR_POS_REF_ALT 'SNP ID'
-bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' <dataset>_refcorrected.vcf.gz -Oz -o <dataset>_SNPID.vcf.gz
+bcftools annotate --set-id '%CHROM\_%POS\_%REF\_%ALT' sample2_chr6_8428721_8928720_aut_fixmis.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz
 ```
 >`bcftools norm` parameters:  
 -f reference genome  
@@ -143,25 +152,32 @@ ws warn (w) and set/fix (s) bad sites
 --set-id set ID column, % indicates a VCF field  
 
 
-### 2.3. Remove duplicate samples 
+### 2.4. Remove duplicate samples 
 
-Ensure that duplicate individuals do not exist in the chip data or between the chip and reference panel as this would compromise the imputation.
- 
+Ensure that duplicate individuals do not exist in the chip data or between the chip and reference panel as this would compromise the imputation.  
+
+First, we nned to generate a list of sample IDs from the reference panel, this can be done from any of the VCF files (here chr22) as in the example below (assuming that all chromosomes contain the same set of samples)
+
 **Input files:**  
--- <dataset>_SNPID.vcf.gz  
--- panel_sample_IDs.txt  
+-- sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz  
+-- /data/refs/KGP/vcf/1000GP_Phase3_chr1.vcf.gz
 **Outpt file:**   
--- <dataset>_noduplicate_samples.vcf.gz
+-- panel_sample_IDs.txt
+-- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz
 
+/*TODO*/ cp path
 ```bash
-# Copy the panel sample ID file with a different name to the working directory
-cp /path/to/panel_sample_IDs.txt duplicate_sample_IDs.txt
+# Generate a list of sample IDs present in the reference panel, one line per sample ID
+bcftools query -l /data/refs/KGP/vcf/1000GP_Phase3_chr22.vcf.gz > panel_sample_IDs.txt
+
+# Copy the panel sample ID file with a different name
+cp panel_sample_IDs.txt sample2_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt
 
 # Generate a list of sample IDs from the chip data, keep only duplicates and append to the list of reference panel sample IDs
-bcftools query -l <dataset>_SNPID.vcf.gz | uniq -d >> duplicate_sample_IDs.txt
+bcftools query -l sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz | uniq -d >> sample2_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt
 
 # Remove the listed sample IDs from the chip data VCF
-bcftools view -S ^duplicate_sample_IDs.txt --force-samples <dataset>_SNPID.vcf.gz -Oz -o <dataset>_noduplicate_samples.vcf.gz
+bcftools view -S ^sample2_chr6_8428721_8928720_aut_fixmis_SNPID_duplicate_sample_IDs.txt --force-samples sample2_chr6_8428721_8928720_aut_fixmis_SNPID.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz
 ```
 >`bcftools query` parameters:  
 -l list of sample IDs  
@@ -174,7 +190,7 @@ bcftools view -S ^duplicate_sample_IDs.txt --force-samples <dataset>_SNPID.vcf.g
 -Oz compressed output  
 
 
-### 2.4. Remove duplicate variants
+### 2.5. Remove duplicate variants
 
 Ensure that there are no duplicate variants (these might appear in some target genotype datasets).  
 Duplicate variants will need to be removed before imputation.
@@ -187,18 +203,18 @@ Duplicate variants will need to be removed before imputation.
  
 ```bash
 # Store a list of duplicate positions
-bcftools query -f '%ID\n' <dataset>_noduplicate_samples.vcf.gz | uniq -d > <dataset>_duplicate_variants.txt
+bcftools query -f '%ID\n' sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz | uniq -d > sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.txt
 
 # Check whether the file contains any variants
-if [ -s <dataset>_duplicate_variants.txt ]; then
+if [ -s sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_duplicate_variants.txt ]; then
    # Then remove the duplicate variants
-   bcftools view -e ID=@<dataset>_duplicate_variants.txt <dataset>_noduplicate_samples.vcf.gz -Oz -o <dataset>_noduplicate_variants.vcf.gz
+   bcftools view -e ID=@sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_duplicate_variants.txt sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
 else
   # If the file is empty i.e. no duplicate variants are present, only rename the file to be compatible with the next step
-  mv <dataset>_noduplicate_samples.vcf.gz <dataset>_noduplicate_variants.vcf.gz
+  cp sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples.vcf.gz sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
 fi
 ```
-`bcftools query` parameters:  
+>`bcftools query` parameters:  
 -f query fields  
 % identicate the field  
 `uniq` parameter:  
@@ -208,3 +224,30 @@ fi
 `expression`:  
 ID=@file IDs included in the file  
 -Oz compressed output  
+
+
+### 2.6. Exclude rare variants
+Exclude rare variants if not already removed in quality control steps, and re-calculate the allele frequency to correctly represent the current samples in the dataset.
+ 
+**Input file:**
+-- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz
+ 
+**Outpt file:**
+-- sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz
+
+```bash
+# Remove low allele count variants if they are not already removed
+bcftools view -e 'INFO/AC<1 | (INFO/AN-INFO/AC)<1' sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants.vcf.gz -Ou |\
+# Re-calculate allele frequency
+bcftools +fill-tags  -Oz -o sample2_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.vcf.gz -- -t AF
+```
+`bcftools view` parameters:   
+-e exclude based on expression  
+-Ou uncompressed output 
+`bcftools plugin` syntax and parameters: 
++fill-tags re-calculates/adds INFO field tags 
+-Oz compressed output 
+-- separator for plugin-specific parameters 
+-t define the tags to be re-calculated/added Alternatively, if all INFO field tags are wanted (see BCFtools documentation for complete list), remove the tag parameter: bcftools +fill-tags <dataset>_noduplicate_variants.vcf.gz -Oz -o <dataset>_AF.vcf.gz
+
+
