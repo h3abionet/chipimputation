@@ -39,6 +39,7 @@ From: ubuntu:16.04
     # install R packages
     R --slave -e 'install.packages("dplyr", repos="https://cloud.r-project.org/")'
     R --slave -e 'install.packages("ggplot2", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("data.table", type="source", repos="http://Rdatatable.github.io/data.table")'
 
     # Install minimac4
     wget http://debian.mirror.ac.za/debian/pool/main/libs/libstatgen/libstatgen0_1.0.14-2_amd64.deb
