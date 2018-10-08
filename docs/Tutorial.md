@@ -65,7 +65,7 @@ For this tutorial, the 1000 Genomes Project data will be used as reference panel
     wget -np ftp://share.sph.umich.edu/minimac3/G1K_P3_M3VCF_FILES_WITH_ESTIMATES.tar.gz
     ``` 
     
-These phased reference panel VCF and M3VCF files are in chromosome.  
+These phased reference panel VCF and M3VCF files are available in the shared folder `/data/refs/KGP` splitted in chromosomes.  
 **NOTE**: The reference panel files should contain non-missing, phased genotypes!
 
 
@@ -283,10 +283,32 @@ expression '%CHROM\t%ID\t%REF\t%ALT\t%INFO/AF\n' generates for each variant line
 
 Generate a tab-delimited file of the reference panel allele frequencies, one variant per line, with columns CHR, SNP (in generated file header replaced with CHR_POS_REF_ALT), REF, ALT, AF (including the header line); note last for loop in following Bash script.
  
-Use the phased reference panel VCF files as input with the example command below and save the file as
-panel.frq
+Use the phased reference panel VCF files as input with the example command below and save the file as `panel.frq`
 
-Check your reference panel VCF and if it does NOT contain AF in the INFO field, calculate it with +fill-tags plugin  # Note: it requires environmental variable BCFTOOLS_PLUGINS exported (Step 1.2) for chr in {1..23}; do     bcftools +fill-tags panel_phased_chr${chr}.vcf.gz -Oz -o panel_phased_chr${chr}_AF.vcf.gz -- -t AF done  # Generate a tab-delimited header for the allele frequency file echo -e 'CHR\tSNP\tREF\tALT\tAF' > panel.frq  # Query the required fields from the VCF file and append to the allele frequency file for chr in {1..23}; do     bcftools query -f '%CHROM\t%CHROM\_%POS\_%REF\_%ALT\t%REF\t%ALT\t%INFO/AF\n' panel_phased_chr${chr}.vcf.gz >> panel.frq done
+```bash
+#Generate a tab-delimited header for the allele frequency file 
+echo -e 'CHR\tSNP\tREF\tALT\tAF' > panel.frq  
+```
+
+```bash
+# Check your reference panel VCF and if it does NOT contain AF in the INFO field, calculate it with `+fill-tags` plugin.   
+for chr in {1..23}; 
+do     
+    bcftools +fill-tags /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}.vcf.gz -Oz -o /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}_AF.vcf.gz -- -t AF 
+done  
+
+# Query the required fields from the VCF file and append to the allele frequency file 
+for chr in {1..23}; 
+do     
+    bcftools query -f '%CHROM\t%CHROM\_%POS\_%REF\_%ALT\t%REF\t%ALT\t%INFO/AF\n' /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}.vcf.gz >> panel.frq 
+done
+```
+
+For this tutorial, a preprocessed chromosome 6 reference panel VCF file with AF is located in `/data/imputation/KGP/1000GP_Phase3_chr6_AF.vcf.gz`.  
+```bash
+bcftools query -f '%CHROM\t%CHROM\_%POS\_%REF\_%ALT\t%REF\t%ALT\t%INFO/AF\n' /data/imputation/KGP/1000GP_Phase3_chr6_AF.vcf.gz >> panel.frq
+```
+
 
 
 ### 2.8. Plot allele frequency differences between target and reference panel data and remove highly divergent variants
@@ -298,13 +320,65 @@ Set the script as executable for instance with 'chmod +x plot_AF.R' before runni
  
 Run the script as indicated in the example command by giving the two frequency files as input arguments.
  
-Input files:
-• <dataset>_chip.frq
-• panel.frq
+**Input files:**  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.frq  
+-- panel.frq  
  
-Outpt files:
+**Outpt files:**  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AFs.jpg  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF_hist.jpg  
+-- sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF_exclude.txt 
 
-• <dataset>_AFs.jpg
-• <dataset>_AF_hist.jpg
-• <dataset>_exclude.txt
+```bash
+# Copy and save the given 'plot_AF.R' file and run it with:
+Rscript --no-save plot_AF.R sample5_chr6_8428721_8928720_aut_fixmis_SNPID_noduplicate_samples_noduplicate_variants_AF.frq panel.frq 
+```
 
+```R
+#!/bin/env Rscript --no-save
+
+# Genotype imputation protocol v3 - pre-imputation allele frequency plots
+# Written by Kalle Pärn, Marita A. Isokallio, Paavo Häppölä, Javier Nunez Fontarnau and Priit Palta
+
+# Required packages
+library(data.table) # For fast fread()
+
+# Input variables
+args <- commandArgs(TRUE)
+indata <- args[1]
+paneldata <- args[2] 
+
+# Read in the frequency files
+chip <- fread(indata, header = T)
+panel <- fread(paneldata, header = T)
+
+# Generate a dataset tag
+indataset <- sub("_chip.frq", "", indata)
+
+# Take an intersection of the panel and chip data based on SNP column (in format CHR_POS_REF_ALT)
+isec <- merge(panel, chip, by = "SNP")
+
+# Check that AFs is within range of 10 pp in both datasets
+af_ok <- abs(isec$AF.x - isec$AF.y) < 0.1
+
+# Exclude those not within the AF range
+exclude <- !af_ok
+
+# Save the plot as jpg
+jpeg(paste(indataset, "_AFs.jpg", sep=""))
+# Plot first all and then excludable variants
+plot(isec$AF.x, isec$AF.y, col=1, pch=20, main="Chip data AF vs. reference panel AF", xlab="Panel AF", ylab="Chip AF")
+points(isec[exclude]$AF.x, isec[exclude]$AF.y, col=2, pch=20)
+# Draw a legend
+legend("topleft", legend=c("Concordant AF", "High AF difference"), col=c(1,2), pch=20, cex=0.9)
+dev.off()
+
+# Save the plot as jpg
+jpeg(paste(indataset, "_AF_hist.jpg", sep = ""))
+# Chip AF histogram for concordant AF variants
+hist(isec[!exclude]$AF.y, breaks=100, main="Chip AF for concordant variants", xlab="Chip AF")
+dev.off()
+
+# Write out the exclusion list
+write.table(isec[exclude]$SNP, paste(indataset, "_exclude.txt", sep=""), quote=F, row.names=F, col.names=F)
+```
