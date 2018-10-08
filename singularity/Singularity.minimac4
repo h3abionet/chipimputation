@@ -44,7 +44,7 @@ From: ubuntu:16.04
     # Install minimac4
     wget http://debian.mirror.ac.za/debian/pool/main/libs/libstatgen/libstatgen0_1.0.14-2_amd64.deb
     dpkg -i libstatgen0_1.0.14-2_amd64.deb
-    wget http://ftp.br.debian.org/debian/pool/main/m/minimac4/minimac4_1.0.0-1_amd64.deb
+    wget http://debian.mirror.ac.za/debian/pool/main/m/minimac4/minimac4_1.0.0-2_amd64.deb
     dpkg -i minimac4_1.0.0-1_amd64.deb
 
     # Install PLINK2
