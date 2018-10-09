@@ -253,6 +253,9 @@ mapFile_cha_2.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
 }
 targets_toImpute.close()
 println "|-- Chromosomes used: ${chromosomes.join(', ')}"
+if(params.chunk){
+        println "|-- Chunks to impute: ${(params.chunk.split(',')).join(', ')}"
+}
 
 // check if ref files exist
 params.ref_panels.each { ref ->
@@ -375,6 +378,14 @@ Split VCF per chromosomes
 target_qc.into{ target_qc; target_qc_1 }
 generate_chunks.into{ generate_chunks; generate_chunks_1 }
 all_chunks = generate_chunks_1.toSortedList().val
+all_chunks.each{ target_name_, chunk_file ->
+    chunks = file(chunk_file).text.split()
+    if(chunks.size() == 0){
+        System.err.println "|-- ERROR- No valid chunks (${(params.chunk.split(',')).join(', ')}) in not specified chromosomes (${chromosomes.join(', ')}). Check your VCF file and correct your chunks for specified chromosomes! The pipeline will exit."
+        exit 1
+    }
+}
+
 def transform_chunk = { target_name, target_vcfFile ->
     chunks_datas = []
     all_chunks.each{ target_name_, chunk_file ->
