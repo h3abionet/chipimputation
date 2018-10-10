@@ -316,8 +316,8 @@ bcftools query -f '%CHROM\t%CHROM\_%POS\_%REF\_%ALT\t%REF\t%ALT\t%INFO/AF\n' /da
 
 Compare the chip data and reference panel allele frequencies and generate an exclusion list of those variants where AF values differ more than 10 pp.
  
-Download the R script given in 'FILE' link at the end of this step and save it as 'plot_AF.R'.
-Set the script as executable for instance with 'chmod +x plot_AF.R' before running it for the first time.
+Download the R script given in 'FILE' link at the end of this step and save it as `plot_AF.R`.
+Set the script as executable for instance with `chmod +x plot_AF.R` before running it for the first time.
  
 Run the script as indicated in the example command by giving the two frequency files as input arguments.
  
