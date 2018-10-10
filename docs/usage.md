@@ -56,9 +56,9 @@ nextflow run h3abionet/chipimputation -r v3 -profile test,singularity
 
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
 
-Note that the pipeline will create the following files in your working directory:
+You can now copy the config file from `Script dir` from the test run, which should be something in the NXF_ASSET folder `.nextflow/assets/h3abionet/chipimputation` by doing `cp <Script dir>/test.config .`, which you can change and use a custom config file.
 
-You can now copy the config file from `Script dir` from the test run, which should be something in the NXF_ASSET folder `.nextflow/assets/h3abionet/chipimputation`
+Note that the pipeline will create the following files in your working directory:
 
 ```bash
 work            # Directory containing the nextflow working files
