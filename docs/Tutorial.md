@@ -31,7 +31,7 @@ singularity pull --name h3abionet-chipimputation-minimac4.simg shub://h3abionet/
 Once transferred, start your singularity container:
 
 ```bash
-singularity shell -B /data:data  h3abionet-chipimputation-minimac4.simg
+singularity shell -B /data:/data  h3abionet-chipimputation-minimac4.simg
 ```
 
 // TODO add command explanations
