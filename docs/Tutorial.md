@@ -294,7 +294,7 @@ echo -e 'CHR\tSNP\tREF\tALT\tAF' > panel.frq
 
 ```bash
 # Check your reference panel VCF and if it does NOT contain AF in the INFO field, calculate it with `+fill-tags` plugin.   
-for chr in {1..23}; 
+#for chr in {1..23}; 
 #do     
 #    bcftools +fill-tags /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}.vcf.gz -Oz -o /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}_AF.vcf.gz -- -t AF 
 #done  
