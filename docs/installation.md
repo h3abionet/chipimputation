@@ -83,13 +83,13 @@ The process is very similar: running the pipeline with the option `-profile stan
 If running offline with Singularity, you'll need to download and transfer the Singularity image first:
 
 ```bash
-singularity pull --name nf-core-imp.simg shub://h3abionet/chipimputation
+singularity pull --name h3abionet-chipimputation-minimac4.simg shub://h3abionet/chipimputation
 ```
 
 Once transferred, use `-with-singularity` and specify the path to the image file:
 
 ```bash
-nextflow run /path/to/nf-core-imp -with-singularity nf-core-imp.simg
+nextflow run h3abionet/chipimputation -with-singularity h3abionet-chipimputation-minimac4.simg
 ```
 
 Remember to pull updated versions of the singularity image if you update the pipeline.

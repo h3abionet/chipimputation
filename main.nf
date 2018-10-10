@@ -57,10 +57,12 @@ if(params.eagle_genetic_map) {
     }
 }
 
+
+
 // Validate reference genome
 if(params.reference_genome) {
-    if (!file(params.reference_genome).exists() && !file(params.reference_genome).isFile()) {
-        System.err.println "Reference genome (reference_genome) file ${params.reference_genome} not found. Please check your config file."
+    if ((!file(params.reference_genome).exists() && !file(params.reference_genome).isFile()) || (!file("${params.reference_genome}.fai").exists())) {
+        System.err.println "Reference genome file ${params.reference_genome} not found. Please check your config file."
         exit 1
     }
 }
@@ -173,20 +175,27 @@ process check_chromosome {
 check_chromosome.into{ check_chromosome; check_chromosome1 }
 chromosomes_ = [:]
 chromosomes_['ALL'] = []
+valid_chrms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+not_chrs = []
+in_chrs = []
+notValid_chrs = []
 check_chromosome1.toSortedList().val.each{ target_name, check_file ->
     chromosomes_[target_name] = file(check_file).readLines().unique().collect { it as int }.sort()
     chromosomes_[target_name].each { chrm ->
-        if(!(chrm in chromosomes_['ALL']))
-        chromosomes_['ALL'] << chrm.toInteger()
+        if(!(chrm in chromosomes_['ALL'])) {
+            if (chrm.toInteger() in valid_chrms){
+                chromosomes_['ALL'] << chrm.toInteger()
+            }
+            else{
+                notValid_chrs << chrm.toInteger()
+            }
+        }
     }
 }
-
 if (params.chromosomes == '' || params.chromosomes == 'ALL'){
     chromosomes = chromosomes_['ALL']
 }
 else{
-    not_chrs = []
-    in_chrs = []
     params.chromosomes.split(',').each { chrm ->
         chrm = chrm.toInteger()
         if (!(chrm in chromosomes_['ALL'])){
@@ -206,6 +215,11 @@ else{
     }
     chromosomes = in_chrs
 
+}
+// Ignore invalid chromosome in VCF
+if (!(notValid_chrs.isEmpty())){
+    System.err.println "|-- ERROR- Chromosome(s) ${notValid_chrs.join(', ')} not valid chromosomes. Check your VCF file and remove invalid chromosomes! The pipeline will exit."
+    exit 1
 }
 ignore_chrms = [:]
 toImpute_chrms = [:]
@@ -231,7 +245,7 @@ targets_toImpute = Channel.create()
 mapFile_cha.into{ mapFile_cha; mapFile_cha_2}
 mapFile_cha_2.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
     if(target_name in toImpute_chrms){
-        targets_toImpute << [ target_name, target_vcfFile, mapFile ]
+        targets_toImpute << [ target_name, target_vcfFile, mapFile, file(params.reference_genome) ]
     }
     else{
         System.err.println "|-- WARN- Dataset ${target_name} does not contain the specified chromosome(s) ${chromosomes.join(', ')} and will be ignored."
@@ -239,7 +253,9 @@ mapFile_cha_2.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
 }
 targets_toImpute.close()
 println "|-- Chromosomes used: ${chromosomes.join(', ')}"
-
+if(params.chunk){
+        println "|-- Chunks to impute: ${(params.chunk.split(',')).join(', ')}"
+}
 
 // check if ref files exist
 params.ref_panels.each { ref ->
@@ -259,7 +275,7 @@ process check_mismatch {
     tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
     label "medium"
     input:
-        set target_name, file(target_vcfFile), file(mapFile), file(reference_genome) from targets_toImpute_qc.combine([file(params.reference_genome)])
+        set target_name, file(target_vcfFile), file(mapFile), file(reference_genome) from targets_toImpute_qc
     output:
         set target_name, file(target_vcfFile), file(mapFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
@@ -362,6 +378,14 @@ Split VCF per chromosomes
 target_qc.into{ target_qc; target_qc_1 }
 generate_chunks.into{ generate_chunks; generate_chunks_1 }
 all_chunks = generate_chunks_1.toSortedList().val
+all_chunks.each{ target_name_, chunk_file ->
+    chunks = file(chunk_file).text.split()
+    if(chunks.size() == 0){
+        System.err.println "|-- ERROR- No valid chunks (${(params.chunk.split(',')).join(', ')}) in not specified chromosomes (${chromosomes.join(', ')}). Check your VCF file and correct your chunks for specified chromosomes! The pipeline will exit."
+        exit 1
+    }
+}
+
 def transform_chunk = { target_name, target_vcfFile ->
     chunks_datas = []
     all_chunks.each{ target_name_, chunk_file ->
@@ -532,7 +556,7 @@ process combineImpute {
     //maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
     tag "impComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
-    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+//    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
         set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
@@ -558,7 +582,7 @@ Combine impute info chunks to chromosomes
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
-    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+//    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
@@ -668,32 +692,15 @@ process plot_performance_target{
     input:
         set target_name, ref_panels, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_target_1
     output:
-        set target_name, ref_panels, file(performance_by_maf_plot) into plot_performance_target
+        set target_name, ref_panels, file(plot_by_maf) into plot_performance_target
     script:
-        performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+        plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        report = well_imputed_report
         group = "REF_PANEL"
-        template "plot_performance_by_maf.R"
-}
-
-
-"""
-Repor 2: Accuracy all reference panels by maf for a dataset
-"""
-target_info_Acc.into{ target_info_Acc; target_info_Acc_2}
-process report_accuracy_target {
-    tag "report_acc_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
-//    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
-    label "medium"
-    input:
-        set target_name, ref_panels, file(inSNP_acc) from target_info_Acc_2
-    output:
-        set target_name, ref_panels, file(outSNP_acc) into report_SNP_acc_target
-    script:
-        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        outSNP_acc = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_accuracy.tsv"
-        template "report_accuracy_by_maf.py"
+        xlab = "MAF bins"
+        ylab = "Number of well imputed SNPs"
+        template "plot_results_by_maf.R"
 }
 
 
@@ -750,14 +757,59 @@ process plot_performance_ref{
     input:
         set ref_name, target_names, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_ref_1
     output:
-        set ref_name, target_names, file(performance_by_maf_plot) into plot_performance_ref
+        set ref_name, target_names, file(plot_by_maf) into plot_performance_ref
     script:
-        performance_by_maf_plot = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+        plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes[0]+"-"+chromosomes[-1]
+        report = well_imputed_report
         group = "DATASET"
-        template "plot_performance_by_maf.R"
+        xlab = "MAF bins"
+        ylab = "Number of well imputed SNPs"
+        template "plot_results_by_maf.R"
 }
 
+
+"""
+Repor 2: Accuracy all reference panels by maf for a dataset
+"""
+target_info_Acc.into{ target_info_Acc; target_info_Acc_2}
+process report_accuracy_target {
+    tag "report_acc_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
+//    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        set target_name, ref_panels, file(inSNP_acc) from target_info_Acc_2
+    output:
+        set target_name, ref_panels, file(outSNP_acc) into report_SNP_acc_target
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        outSNP_acc = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_accuracy.tsv"
+        group = "REF_PANEL"
+        template "report_accuracy_by_maf.py"
+}
+
+
+"""
+Plot accuracy all reference panels by maf for a dataset
+"""
+report_SNP_acc_target.into{ report_SNP_acc_target; report_SNP_acc_target_1 }
+process plot_accuracy_target{
+    tag "plot_accuracy_dataset_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/Reports/${target_name}/plots", overwrite: true, mode:'copy'
+    input:
+        set target_name, ref_panels, file(accuracy_report) from report_SNP_acc_target_1
+    output:
+        set target_name, ref_panels, file(plot_by_maf) into plot_accuracy_target
+    script:
+        plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf.tiff"
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        report = accuracy_report
+        group = "REF_PANEL"
+        xlab = "MAF bins"
+        ylab = "Concordance rate"
+        template "plot_results_by_maf.R"
+}
 
 def helpMessage() {
     log.info"""
