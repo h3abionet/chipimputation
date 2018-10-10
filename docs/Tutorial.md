@@ -25,7 +25,7 @@ Ensure you have singularity installed on your computer. This can be done as expl
 You will need to download and transfer the Singularity image:
 
 ```bash
-singularity pull --name h3abionet-chipimputation-minimac4.simg shub://h3abionet/chipimputation
+singularity pull --name h3abionet-chipimputation-minimac4.simg shub://h3abionet/chipimputation:minimac4
 ```
 
 Once transferred, start your singularity container:
