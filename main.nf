@@ -529,7 +529,7 @@ impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, im
 Combine impute chunks to chromosomes
 """
 process combineImpute {
-    maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
+    //maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
     tag "impComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
     publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
@@ -546,7 +546,7 @@ process combineImpute {
             -Oz -o ${target_name}.tmp.vcf.gz
         ## Recalculate AC, AN, AF
         bcftools +fill-tags ${target_name}.tmp.vcf.gz -Oz -o ${target_name}.tmp1.vcf.gz
-        bcftools sort ${target_name}.tmp1.vcf.gz -T ${workflow.workDir} -Oz -o ${comb_impute}
+        bcftools sort ${target_name}.tmp1.vcf.gz -T . -Oz -o ${comb_impute}
         rm ${target_name}.tmp*.vcf.gz
         """
 }
