@@ -492,8 +492,7 @@ process phase_target_chunk {
 */
 process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
-    publishDir "${params.outDir}/impute/${ref_name}/${target_name}/${chrm}", overwrite: true, mode:'symlink'
-    publishDir "${params.outDir}/impute/${target_name}/${ref_name}/${chrm}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/${target_name}_${ref_name}/${chrm}", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
@@ -555,7 +554,7 @@ Combine impute chunks to chromosomes
 process combineImpute {
     //maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
     tag "impComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${target_name}_${ref_name}", overwrite: true, mode:'symlink'
 //    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
@@ -581,8 +580,7 @@ Combine impute info chunks to chromosomes
 """
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
-//    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${target_name}_${ref_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
@@ -602,7 +600,7 @@ Combine all impute info chunks by dataset
 """
 process combineInfo_all {
     tag "infoComb_${target_name}_${ref_name}_${chrms}"
-    publishDir "${params.outDir}/impute/combined/${target_name}/${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/impute/combined/${target_name}_${ref_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, file(info_files) from infoCombine_all.values()
@@ -776,7 +774,6 @@ target_info_Acc.into{ target_info_Acc; target_info_Acc_2}
 process report_accuracy_target {
     tag "report_acc_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
-//    publishDir "${params.outDir}/Reports/${ref_name}/${target_name}", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_panels, file(inSNP_acc) from target_info_Acc_2
