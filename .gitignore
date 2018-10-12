@@ -6,6 +6,5 @@ results/
 tests/test_data
 /bin/markdown_to_html.r
 
-test_data
 ../test/
 /.gitignore

@@ -26,6 +26,11 @@ if (params.help){
     exit 0
 }
 
+// Get test data from script folder
+if('test' in workflow.profile.split(',')){
+    println workflow.profile
+}
+
 // Configurable variables
 params.name = false
 params.email = false
