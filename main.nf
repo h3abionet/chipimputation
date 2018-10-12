@@ -27,8 +27,11 @@ if (params.help){
 }
 
 // Get test data from script folder
-if('test' in workflow.profile.split(',')){
-    println workflow.profile
+if(workflow.repository) {
+    if ('test' in workflow.profile.split(',')) {
+        println workflow.projectDir
+        println workflow.profile
+    }
 }
 
 // Configurable variables
@@ -62,8 +65,6 @@ if(params.eagle_genetic_map) {
     }
 }
 
-
-
 // Validate reference genome
 if(params.reference_genome) {
     if ((!file(params.reference_genome).exists() && !file(params.reference_genome).isFile()) || (!file("${params.reference_genome}.fai").exists())) {
@@ -87,7 +88,7 @@ h3achipimputation v${params.version}"
 ======================================================="""
 def summary = [:]
 summary['Pipeline Name']    = 'h3achipimputation'
-summary['Pipeline Version'] = params.version
+summary['Pipeline version'] = params.version
 summary['Run Name']         = custom_runName ?: workflow.runName
 summary['Target datasets']  = params.target_datasets.values().join(', ')
 summary['Reference panels']  = params.ref_panels.keySet().join(', ')
@@ -97,10 +98,10 @@ summary['Max Time']         = params.max_time
 summary['Output dir']       = params.outDir
 summary['Working dir']      = workflow.workDir
 summary['Current path']     = "$PWD"
-summary['Container Engine'] = workflow.containerEngine
 summary['Git info']         = "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
 summary['Command line']     = workflow.commandLine
 if(workflow.containerEngine) {
+    summary['Container Engine'] = workflow.containerEngine
     summary['Container'] = workflow.container
     summary['Current home'] = "$HOME"
     summary['Current user'] = "$USER"
