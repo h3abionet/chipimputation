@@ -27,12 +27,14 @@ if (params.help){
 }
 
 // Get test data from script folder
-if(workflow.repository) {
+//if(workflow.repository) {
     if ('test' in workflow.profile.split(',')) {
         println workflow.projectDir
+        println workflow.scriptFile
         println workflow.profile
+
     }
-}
+//}
 
 // Configurable variables
 params.name = false
@@ -97,6 +99,7 @@ summary['Max CPUs']         = params.max_cpus
 summary['Max Time']         = params.max_time
 summary['Output dir']       = params.outDir
 summary['Working dir']      = workflow.workDir
+summary['Script dir']       = workflow.projectDir
 summary['Current path']     = "$PWD"
 summary['Git info']         = "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
 summary['Command line']     = workflow.commandLine
