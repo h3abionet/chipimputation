@@ -1,5 +1,7 @@
 .nextflow*
 work/
+output/*
+input/*
 data/
 results/
 .DS_Store
