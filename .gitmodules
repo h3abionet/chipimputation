@@ -1,4 +1,0 @@
-[submodule "test_data_imputation"]
-	path = test_data_imputation
-	url = git@github.com:h3abionet/chipimputation.git
-	branch = test_data

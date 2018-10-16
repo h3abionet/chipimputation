@@ -25,13 +25,13 @@ Ensure you have singularity installed on your computer. This can be done as expl
 You will need to download and transfer the Singularity image:
 
 ```bash
-singularity pull --name h3abionet-chipimputation-minimac4.simg shub://h3abionet/chipimputation
+singularity pull --name h3abionet-chipimputation-minimac4.simg shub://h3abionet/chipimputation:minimac4
 ```
 
 Once transferred, start your singularity container:
 
 ```bash
-singularity shell -B /data:data  h3abionet-chipimputation-minimac4.simg
+singularity shell -B /data:/data  h3abionet-chipimputation-minimac4.simg
 ```
 
 // TODO add command explanations
@@ -257,12 +257,15 @@ bcftools +fill-tags  -Oz -o sample5_AF.vcf.gz -- -t AF
 Generate a frequency file for target data and reference panel allele frequency comparison
 
 **Input file:**  
--- sample5_AF.vcf.gz
+-- sample5_SNPID.vcf.gz
  
 **Outpt file:**  
 -- sample5_AF_chip.frq
 
 ```bash
+# Re-calculate allele frequency
+bcftools +fill-tags sample5_SNPID.vcf.gz -Oz -o sample5_AF.vcf.gz -- -t AF 
+
 # First generate a tab-delimited header for the allele frequency file
 echo -e 'CHR\tSNP\tREF\tALT\tAF' > sample5_AF_chip.frq
 
@@ -291,16 +294,16 @@ echo -e 'CHR\tSNP\tREF\tALT\tAF' > panel.frq
 
 ```bash
 # Check your reference panel VCF and if it does NOT contain AF in the INFO field, calculate it with `+fill-tags` plugin.   
-for chr in {1..23}; 
-do     
-    bcftools +fill-tags /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}.vcf.gz -Oz -o /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}_AF.vcf.gz -- -t AF 
-done  
+#for chr in {1..23}; 
+#do     
+#    bcftools +fill-tags /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}.vcf.gz -Oz -o /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}_AF.vcf.gz -- -t AF 
+#done  
 
 # Query the required fields from the VCF file and append to the allele frequency file 
-for chr in {1..23}; 
-do     
-    bcftools query -f '%CHROM\t%CHROM\_%POS\_%REF\_%ALT\t%REF\t%ALT\t%INFO/AF\n' /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}.vcf.gz >> panel.frq 
-done
+#for chr in {1..23}; 
+#do     
+#    bcftools query -f '%CHROM\t%CHROM\_%POS\_%REF\_%ALT\t%REF\t%ALT\t%INFO/AF\n' /data/refs/KGP/vcf/1000GP_Phase3_chr${chr}.vcf.gz >> panel.frq 
+#done
 ```
 
 For this tutorial, a preprocessed chromosome 6 reference panel VCF file with AF is located in `/data/imputation/KGP/1000GP_Phase3_chr6_AF.vcf.gz`.  
@@ -313,8 +316,8 @@ bcftools query -f '%CHROM\t%CHROM\_%POS\_%REF\_%ALT\t%REF\t%ALT\t%INFO/AF\n' /da
 
 Compare the chip data and reference panel allele frequencies and generate an exclusion list of those variants where AF values differ more than 10 pp.
  
-Download the R script given in 'FILE' link at the end of this step and save it as 'plot_AF.R'.
-Set the script as executable for instance with 'chmod +x plot_AF.R' before running it for the first time.
+Download the R script given in 'FILE' link at the end of this step and save it as `plot_AF.R`.
+Set the script as executable for instance with `chmod +x plot_AF.R` before running it for the first time.
  
 Run the script as indicated in the example command by giving the two frequency files as input arguments.
  
