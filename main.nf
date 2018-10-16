@@ -28,12 +28,12 @@ if (params.help){
 
 // Get test data from script folder
 //if(workflow.repository) {
-    if ('test' in workflow.profile.split(',')) {
-        println workflow.projectDir
-        println workflow.scriptFile
-        println workflow.profile
-
-    }
+//    if ('test' in workflow.profile.split(',')) {
+//        println workflow.projectDir
+//        println workflow.scriptFile
+//        println workflow.profile
+//
+//    }
 //}
 
 // Configurable variables
@@ -563,8 +563,7 @@ Combine impute chunks to chromosomes
 process combineImpute {
     //maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
     tag "impComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/impute/combined/${target_name}_${ref_name}", overwrite: true, mode:'symlink'
-//    publishDir "${params.outDir}/impute/combined/${ref_name}/${target_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
         set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
@@ -589,7 +588,7 @@ Combine impute info chunks to chromosomes
 """
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/impute/combined/${target_name}_${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
@@ -609,7 +608,7 @@ Combine all impute info chunks by dataset
 """
 process combineInfo_all {
     tag "infoComb_${target_name}_${ref_name}_${chrms}"
-    publishDir "${params.outDir}/impute/combined/${target_name}_${ref_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_name}/combined", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, file(info_files) from infoCombine_all.values()
@@ -651,7 +650,7 @@ Filtering all reference panels by maf for a dataset
 """
 process filter_info_target {
     tag "filter_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/impute/combined/${target_name}", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
@@ -675,7 +674,7 @@ Report 1: Well imputed all reference panels by maf for a dataset
 target_info_Well.into{ target_info_Well; target_info_Well_1}
 process report_well_imputed_target {
     tag "report_wellImputed_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_panels, file(inWell_imputed) from target_info_Well_1
@@ -695,7 +694,7 @@ Plot performance all reference panels by maf for a dataset
 report_well_imputed_target.into{ report_well_imputed_target; report_well_imputed_target_1 }
 process plot_performance_target{
     tag "plot_performance_dataset_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/Reports/${target_name}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
     input:
         set target_name, ref_panels, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_target_1
     output:
@@ -716,7 +715,6 @@ Filtering all targets by maf for a reference panel
 """
 process filter_info_ref {
     tag "filter_${ref_name}_${target_names}_${chrms}"
-    publishDir "${params.outDir}/impute/combined/${ref_name}", overwrite: true, mode:'symlink'
     label "medium"
     input:
         set ref_name, target_names, infos from ref_infos.values()
@@ -740,7 +738,7 @@ Report: Well imputed all targets by maf for a reference panel
 ref_info_Well.into{ ref_info_Well; ref_info_Well_1}
 process report_well_imputed_ref {
     tag "report_wellImputed_${ref_name}_${target_names}_${chrms}"
-    publishDir "${params.outDir}/Reports/${ref_name}", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/${ref_name}_${target_names}/reports", overwrite: true, mode:'copy'
     label "medium"
     input:
         set ref_name, target_names, file(inWell_imputed) from ref_info_Well_1
@@ -760,7 +758,7 @@ Plot performance all targets by maf for a reference panel
 report_well_imputed_ref.into{ report_well_imputed_ref; report_well_imputed_ref_1 }
 process plot_performance_ref{
     tag "plot_performance_dataset_${ref_name}_${target_names}_${chrms}"
-    publishDir "${params.outDir}/Reports/${ref_name}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/${ref_name}_${target_names}/plots", overwrite: true, mode:'copy'
     input:
         set ref_name, target_names, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_ref_1
     output:
@@ -782,7 +780,7 @@ Repor 2: Accuracy all reference panels by maf for a dataset
 target_info_Acc.into{ target_info_Acc; target_info_Acc_2}
 process report_accuracy_target {
     tag "report_acc_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_panels, file(inSNP_acc) from target_info_Acc_2
@@ -802,7 +800,7 @@ Plot accuracy all reference panels by maf for a dataset
 report_SNP_acc_target.into{ report_SNP_acc_target; report_SNP_acc_target_1 }
 process plot_accuracy_target{
     tag "plot_accuracy_dataset_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/Reports/${target_name}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
     input:
         set target_name, ref_panels, file(accuracy_report) from report_SNP_acc_target_1
     output:
