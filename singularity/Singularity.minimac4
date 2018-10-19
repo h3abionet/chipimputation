@@ -49,7 +49,8 @@ From: ubuntu:16.04
     dpkg -i minimac4_1.0.0-2_amd64.deb
 
     # Install PLINK2
-    wget https://www.cog-genomics.org/static/bin/plink180913/plink_linux_x86_64.zip -O plink.zip && \
+    # there is an undocumented stable url (without the date)
+    wget http://www.cog-genomics.org/static/bin/plink/plink_linux_x86_64.zip -O plink.zip && \
         unzip plink.zip -d /usr/local/bin/ && \
         rm -f plink.zip
 
