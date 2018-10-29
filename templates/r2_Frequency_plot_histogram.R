@@ -1,0 +1,58 @@
+#!/usr/bin Rscript
+# 25.10.2018
+# Daniel Schreyer
+# SNP counts vs Mean Imputation Quality Score ####
+
+# required packages
+library(ggplot2)
+library(dplyr)
+library(optparse)
+library(ggsci)
+
+# takes input files as arguments
+option_list <- list(
+  make_option(c("-i", "--info"), action="store", default = NA, type = 'character',
+              help = "Imputation .info file of each reference panel"),
+  make_option(c("-o", "--output"), action="store", default = NA, type = 'character',
+              help = "Output .png file")
+)
+args <- parse_args(OptionParser(option_list = option_list))
+
+# read in info files of both reference panels
+input <- args$i
+inputs <- unlist(strsplit(input,","))
+
+panels <- list()
+for(panel in inputs){
+  file <- unlist(strsplit(panel, "=="))[2]
+  name <- unlist(strsplit(panel, "=="))[1]
+  panels[paste0(name)] <- file
+}
+
+# read in .info files of each reference panel and merge them together in one table
+i <- 1
+for(file in panels){
+  name <- names(panels)[i]
+  panel <- read.table(as.character(file), sep = "\t", header = T)
+  panel <- panel %>% mutate(R_Panel = paste0(name)) %>% select(c("SNP", "MAF","Rsq","Genotyped","R_Panel"))
+  if(i > 1){
+    full <- rbind(full, panel)
+  }else{full <- panel}
+  i <- i+1
+}
+
+# filter out non-imputed SNPs
+Imputed <- filter(full, Genotyped == "Imputed")
+
+
+#### plot frequency vs r2 ####
+r2_frequency_plot <- ggplot(Imputed, aes(x = Rsq)) + 
+  geom_histogram(bins = 21, colour = "black") +
+  theme_classic() + labs(x = "Mean Imputation Quality Score", y = "SNP Count") +   facet_grid(facets =~ R_Panel)+
+  scale_x_continuous(breaks = seq(0, 1, 0.2)) + scale_y_continuous(labels = scales::comma) +
+  geom_vline(aes(xintercept = 0.3),colour = "red", show.legend = F) + theme(axis.line = element_line(size = 0.8)) +
+  scale_fill_npg(name = "Reference Panel")  +
+  theme(legend.position = "bottom")
+
+# save plot as .png file 
+ggsave(filename = args$o ,plot = r2_frequency_plot, width = 8, height = 5, units = "in")
