@@ -1,4 +1,4 @@
-#!/usr/bin Rscript
+#!/usr/bin/env Rscript
 # 25.10.2018
 # Daniel Schreyer
 # SNP counts vs Mean Imputation Quality Score ####
@@ -19,7 +19,7 @@ option_list <- list(
 args <- parse_args(OptionParser(option_list = option_list))
 
 # read in info files of both reference panels
-input <- args$i
+input <- args[1]
 inputs <- unlist(strsplit(input,","))
 
 panels <- list()
@@ -60,4 +60,4 @@ r2_frequency_plot <- ggplot(Imputed, aes(x = Rsq_mean, y = N, color = R_Panel)) 
   theme(legend.position = "bottom")
 
 # save plot as .png file 
-ggsave(filename = args$o ,plot = r2_frequency_plot, width = 8, height = 5, units = "in")
+ggsave(filename = args[2] ,plot = r2_frequency_plot, width = 8, height = 5, units = "in")
