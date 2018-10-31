@@ -11,9 +11,9 @@ library(ggsci)
 
 # takes input files as arguments
 option_list <- list(
-  make_option(c("-i", "--info"), action="store", default = NA, type = 'character',
+  make_option(c("-i", "--info"), action="store", default = "${infos}", type = 'character',
               help = "Imputation .info file of each reference panel"),
-  make_option(c("-o", "--output"), action="store", default = NA, type = 'character',
+  make_option(c("-o", "--output"), action="store", default = "${plot_out}", type = 'character',
               help = "Output .png file")
 )
 args <- parse_args(OptionParser(option_list = option_list))
