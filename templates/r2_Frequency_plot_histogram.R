@@ -43,7 +43,7 @@ for(file in panels){
 
 # filter out non-imputed SNPs
 Imputed <- filter(full, Genotyped == "Imputed")
-
+Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq))
 
 #### plot frequency vs r2 ####
 r2_frequency_plot <- ggplot(Imputed, aes(x = Rsq)) + 

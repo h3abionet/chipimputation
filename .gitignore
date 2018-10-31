@@ -10,3 +10,4 @@ tests/test_data
 
 ../test/
 /.gitignore
+.idea\

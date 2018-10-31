@@ -44,11 +44,10 @@ for(file in panels){
 # filter out non-imputed SNPs
 Imputed <- filter(full, Genotyped == "Imputed")
 
-
 # calculate mean Rsq and frequency of both reference panel
 # MAF are rounded to 2 decimal places <- bin
+Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq))
 Imputed <- Imputed %>% mutate( Rsq = round(Rsq, 2)) %>% group_by(R_Panel, Rsq) %>% summarise(Rsq_mean = mean(Rsq), N = n())
-
 
 #### plot frequency vs r2 ####
 r2_frequency_plot <- ggplot(Imputed, aes(x = Rsq_mean, y = N, color = R_Panel)) + 

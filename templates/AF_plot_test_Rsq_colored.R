@@ -39,7 +39,8 @@ full <- merge(full, read.table(args$f , sep = "\t", header = T), by = c("CHR","P
 # filter rsquared SNPs above a given threshold and calculate the frequency difference
 Rsq_thresh <- ifelse(!is.na(args$r), args$r, 0)
 Imputed <- full%>% filter(Genotyped == "Imputed") %>% mutate(diff = abs(ALT_Frq-AF))
-Genotyped <- filter(full, Genotyped == "Genotyped")
+
+Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq))
 
 # filter every Nth SNP to extract 20000 SNPs --> Plot gets more clear
 N <- ifelse(nrow(Imputed) > 20000,as.integer(nrow(Imputed)/20000),1)

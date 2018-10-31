@@ -39,6 +39,8 @@ full$CHR <- paste("Chromosome",full$CHR, sep = " ")
 
 # extract imputed and genotyped SNPs
 Imputed <- filter(full, Genotyped == "Imputed")
+Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq))
+
 genotyped <- filter(full, Genotyped == "Genotyped")
 
 # display only  ~ 50,000 Imputed SNPs in the r2 - position plot

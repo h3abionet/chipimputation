@@ -43,6 +43,7 @@ for(file in panels){
 
 # filter out non-imputed SNPs
 Imputed <- filter(full, Genotyped == "Imputed")
+Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq))
 
 # calculate mean Rsq and frequency of both reference panel
 # MAF are rounded to 2 decimal places <- bin
