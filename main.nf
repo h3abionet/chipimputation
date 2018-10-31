@@ -501,7 +501,6 @@ process phase_target_chunk {
 */
 process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
-    publishDir "${params.outDir}/impute/${target_name}_${ref_name}/${chrm}", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
@@ -568,7 +567,7 @@ process combineImpute {
     input:
         set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
     output:
-        set target_name, ref_name, chrm, file(comb_impute) into combineImpute
+        set target_name, ref_name, chrm, file(comb_impute) into combineImpute,combineImpute2
     script:
         comb_impute = "${target_name}_${ref_name}_chr${chrm}.imputed.gz"
         """
@@ -576,7 +575,7 @@ process combineImpute {
             ${imputed_files} \
             -Oz -o ${target_name}.tmp.vcf.gz
         ## Recalculate AC, AN, AF
-        bcftools +fill-tags ${target_name}.tmp.vcf.gz -Oz -o ${target_name}.tmp1.vcf.gz
+        bcftools +fill-tags ${target_name}.tmp.vcf.gz -Oz -o ${target_name}.tmp1.vcf.gz -- -t AC,AN,AF,MAF
         bcftools sort ${target_name}.tmp1.vcf.gz -T . -Oz -o ${comb_impute}
         rm ${target_name}.tmp*.vcf.gz
         """
@@ -813,6 +812,53 @@ process plot_accuracy_target{
         xlab = "MAF bins"
         ylab = "Concordance rate"
         template "plot_results_by_maf.R"
+}
+
+
+"""
+Step: generate allele frequency
+"""
+process generate_frequency {
+    tag "frq_${target_name}_${ref_name}_${chrm}"
+    publishDir "${params.outDir}/${target_name}_${ref_name}/frqs", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        set target_name, ref_name, chrm, file(impute_vcf) from combineImpute2
+    output:
+        set target_name, ref_name, chrm, file(dataset_frq), file(ref_frq) into frq_dataset
+    script:
+        ref_vcf = file(sprintf(params.ref_panels[ref_name].vcfFile, chrm))
+        ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
+        dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
+        """
+        # For datastet
+        echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${dataset_frq}
+        bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${impute_vcf} >> ${dataset_frq}
+        # For the reference panel
+        echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${ref_frq}
+        bcftools +fill-tags ${ref_vcf} -Oz -o ${ref_name}_AF.vcf.gz -- -t AF
+        bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${ref_name}_AF.vcf.gz >> ${ref_frq}
+        """
+}
+
+
+"""
+
+"""
+process plot_r2_frequency {
+    tag "plot_r2_freq_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'symlink'
+    label "medium"
+    input:
+        set target_name, ref_name, infos from target_infos.values()
+    output:
+        set target_name, ref_panels, file(plot_out) into plot_r2_freq
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        plot_out = "${target_name}_${ref_panels}_${chrms}_r2_freq.png"
+        infos = infos.join(',')
+        impute_info_cutoff = params.impute_info_cutoff
+        template "plot_r2_frequency.R"
 }
 
 def helpMessage() {
