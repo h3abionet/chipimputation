@@ -7,6 +7,7 @@
 library(ggplot2)
 library(dplyr)
 library(optparse)
+library(data.table)
 library(ggsci)
 
 # takes input files as arguments
@@ -19,7 +20,7 @@ option_list <- list(
 args <- parse_args(OptionParser(option_list = option_list))
 
 # read in info files of both reference panels
-input <- args[1]
+input <- as.character(args[1])
 inputs <- unlist(strsplit(input,","))
 
 panels <- list()
@@ -33,21 +34,21 @@ for(panel in inputs){
 i <- 1
 for(file in panels){
   name <- names(panels)[i]
-  panel <- read.table(as.character(file), sep = "\t", header = T)
-  panel <- panel %>% mutate(R_Panel = paste0(name)) %>% select(c("SNP", "MAF","Rsq","Genotyped","R_Panel"))
+  panel <- fread(as.character(file), sep = "\t", header = T,select = c("SNP", "MAF","Rsq","Genotyped"))
+  panel <- panel %>% mutate(R_Panel = paste0(name))
   if(i > 1){
     full <- rbind(full, panel)
   }else{full <- panel}
   i <- i+1
 }
 
-# filter out non-imputed SNPs
+# filter out non-imputed SNPs and missing Rsq values
 Imputed <- filter(full, Genotyped == "Imputed")
+Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq) | MAF != "-" | is.na(MAF))
 
 # calculate mean Rsq and frequency of both reference panel
 # MAF are rounded to 2 decimal places <- bin
-Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq))
-Imputed <- Imputed %>% mutate( Rsq = round(Rsq, 2)) %>% group_by(R_Panel, Rsq) %>% summarise(Rsq_mean = mean(Rsq), N = n())
+Imputed <- Imputed %>% mutate( Rsq = round(as.numeric(Rsq), 2)) %>% group_by(R_Panel, Rsq) %>% summarise(Rsq_mean = mean(Rsq), N = n())
 
 #### plot frequency vs r2 ####
 r2_frequency_plot <- ggplot(Imputed, aes(x = Rsq_mean, y = N, color = R_Panel)) + 
@@ -60,4 +61,4 @@ r2_frequency_plot <- ggplot(Imputed, aes(x = Rsq_mean, y = N, color = R_Panel)) 
   theme(legend.position = "bottom")
 
 # save plot as .png file 
-ggsave(filename = args[2] ,plot = r2_frequency_plot, width = 8, height = 5, units = "in")
+ggsave(filename = as.character(args[2]) ,plot = r2_frequency_plot, width = 8, height = 5, units = "in")

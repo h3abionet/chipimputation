@@ -73,10 +73,11 @@ r2_position_plot <- ggplot(data = Imputed, aes(x = POS, y = Rsq, color = MAF2)) 
     labs(x = "Position [bp]", y = "Imputation accuracy (r-squared)") +
     scale_y_continuous(breaks = seq(0, 1, 0.2)) + scale_x_continuous(labels = scales::comma) +
     facet_grid(~CHR) + theme_classic() +
+    geom_hline(aes(yintercept = 0.3), colour = "red", show.legend = F) +
     scale_color_discrete(breaks = c("extreme rare (0,0.001]","moderate rare (0.001,0.01]","rare (0.01,0.02]",
     "moderate (0.02,0.05]","common (0.05,0.2]","extreme common (0.2,0.5]")) +
-    geom_rug(data=Genotyped, aes(x = POS), inherit.aes = F) +
-    geom_hline(aes(yintercept = 0.3), show.legend = F)
+    geom_rug(data=Genotyped, aes(x = POS), inherit.aes = F)
+
 
 # save plot as a .png file
 ggsave(file = as.character(args[3]), r2_position_plot, width = 10, height = 5.5, units = "in")

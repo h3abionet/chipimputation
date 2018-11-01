@@ -1,4 +1,4 @@
-#!/usr/bin Rscript
+#!/usr/bin/env Rscript
 # 25.10.2018
 # Daniel Schreyer
 # SNP counts vs Mean Imputation Quality Score ####
@@ -8,18 +8,19 @@ library(ggplot2)
 library(dplyr)
 library(optparse)
 library(ggsci)
+library(data.table)
 
 # takes input files as arguments
 option_list <- list(
-  make_option(c("-i", "--info"), action="store", default = NA, type = 'character',
+  make_option(c("-i", "--info"), action="store", default = "${infos}", type = 'character',
               help = "Imputation .info file of each reference panel"),
-  make_option(c("-o", "--output"), action="store", default = NA, type = 'character',
+  make_option(c("-o", "--output"), action="store", default = "${plot_out}", type = 'character',
               help = "Output .png file")
 )
 args <- parse_args(OptionParser(option_list = option_list))
 
 # read in info files of both reference panels
-input <- args$i
+input <- as.character(args[1])
 inputs <- unlist(strsplit(input,","))
 
 panels <- list()
@@ -33,8 +34,9 @@ for(panel in inputs){
 i <- 1
 for(file in panels){
   name <- names(panels)[i]
-  panel <- read.table(as.character(file), sep = "\t", header = T)
-  panel <- panel %>% mutate(R_Panel = paste0(name)) %>% select(c("SNP", "MAF","Rsq","Genotyped","R_Panel"))
+  panel <- fread(as.character(file), sep = "\t", header = T, select = c("SNP", "MAF","Rsq","Genotyped"),
+                 stringsAsFactors=F)
+  panel <- panel %>% mutate(R_Panel = paste0(name))
   if(i > 1){
     full <- rbind(full, panel)
   }else{full <- panel}
@@ -46,13 +48,14 @@ Imputed <- filter(full, Genotyped == "Imputed")
 Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq))
 
 #### plot frequency vs r2 ####
-r2_frequency_plot <- ggplot(Imputed, aes(x = Rsq)) + 
-  geom_histogram(bins = 21, colour = "black") +
-  theme_classic() + labs(x = "Mean Imputation Quality Score", y = "SNP Count") +   facet_grid(facets =~ R_Panel)+
-  scale_x_continuous(breaks = seq(0, 1, 0.2)) + scale_y_continuous(labels = scales::comma) +
+r2_frequency_plot <- ggplot(Imputed, aes(x = as.numeric(Rsq), fill = R_Panel)) +
+  geom_histogram(bins = 21) +
+  theme_classic() + labs(x = "Mean Imputation Quality Score", y = "SNP Count") +
+  facet_grid(facets =~ R_Panel)+
+  scale_x_continuous(breaks = c(seq(0,1,0.2))) + scale_y_continuous(labels = scales::comma) +
   geom_vline(aes(xintercept = 0.3),colour = "red", show.legend = F) + theme(axis.line = element_line(size = 0.8)) +
   scale_fill_npg(name = "Reference Panel")  +
   theme(legend.position = "bottom")
 
 # save plot as .png file 
-ggsave(filename = args$o ,plot = r2_frequency_plot, width = 8, height = 5, units = "in")
+ggsave(filename = as.character(args[2]), plot = r2_frequency_plot, width = 8, height = 5, units = "in")

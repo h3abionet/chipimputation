@@ -8,38 +8,41 @@ library(ggplot2)
 library(dplyr)
 library(optparse)
 library(tidyr)
+library(data.table)
 
 # takes Input files as arguments
 option_list <- list(
-  make_option(c("-i", "--info"), action="store", default=NA, type='character',
+  make_option(c("-i", "--info"), action="store", default="${info}", type='character',
               help = "Imputation .info file"),
-  make_option(c("-t", "--target"), action="store", default = NA, type = 'character',
+  make_option(c("-t", "--target"), action="store", default ="${target}", type = 'character',
               help = "Target .frg file"),
-  make_option(c("-f", "--frq"), action="store", default = NA, type = 'character',
+  make_option(c("-f", "--frq"), action="store", default = "${ref_frq}", type = 'character',
               help = "Reference Panel .frq file"),
-  make_option(c("-r", "--rsq"), action="store", default = NA, type = 'character',
+  make_option(c("-r", "--rsq"), action="store", default = "${Rsq_thresh}", type = 'character',
               help = "R-squared threshold"),
-  make_option(c("-o", "--output"), action="store", default = NA, type = 'character',
+  make_option(c("-o", "--output"), action="store", default ="${plot_out}", type = 'character',
               help = "Output .png file")
 )
 args <- parse_args(OptionParser(option_list = option_list))
 
-# read in info and frequency file of imputed sample
-info <- read.table(args$i, header = T, sep ="\t")
-frq <- read.table(args$t, header = T, sep = "\t")
+# read in info and frequency file of imputed sample 
+# data.table function fread to select columns
+info <- fread(as.character(args[1]), header = T, sep ="\t", select = c("SNP","ALT_Frq", "Rsq", "Genotyped"), stringsAsFactors = F)
+frq <- fread(as.character(args[2]), header = T, sep = "\t", select = c("CHR","POS","SNP"), stringsAsFactors = F)
 
 # modify SNP ID 
 frq <- frq %>% separate("SNP", c("CHR", "Position", "REF", "ALT"), "_")
-frq <- frq %>% mutate(SNP = paste(frq$CHR, frq$POS, frq$REF, frq$ALT, sep = ":")) %>% select(c("CHR","POS","SNP"))
+frq <- frq %>% mutate(SNP = paste(frq$CHR, frq$POS, frq$REF, frq$ALT, sep = ":"))
 
 # merge tables together and read in frequency file of reference panel
-full <- merge(frq, dplyr::select(info, c("SNP","ALT_Frq", "Rsq", "Genotyped")), by = "SNP")
-full <- merge(full, read.table(args$f , sep = "\t", header = T), by = c("CHR","POS"))
+full <- merge(frq, info, by = "SNP")
+full <- merge(full, fread(as.character(args[3], select = c("CHR", "POS", "AF")), sep = "\t", header = T), by = c("CHR","POS"), stringsAsFactors = F)
 
-# filter rsquared SNPs above a given threshold and calculate the frequency difference
-Rsq_thresh <- ifelse(!is.na(args$r), args$r, 0)
-Imputed <- full %>% filter(Rsq >= Rsq_thresh & Genotyped == "Imputed") %>% mutate(diff = abs(ALT_Frq-AF))
-Genotyped <- filter(full, Genotyped == "Genotyped")
+# filter 
+# rsquared SNPs above a given threshold and calculate the allele frequency difference
+Rsq_thresh <- ifelse(!is.na(args[4]), as.numeric(args[4]), 0)
+Imputed <- full %>% filter(Rsq != "-") %>% filter(Rsq >= as.numeric(Rsq_thresh) & Genotyped == "Imputed") %>%
+  filter(!is.numeric(abs)) %>% mutate(diff = abs(ALT_Frq-AF))
 
 # filter every Nth SNP to extract 20000 SNPs --> Plot gets more clear
 N <- ifelse(nrow(Imputed) > 20000,as.integer(nrow(Imputed)/20000),1)
@@ -58,6 +61,4 @@ p <- ggplot(filter(Imputed, diff <= 0.15) , aes(x = ALT_Frq, y = AF, color = dif
   geom_point(data = filter(Imputed, diff > 0.15), aes(x = ALT_Frq, y = AF),shape = 1, color = "black", size = 0.6)
 
 # save plot as a png file
-ggsave(filename = args$o, plot = p, width = 7, height = 7, units = "in")
-
-
+ggsave(filename = as.character(args[5]), plot = p, width = 7, height = 7, units = "in")
