@@ -501,6 +501,7 @@ process phase_target_chunk {
 */
 process impute_target {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
+    publishDir "${params.outDir}/impute/${target_name}_${ref_name}/${chrm}", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
         set chrm, chunk_start, chunk_end, target_name, file(target_phased_vcfFile), ref_name, file(ref_vcf), file(ref_m3vcf) from phase_target
@@ -858,7 +859,7 @@ process plot_r2_frequency {
         plot_out = "${target_name}_${ref_panels}_${chrms}_r2_freq.png"
         infos = infos.join(',')
         impute_info_cutoff = params.impute_info_cutoff
-        template "plot_r2_frequency.R"
+        template "r2_Frequency_plot.R"
 }
 
 def helpMessage() {
