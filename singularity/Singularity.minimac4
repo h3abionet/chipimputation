@@ -52,7 +52,7 @@ From: ubuntu:16.04
 
     # Install PLINK2
     # there is an undocumented stable url (without the date)
-    wget http://www.cog-genomics.org/static/bin/plink/plink_linux_x86_64.zip -O plink.zip && \
+    wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_latest.zip -O plink.zip && \
         unzip plink.zip -d /usr/local/bin/ && \
         rm -f plink.zip
 
