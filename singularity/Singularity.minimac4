@@ -84,11 +84,11 @@ From: ubuntu:16.04
     cd .. && rm -rf samtools-1.9*
 
     # Install Eagle
-    wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.tar.gz && \
-        gunzip Eagle_v2.4.tar.gz && \
-        tar xvf Eagle_v2.4.tar && \
-        mv Eagle_v2.4/eagle /usr/local/bin/ && \
-        rm -rf Eagle_v2.4
+    wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.1.tar.gz && \
+        gunzip Eagle_v2.4.1.tar.gz && \
+        tar xvf Eagle_v2.4.1.tar && \
+        mv Eagle_v2.4.1/eagle /usr/local/bin/ && \
+        rm -rf Eagle_v2.4.1
 
 %environment
     export LANG=en_US.UTF-8
