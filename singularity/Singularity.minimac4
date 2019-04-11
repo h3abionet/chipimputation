@@ -41,6 +41,8 @@ From: ubuntu:16.04
     R --slave -e 'install.packages("ggplot2", repos="https://cloud.r-project.org/")'
     R --slave -e 'install.packages("data.table", repos="https://cloud.r-project.org/")'
     R --slave -e 'install.packages("sm", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("optparse", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("ggsci", repos="https://cloud.r-project.org/")'
 
     # Install minimac4
     wget http://debian.mirror.ac.za/debian/pool/main/libs/libstatgen/libstatgen0_1.0.14-2_amd64.deb
