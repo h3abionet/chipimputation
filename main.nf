@@ -716,6 +716,7 @@ Filtering all targets by maf for a reference panel
 process filter_info_ref {
     tag "filter_${ref_name}_${target_names}_${chrms}"
     label "medium"
+    maxForks 1
     input:
         set ref_name, target_names, infos from ref_infos.values()
     output:
