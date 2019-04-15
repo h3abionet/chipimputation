@@ -651,7 +651,7 @@ Filtering all reference panels by maf for a dataset
 process filter_info_target {
     tag "filter_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'symlink'
-    label "medium"
+//    label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
     output:
@@ -675,7 +675,7 @@ target_info_Well.into{ target_info_Well; target_info_Well_1}
 process report_well_imputed_target {
     tag "report_wellImputed_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'copy'
-    label "medium"
+//    label "medium"
     input:
         set target_name, ref_panels, file(inWell_imputed) from target_info_Well_1
     output:
@@ -715,7 +715,7 @@ Filtering all targets by maf for a reference panel
 """
 process filter_info_ref {
     tag "filter_${ref_name}_${target_names}_${chrms}"
-    label "medium"
+    label "bigmem"
     maxForks 1
     input:
         set ref_name, target_names, infos from ref_infos.values()
