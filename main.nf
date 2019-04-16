@@ -540,20 +540,21 @@ infoCombine = [:]
 infoCombine_all = [:]
 impute_target_list = impute_target_1.toSortedList().val
 impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, impute, info ->
+    ref_vcf = file(sprintf(params.ref_panels[ref_name].vcfFile, chrm))
     id = target_name +"__"+ ref_name +"__"+ chrm
     if(!(id in imputeCombine)){
-        imputeCombine[id] = [target_name, ref_name, chrm, []]
+        imputeCombine[id] = [target_name, ref_name, ref_vcf, chrm, []]
     }
-    imputeCombine[id][3] << impute
+    imputeCombine[id][4] << impute
     if(!(id in infoCombine)){
-        infoCombine[id] = [target_name, ref_name, chrm, []]
+        infoCombine[id] = [target_name, ref_name, ref_vcf, chrm, []]
     }
-    infoCombine[id][3] << info
+    infoCombine[id][4] << info
     id1 = target_name +"__"+ ref_name
     if(!(id1 in infoCombine_all)){
-        infoCombine_all[id1] = [target_name, ref_name, []]
+        infoCombine_all[id1] = [target_name, ref_name, ref_vcf, []]
     }
-    infoCombine_all[id1][2] << info
+    infoCombine_all[id1][3] << info
 }
 
 
@@ -566,9 +567,9 @@ process combineImpute {
     publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'symlink'
     label "bigmem"
     input:
-        set target_name, ref_name, chrm, file(imputed_files) from imputeCombine.values()
+        set target_name, ref_name, file(ref_vcf), chrm, file(imputed_files) from imputeCombine.values()
     output:
-        set target_name, ref_name, chrm, file(comb_impute) into combineImpute,combineImpute2
+        set target_name, ref_name, file(ref_vcf), chrm, file(comb_impute) into combineImpute,combineImpute2
     script:
         comb_impute = "${target_name}_${ref_name}_chr${chrm}.imputed.gz"
         """
@@ -591,9 +592,9 @@ process combineInfo {
     publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'symlink'
     label "medium"
     input:
-        set target_name, ref_name, chrm, file(info_files) from infoCombine.values()
+        set target_name, ref_name, file(ref_vcf), chrm, file(info_files) from infoCombine.values()
     output:
-        set target_name, ref_name, chrm, file(comb_info) into combineInfo
+        set target_name, ref_name, file(ref_vcf), chrm, file(comb_info) into combineInfo
     script:
         comb_info = "${target_name}_${ref_name}_chr${chrm}.imputed_info"
         """
@@ -611,9 +612,9 @@ process combineInfo_all {
     publishDir "${params.outDir}/${target_name}_${ref_name}/combined", overwrite: true, mode:'symlink'
     label "medium"
     input:
-        set target_name, ref_name, file(info_files) from infoCombine_all.values()
+        set target_name, ref_name, file(ref_vcf), file(info_files) from infoCombine_all.values()
     output:
-        set target_name, ref_name, file(comb_info) into combineInfo_all
+        set target_name, ref_name, file(ref_vcf), file(comb_info) into combineInfo_all
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         comb_info = "${target_name}_${ref_name}_chrs${chrms}.imputed_info"
@@ -633,7 +634,7 @@ target_infos = [:]
 ref_infos = [:]
 ref_panels = params.ref_panels.keySet().join('_')
 target_names = params.target_datasets.keySet().join('_')
-combineInfo_all_list.each{ target_name, ref_name, comb_info ->
+combineInfo_all_list.each{ target_name, ref_name, ref_vcf, comb_info ->
     if(!(target_name in target_infos)){
         target_infos[target_name] = [ target_name, ref_name, []]
     }
@@ -825,11 +826,10 @@ process generate_frequency {
     publishDir "${params.outDir}/${target_name}_${ref_name}/frqs", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_name, chrm, file(impute_vcf) from combineImpute2
+        set target_name, ref_name, file(ref_vcf), chrm, file(impute_vcf) from combineImpute2
     output:
-        set target_name, ref_name, chrm, file(dataset_frq), file(ref_frq) into frq_dataset
+        set target_name, ref_name, file(ref_vcf), chrm, file(dataset_frq), file(ref_frq) into frq_dataset
     script:
-        ref_vcf = file(sprintf(params.ref_panels[ref_name].vcfFile, chrm))
         ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
         dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
         """
