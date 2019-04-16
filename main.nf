@@ -651,7 +651,7 @@ Filtering all reference panels by maf for a dataset
 process filter_info_target {
     tag "filter_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'symlink'
-    label "no_sing"
+    label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
     output:
