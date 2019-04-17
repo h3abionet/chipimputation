@@ -676,7 +676,7 @@ target_info_Well.into{ target_info_Well; target_info_Well_1}
 process report_well_imputed_target {
     tag "report_wellImputed_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'copy'
-//    label "medium"
+    label "medium"
     input:
         set target_name, ref_panels, file(inWell_imputed) from target_info_Well_1
     output:
@@ -845,11 +845,11 @@ process generate_frequency {
 
 
 """
-
+Plot Allele frequencies of study panel over reference panel
 """
 process plot_r2_frequency {
     tag "plot_r2_freq_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
