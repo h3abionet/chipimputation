@@ -27,9 +27,9 @@ make_option(c("-f", "--frq"), action = "store", default = "${frq}", type = 'char
               help = "Filter files R-squared threshold "),
 make_option(c("-o", "--output"), action="store", default = "${output}", type = 'character',
               help = "Output Plot: SNP color based on the ref AF and target AF difference"),
-make_option(c("-oc", "--output_color"), action = "store", default = "${--output_color}", type = 'character',
+make_option(c("-oc", "--output_color"), action = "store", default = "${output_color}", type = 'character',
               help = "Output Plot 2: SNP color based on r-squared values"),
-  make_option(c("-s", "--subset"), action="store", default = 20000, type = 'integer',
+make_option(c("-s", "--subset"), action = "store", default = 20000, type = 'integer',
               help = "Display [] number of SNPs [Default = 20000]")
 )
 args <- parse_args(OptionParser(option_list = option_list))
