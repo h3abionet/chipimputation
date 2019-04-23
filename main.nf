@@ -54,25 +54,39 @@ if( !(workflow.runName ==~ /[a-z]+_[a-z]+/) ){
 target_datasets = []
 if(params.target_datasets) {
     params.target_datasets.each { target ->
-        if (!file(target.value).exists() && !file(target.value).isFile()) exit 1, "Target VCF file ${target.value} not found. Please check your config file."
+        if (!file(target.value).exists() && !file(target.value).isFile()) exit 1, "|-- ERROR: Target VCF file ${target.value} not found. Please check your config file."
         target_datasets << [target.key, file(target.value)]
+    }
+}
+else{
+    params.target_datasets.each { target ->
+        System.err.println "|-- ERROR: Target VCF file ${target.value} not found. Please check your config file."
+        exit 1
     }
 }
 
 // Validate eagle map file for phasing step and create channel if file exists
 if(params.eagle_genetic_map) {
     if (!file(params.eagle_genetic_map).exists() && !file(params.eagle_genetic_map).isFile()) {
-        System.err.println "MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+        System.err.println "|-- ERROR: MAP file ${params.eagle_genetic_map} not found. Please check your config file."
         exit 1
     }
+}
+else{
+    System.err.println "|-- ERROR: MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+    exit 1
 }
 
 // Validate reference genome
 if(params.reference_genome) {
     if ((!file(params.reference_genome).exists() && !file(params.reference_genome).isFile()) || (!file("${params.reference_genome}.fai").exists())) {
-        System.err.println "Reference genome file ${params.reference_genome} not found. Please check your config file."
+        System.err.println "|-- ERROR: Reference genome file ${params.reference_genome} not found. Please check your config file."
         exit 1
     }
+}
+else{
+    System.err.println "|-- ERROR: Reference genome file ${params.reference_genome} not found. Please check your config file."
+    exit 1
 }
 
 // Create channel for the study data from VCF files
@@ -845,9 +859,9 @@ process generate_frequency {
 
 
 """
-Plot Allele frequencies of study panel over reference panel
+Plot number of imputed SNPs over the mean r2 for all reference panels
 """
-process plot_r2_frequency {
+process plot_r2_SNPcount {
     tag "plot_r2_freq_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
     label "medium"
@@ -857,11 +871,32 @@ process plot_r2_frequency {
         set target_name, ref_panels, file(plot_out) into plot_r2_freq
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        plot_out = "${target_name}_${ref_panels}_${chrms}_r2_freq.png"
+        plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount.png"
         infos = infos.join(',')
         impute_info_cutoff = params.impute_info_cutoff
         template "r2_Frequency_plot.R"
 }
+
+
+"""
+Plot MAF of impted SNPs over r2
+"""
+process plot_MAF_r2 {
+    tag "plot_MAF_r2_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        set target_name, ref_name, infos from target_infos.values()
+    output:
+        set target_name, ref_panels, file(plot_out) into plot_MAF_r2
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        plot_out = "${target_name}_${ref_panels}_${chrms}_MAF_r2.png"
+        infos = infos.join(',')
+        impute_info_cutoff = params.impute_info_cutoff
+        template "Frequency_r2_MAF_plot.R"
+}
+
 
 def helpMessage() {
     log.info"""
