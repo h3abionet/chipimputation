@@ -12,11 +12,11 @@ library(data.table)
 
 # takes input files as arguments
 option_list <- list(
-make_option(c("-i", "--info"), action="store", default = NA, type='character',
+make_option(c("-i", "--info"), action = "store", default = "${info}", type = 'character',
 help = "Imputation .info file"),
-make_option(c("-t", "--target"), action="store", default = NA, type = 'character',
+make_option(c("-t", "--target"), action = "store", default = "${target}", type = 'character',
 help = "Target .frq file"),
-make_option(c("-o", "--output"), action="store", default = NA, type = 'character',
+make_option(c("-o", "--output"), action = "store", default = "${output}", type = 'character',
 help = "Output .png file"),
 make_option(c("-m", "--maf"), action="store", default = NA, type = 'character',
 help = "Minor allele frequency threshold in %")
@@ -37,7 +37,7 @@ frq <- frq %>% mutate(SNP = paste(CHR, POS, REF, ALT, sep = ":"))
 full <- merge(frq, info, by = "SNP")
 
 # change chromosome names
-full$CHR <- paste("Chromosome",full$CHR, sep = " ")
+full\$CHR <- paste("Chromosome", full\$CHR, sep = " ")
 
 # extract imputed SNPs and filter out SNPs with missing R-squared values
 Imputed <- filter(full, Genotyped == "Imputed")
@@ -60,12 +60,12 @@ Imputed <- filter(Imputed, MAF > AF_thresh & MAF != 0)
 # categorize MAF levels: extreme rare, moderate rare, rare, moderate, common, extreme common
 Imputed <- mutate(Imputed, MAF2 = MAF)
 
-Imputed$MAF2[Imputed$MAF2 > 0 & Imputed$MAF2 <= 0.001] <- "extreme rare (0,0.001]"
-Imputed$MAF2[Imputed$MAF2 > 0.001 & Imputed$MAF2 <= 0.01] <- "moderate rare (0.001,0.01]"
-Imputed$MAF2[Imputed$MAF2 > 0.01 & Imputed$MAF2 <= 0.02] <- "rare (0.01,0.02]"
-Imputed$MAF2[Imputed$MAF2 > 0.02 & Imputed$MAF2 <= 0.05] <- "moderate (0.02,0.05]"
-Imputed$MAF2[Imputed$MAF2 > 0.05 & Imputed$MAF2 <= 0.2] <- "common (0.05,0.2]"
-Imputed$MAF2[Imputed$MAF2 > 0.2 & Imputed$MAF2 <= 0.5] <- "extreme common (0.2,0.5]"
+Imputed\$MAF2[Imputed\$MAF2 > 0 & Imputed\$MAF2 <= 0.001]<- "extreme rare (0,0.001]"
+Imputed\$MAF2[Imputed\$MAF2 > 0.001 & Imputed\$MAF2 <= 0.01]<- "moderate rare (0.001,0.01]"
+Imputed\$MAF2[Imputed\$MAF2 > 0.01 & Imputed\$MAF2 <= 0.02]<- "rare (0.01,0.02]"
+Imputed\$MAF2[Imputed\$MAF2 > 0.02 & Imputed\$MAF2 <= 0.05]<- "moderate (0.02,0.05]"
+Imputed\$MAF2[Imputed\$MAF2 > 0.05 & Imputed\$MAF2 <= 0.2]<- "common (0.05,0.2]"
+Imputed\$MAF2[Imputed\$MAF2 > 0.2 & Imputed\$MAF2 <= 0.5]<- "extreme common (0.2,0.5]"
 
 # plot rsquared vs. SNP_position
 r2_position_plot <- ggplot(data = Imputed, aes(x = POS, y = Rsq, color = MAF2)) +

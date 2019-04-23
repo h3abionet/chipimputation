@@ -628,7 +628,7 @@ process combineInfo_all {
     input:
         set target_name, ref_name, file(ref_vcf), file(info_files) from infoCombine_all.values()
     output:
-        set target_name, ref_name, file(ref_vcf), file(comb_info) into combineInfo_all
+        set target_name, ref_name, file(ref_vcf), file(comb_info) into combineInfo_all,combineInfo_all_frq
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         comb_info = "${target_name}_${ref_name}_chrs${chrms}.imputed_info"
@@ -837,12 +837,12 @@ Step: generate allele frequency
 """
 process generate_frequency {
     tag "frq_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/${target_name}_${ref_name}/frqs", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/${target_name}_${ref_name}/frqs", overwrite: true, mode:'copy', pattern: '*frq'
     label "medium"
     input:
         set target_name, ref_name, file(ref_vcf), chrm, file(impute_vcf) from combineImpute2
     output:
-        set target_name, ref_name, file(ref_vcf), chrm, file(dataset_frq), file(ref_frq) into frq_dataset
+        set target_name, ref_name, file(ref_vcf), chrm, file(dataset_frq), file(ref_frq) into frq_dataset,frq_dataset_info
     script:
         ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
         dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
@@ -857,18 +857,37 @@ process generate_frequency {
         """
 }
 
+"""
+Plot number of imputed SNPs over the mean r2 for all reference panels
+"""
+combineInfo_frq = combineInfo_all_frq.combine(frq_dataset_info, by:[0,1]).collect{it -> [it[0], it[1], it[5], it[3], it[6], it[7]]}
+process plot_r2_SNPpos {
+    tag "plot_r2_SNPpos_${target_name}_${ref_panels}_${chrm}"
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq
+    output:
+        set target_name, ref_name, file(output) into plot_r2_SNPpos
+    script:
+        info = target_info
+        target = target_frq
+        output = "${target_name}_${ref_panels}_${chrm}_r2_SNPpos.png"
+        template "r2_pos_plot.R"
+}
+
 
 """
 Plot number of imputed SNPs over the mean r2 for all reference panels
 """
 process plot_r2_SNPcount {
-    tag "plot_r2_freq_${target_name}_${ref_panels}_${chrms}"
+    tag "plot_r2_SNPcount_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
     output:
-        set target_name, ref_panels, file(plot_out) into plot_r2_freq
+        set target_name, ref_panels, file(plot_out) into plot_r2_SNPcount
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount.png"
@@ -879,7 +898,27 @@ process plot_r2_SNPcount {
 
 
 """
-Plot MAF of imputed SNPs over r2
+Plot histograms of number of imputed SNPs over the mean r2 for all reference panels
+"""
+process plot_hist_r2_SNPcount {
+    tag "plot_hist_r2_SNPcount_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        set target_name, ref_name, infos from target_infos.values()
+    output:
+        set target_name, ref_panels, file(plot_out) into plot_hist_r2_SNPcount
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount_hist.png"
+        infos = infos.join(',')
+        impute_info_cutoff = params.impute_info_cutoff
+        template "r2_Frequency_plot_histogram.R"
+}
+
+
+"""
+Plot MAF of imputed SNPs over r2 for all references
 """
 process plot_MAF_r2 {
     tag "plot_MAF_r2_${target_name}_${ref_panels}_${chrms}"
