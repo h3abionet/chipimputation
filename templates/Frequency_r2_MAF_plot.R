@@ -21,7 +21,7 @@ library(ggsci)
 
 # Takes paths to Input .info file and Output .png file as options
 option_list <- list(
-    make_option(c("-i", "--info"), action="store", default = "${info}", type = 'character',
+make_option(c("-i", "--info"), action = "store", default = "${infos}", type = 'character',
         help = "Imputation .info files as a list"),
     make_option(c("-o", "--output"), action="store", default = "${plot_out}", type = 'character',
         help = "Output .png file")
@@ -61,7 +61,7 @@ Imputed <- Imputed %>% mutate( MAF = round(as.numeric(MAF), 2)) %>% group_by(R_P
     summarise(Rsq_mean = mean(as.numeric(Rsq)), N = n())
 
 #calculate maximum SNP count to define second y axis
-max <- max(Imputed$N)
+max <- max(Imputed\$N)
 
 # Plot Minor Allele Frequency(MAF) bin (x), r-squared (y-left) / SNPs count (y-right)
 p <- ggplot(Imputed, aes(x = MAF, color = R_Panel)) +
