@@ -27,7 +27,7 @@ make_option(c("-f", "--frq"), action = "store", default = "${frq}", type = 'char
               help = "Filter files R-squared threshold "),
 make_option(c("-o", "--output"), action="store", default = "${output}", type = 'character',
               help = "Output Plot: SNP color based on the ref AF and target AF difference"),
-make_option(c("-c", "--output_color"), action = "store", default = "${output_color}", type = 'character',
+make_option(c("-oc", "--outputcolor"), action = "store", default = "${outputcolor}", type = 'character',
               help = "Output Plot 2: SNP color based on r-squared values"),
 make_option(c("-s", "--subset"), action = "store", default = 20000, type = 'integer',
               help = "Display [] number of SNPs [Default = 20000]")
@@ -93,8 +93,8 @@ plot.diff.colored <- ggplot(filter(imputed, diff <= 0.15),
              shape = 1, color = "black", size = 0.6)
 
 # save both plots
-ggsave(filename = args[6], plot = plot.rsq.colored, width = 7, height = 7, units = "in")
-ggsave(filename = args[5], plot = plot.diff.colored, width = 7, height = 7, units = "in")
+ggsave(filename = as.character(args[6]), plot = plot.rsq.colored, width = 7, height = 7, units = "in")
+ggsave(filename = as.character(args[5]), plot = plot.diff.colored, width = 7, height = 7, units = "in")
 
 
 
