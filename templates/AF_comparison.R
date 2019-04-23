@@ -21,7 +21,7 @@ make_option(c("-i", "--info"), action="store", default= "${info}", type='charact
               help = "Imputation .info file"),
 make_option(c("-t", "--target"), action="store", default = "${target}", type = 'character',
               help = "Target .frg file"),
-make_option(c("-f", "--", action="store", default = "${frq}", type = 'character',
+make_option(c("-f", "--frq"), action = "store", default = "${frq}", type = 'character',
               help = "Reference Panel .frq file"),
   make_option(c("-r", "--rsq"), action="store", default = 0, type = 'character',
               help = "Filter files R-squared threshold "),
