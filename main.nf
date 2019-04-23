@@ -862,7 +862,7 @@ Plot number of imputed SNPs over the mean r2 for all reference panels
 """
 combineInfo_frq = combineInfo_frq.combine(frq_dataset_info, by:[0,1,3]).map{it -> [it[0], it[1], it[2], it[4], it[6], it[7]]}
 process plot_r2_SNPpos {
-    tag "plot_r2_SNPpos_${target_name}_${ref_panels}_${chrm}"
+    tag "plot_r2_SNPpos_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
     label "medium"
     input:
@@ -872,7 +872,7 @@ process plot_r2_SNPpos {
     script:
         info = target_info
         target = target_frq
-        output = "${target_name}_${ref_panels}_${chrm}_r2_SNPpos.png"
+        output = "${target_name}_${ref_name}_${chrm}_r2_SNPpos.png"
         template "r2_pos_plot.R"
 }
 
