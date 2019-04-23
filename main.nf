@@ -578,7 +578,7 @@ Combine impute chunks to chromosomes
 process combineImpute {
     //maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
     tag "impComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'symlink', pattern: '*imputed.gz'
     label "bigmem"
     input:
         set target_name, ref_name, file(ref_vcf), chrm, file(imputed_files) from imputeCombine.values()
@@ -603,7 +603,7 @@ Combine impute info chunks to chromosomes
 """
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'copy', pattern: '*imputed_info'
     label "medium"
     input:
         set target_name, ref_name, file(ref_vcf), chrm, file(info_files) from infoCombine.values()
@@ -623,7 +623,7 @@ Combine all impute info chunks by dataset
 """
 process combineInfo_all {
     tag "infoComb_${target_name}_${ref_name}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_name}/combined", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_name}/combined", overwrite: true, mode:'copy', pattern: '*imputed_info'
     label "medium"
     input:
         set target_name, ref_name, file(ref_vcf), file(info_files) from infoCombine_all.values()
@@ -665,7 +665,7 @@ Filtering all reference panels by maf for a dataset
 """
 process filter_info_target {
     tag "filter_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'symlink'
+    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'copy', pattern: "${comb_info}*"
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
@@ -879,7 +879,7 @@ process plot_r2_SNPcount {
 
 
 """
-Plot MAF of impted SNPs over r2
+Plot MAF of imputed SNPs over r2
 """
 process plot_MAF_r2 {
     tag "plot_MAF_r2_${target_name}_${ref_panels}_${chrms}"
