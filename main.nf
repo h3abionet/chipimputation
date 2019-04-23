@@ -860,7 +860,7 @@ process generate_frequency {
 """
 Plot number of imputed SNPs over the mean r2 for all reference panels
 """
-combineInfo_frq = combineInfo_frq.combine(frq_dataset_info, by:[0,1]).map{it -> [it[0], it[1], it[3], it[4], it[7], it[8]]}
+combineInfo_frq = combineInfo_frq.combine(frq_dataset_info, by:[0,1,3]).map{it -> [it[0], it[1], it[3], it[4], it[7], it[8]]}
 process plot_r2_SNPpos {
     tag "plot_r2_SNPpos_${target_name}_${ref_panels}_${chrm}"
     publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
