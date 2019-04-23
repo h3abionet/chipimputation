@@ -67,8 +67,8 @@ plot.rsq.colored <- ggplot(imputed , aes(x = ALT_Frq, y = AF, color = Rsq)) +
   scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 1)) + 
   labs(x = "Ref Allele Frequency (Uploaded Samples)", 
        y = "Ref Allele Frequency (Reference Panel)") +
-  geom_text(color = "black", x = 0.2, y = 1.02, 
-            label = paste("R-squared threshold:", Rsq_thresh, sep = " ")) +
+  geom_text(color = "black", x = 0.2, y = 1.02,
+  label = paste("R-squared threshold:", rsq.thresh, sep = " ")) +
   geom_text(color = "black", x = 0.2, y = 0.95, 
             label = paste(nrow(imputed),"SNPs", sep = " ")) +
   scale_color_gradient(low = "lightblue", high = "darkblue")
@@ -85,8 +85,8 @@ plot.diff.colored <- ggplot(filter(imputed, diff <= 0.15),
   labs(x = "Ref Allele Frequency (Uploaded Samples)", 
        y = "Ref Allele Frequency (Reference Panel)") +
   theme(legend.position="none") + 
-  geom_text(color = "black", x = 0.2, y = 1.02, 
-            label = paste("R-squared threshold:", Rsq_thresh, sep = " ")) +
+  geom_text(color = "black", x = 0.2, y = 1.02,
+  label = paste("R-squared threshold:", rsq.thresh, sep = " ")) +
   geom_text(color = "black", x = 0.2, y = 0.95, 
             label = paste(nrow(imputed), "SNPs", sep = " ")) +
   geom_point(data = filter(imputed, diff > 0.15), aes(x = ALT_Frq, y = AF), 
