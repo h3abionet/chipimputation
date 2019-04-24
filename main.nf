@@ -887,7 +887,7 @@ process plot_freq_comparison {
     input:
         set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq_comp
     output:
-        set target_name, ref_name, file(output), file(outputcolor) into plot_freq_comparison
+        set target_name, ref_name, file(outputcolor) into plot_freq_comparison
     script:
         info = target_info
         target = target_frq
