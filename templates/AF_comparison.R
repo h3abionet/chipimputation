@@ -30,7 +30,7 @@ make_option(c("-oc", "--outputcolor"), action = "store", default = "${outputcolo
 make_option(c("-s", "--subset"), action = "store", default = 20000, type = 'integer',
 help = "Display [] number of SNPs [Default = 20000]")
 )
-# make_option(c("-o", "--output"), action="store", default = "${output}", type = 'character',
+# make_option(c("-o", "--output"), action="store", default = "output", type = 'character',
 #               help = "Output Plot: SNP color based on the ref AF and target AF difference"),
 args <- parse_args(OptionParser(option_list = option_list))
 
@@ -93,7 +93,7 @@ plot.rsq.colored <- ggplot(imputed , aes(x = ALT_Frq, y = AF, color = Rsq)) +
 #              shape = 1, color = "black", size = 0.6)
 
 # save both plots
-ggsave(filename = as.character(args[6]), plot = plot.rsq.colored, width = 7, height = 7, units = "in")
+ggsave(filename = as.character(args[5]), plot = plot.rsq.colored, width = 7, height = 7, units = "in")
 # ggsave(filename = as.character(args[5]), plot = plot.diff.colored, width = 7, height = 7, units = "in")
 
 
