@@ -350,7 +350,7 @@ check_mismatch_noMis.close()
 check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_2 }
 process generate_chunks {
     tag "generate_chunks_${target_name}_${chrms[0]}_${chrms[-1]}"
-    publishDir "${params.outDir}/Reports/${target_name}", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/reports", overwrite: true, mode:'copy'
     label "small"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chrms from check_mismatch_noMis_2
@@ -578,7 +578,7 @@ Combine impute chunks to chromosomes
 process combineImpute {
     //maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
     tag "impComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'symlink', pattern: '*imputed.gz'
+    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'symlink', pattern: '*imputed.gz'
     label "bigmem"
     input:
         set target_name, ref_name, file(ref_vcf), chrm, file(imputed_files) from imputeCombine.values()
@@ -603,7 +603,7 @@ Combine impute info chunks to chromosomes
 """
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/${target_name}_${ref_name}/chrms", overwrite: true, mode:'copy', pattern: '*imputed_info'
+    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'copy', pattern: '*imputed_info'
     label "medium"
     input:
         set target_name, ref_name, file(ref_vcf), chrm, file(info_files) from infoCombine.values()
@@ -623,7 +623,7 @@ Combine all impute info chunks by dataset
 """
 process combineInfo_all {
     tag "infoComb_${target_name}_${ref_name}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_name}/combined", overwrite: true, mode:'copy', pattern: '*imputed_info'
+    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'copy', pattern: '*imputed_info'
     label "medium"
     input:
         set target_name, ref_name, file(ref_vcf), file(info_files) from infoCombine_all.values()
@@ -665,7 +665,7 @@ Filtering all reference panels by maf for a dataset
 """
 process filter_info_target {
     tag "filter_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'copy', pattern: "${comb_info}*"
+    publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy', pattern: "${comb_info}*"
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
@@ -689,7 +689,7 @@ Report 1: Well imputed all reference panels by maf for a dataset
 target_info_Well.into{ target_info_Well; target_info_Well_1}
 process report_well_imputed_target {
     tag "report_wellImputed_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_panels, file(inWell_imputed) from target_info_Well_1
@@ -709,7 +709,7 @@ Plot performance all reference panels by maf for a dataset
 report_well_imputed_target.into{ report_well_imputed_target; report_well_imputed_target_1 }
 process plot_performance_target{
     tag "plot_performance_dataset_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     input:
         set target_name, ref_panels, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_target_1
     output:
@@ -754,7 +754,7 @@ Report: Well imputed all targets by maf for a reference panel
 ref_info_Well.into{ ref_info_Well; ref_info_Well_1}
 process report_well_imputed_ref {
     tag "report_wellImputed_${ref_name}_${target_names}_${chrms}"
-    publishDir "${params.outDir}/${ref_name}_${target_names}/reports", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/reports/${ref_name}", overwrite: true, mode:'copy'
     label "medium"
     input:
         set ref_name, target_names, file(inWell_imputed) from ref_info_Well_1
@@ -774,7 +774,7 @@ Plot performance all targets by maf for a reference panel
 report_well_imputed_ref.into{ report_well_imputed_ref; report_well_imputed_ref_1 }
 process plot_performance_ref{
     tag "plot_performance_dataset_${ref_name}_${target_names}_${chrms}"
-    publishDir "${params.outDir}/${ref_name}_${target_names}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/plots/${ref_name}", overwrite: true, mode:'copy'
     input:
         set ref_name, target_names, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_ref_1
     output:
@@ -796,7 +796,7 @@ Repor 2: Accuracy all reference panels by maf for a dataset
 target_info_Acc.into{ target_info_Acc; target_info_Acc_2}
 process report_accuracy_target {
     tag "report_acc_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/reports", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/reports/${ref_panels}/", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_panels, file(inSNP_acc) from target_info_Acc_2
@@ -816,7 +816,7 @@ Plot accuracy all reference panels by maf for a dataset
 report_SNP_acc_target.into{ report_SNP_acc_target; report_SNP_acc_target_1 }
 process plot_accuracy_target{
     tag "plot_accuracy_dataset_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     input:
         set target_name, ref_panels, file(accuracy_report) from report_SNP_acc_target_1
     output:
@@ -837,7 +837,7 @@ Step: generate allele frequency
 """
 process generate_frequency {
     tag "frq_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/${target_name}_${ref_name}/frqs", overwrite: true, mode:'copy', pattern: '*frq'
+    publishDir "${params.outDir}/frqs/${ref_name}", overwrite: true, mode:'copy', pattern: '*frq'
     label "medium"
     input:
         set target_name, ref_name, file(ref_vcf), chrm, file(impute_vcf) from combineImpute2
@@ -865,7 +865,7 @@ combineInfo_frq_ = combineInfo_frq.combine(frq_dataset_info, by:[0,1,3]).map{it 
 combineInfo_frq_.into{ combineInfo_frq; combineInfo_frq_comp }
 process plot_r2_SNPpos {
     tag "plot_r2_SNPpos_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/plots/${ref_name}/r2_SNPpos", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq
@@ -883,7 +883,7 @@ Plot frequency of imputed SNPs against SNP frequencies in reference panels
 """
 process plot_freq_comparison {
     tag "plot_freq_comparison_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq_comp
@@ -904,7 +904,7 @@ Plot number of imputed SNPs over the mean r2 for all reference panels
 """
 process plot_r2_SNPcount {
     tag "plot_r2_SNPcount_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
@@ -924,7 +924,7 @@ Plot histograms of number of imputed SNPs over the mean r2 for all reference pan
 """
 process plot_hist_r2_SNPcount {
     tag "plot_hist_r2_SNPcount_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/plots/${ref_panels}/", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
@@ -944,7 +944,7 @@ Plot MAF of imputed SNPs over r2 for all references
 """
 process plot_MAF_r2 {
     tag "plot_MAF_r2_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/${target_name}_${ref_panels}/plots", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
