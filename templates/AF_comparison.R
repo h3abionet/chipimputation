@@ -29,8 +29,8 @@ make_option(c("-o", "--output"), action="store", default = "${output}", type = '
               help = "Output Plot: SNP color based on the ref AF and target AF difference"),
 make_option(c("-oc", "--outputcolor"), action = "store", default = "${outputcolor}", type = 'character',
               help = "Output Plot 2: SNP color based on r-squared values"),
-make_option(c("-s", "--subset"), action = "store", default = 1000000, type = 'integer',
-help = "Display [] number of SNPs [Default = 1000000]")
+make_option(c("-s", "--subset"), action = "store", default = 200000, type = 'integer',
+help = "Display [] number of SNPs [Default = 200000]")
 )
 args <- parse_args(OptionParser(option_list = option_list))
 
