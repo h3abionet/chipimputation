@@ -1,4 +1,4 @@
-#!/usr/bin Rscript
+#!/usr/bin/env Rscript
 # 12.12.2018
 # Daniel Schreyer
 
@@ -29,35 +29,35 @@ make_option(c("-o", "--output"), action="store", default = "${output}", type = '
               help = "Output Plot: SNP color based on the ref AF and target AF difference"),
 make_option(c("-oc", "--outputcolor"), action = "store", default = "${outputcolor}", type = 'character',
               help = "Output Plot 2: SNP color based on r-squared values"),
-make_option(c("-s", "--subset"), action = "store", default = 20000, type = 'integer',
-              help = "Display [] number of SNPs [Default = 20000]")
+make_option(c("-s", "--subset"), action = "store", default = 1000000, type = 'integer',
+help = "Display [] number of SNPs [Default = 1000000]")
 )
 args <- parse_args(OptionParser(option_list = option_list))
 
 # read in info and frequency file of imputed sample
-info <- read.table(args$i, header = T, sep ="\t")
-frq <- read.table(args$t, header = T, sep = "\t")
+info <- read.table(args\$i, header = T, sep ="\t")
+frq <- read.table(args\$t, header = T, sep = "\t")
 
 # modify SNP ID 
 frq <- frq %>% separate("SNP", c("CHR", "Position", "REF", "ALT"), "_")
-frq <- frq %>% mutate(SNP = paste(frq$CHR, frq$POS, frq$REF, frq$ALT, sep = ":")) %>%
+frq <- frq %>% mutate(SNP = paste(frq\$CHR, frq\$POS, frq\$REF, frq\$ALT, sep = ":")) %>%
   select(c("CHR","POS","SNP"))
 
 # merge tables together and read in frequency file of reference panel
 full <- merge(frq, dplyr::select(info, c("SNP","ALT_Frq", "Rsq", "Genotyped")),
               by = "SNP")
-full <- merge(full, read.table(args$f , sep = "\t", header = T), 
-              by = c("CHR","POS"))
+full <- merge(full, read.table(args\$f , sep = "\t", header = T),
+by = c("CHR","POS"))
 
 # filter rsquared SNPs above a given threshold and calculate the frequency difference
-rsq.thresh <- ifelse(!is.na(args$r), args$r, 0)
+rsq.thresh <- ifelse(!is.na(args\$r), args\$r, 0)
 imputed <- full%>% filter(Genotyped == "Imputed") %>% 
   mutate(diff = abs(ALT_Frq-AF))
 imputed <- filter(imputed, Rsq != "-" | !is.na(Rsq)) %>% 
   filter(Rsq > rsq.thresh)
 
 # filter every Nth SNP to extract [] SNPs [Default = 20000]
-n <- ifelse(nrow(imputed) > args$s, as.integer(nrow(imputed)/args$s), 1)
+n <- ifelse(nrow(imputed) > args\$s, as.integer(nrow(imputed)/args\$s), 1)
 imputed <- imputed[seq(1, nrow(imputed),by = n), ]
 
 # plot the MAF against each other and color it based on the r-squared values
