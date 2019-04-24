@@ -25,13 +25,13 @@ make_option(c("-f", "--frq"), action = "store", default = "${frq}", type = 'char
               help = "Reference Panel .frq file"),
   make_option(c("-r", "--rsq"), action="store", default = 0, type = 'character',
               help = "Filter files R-squared threshold "),
-make_option(c("-o", "--output"), action="store", default = "${output}", type = 'character',
-              help = "Output Plot: SNP color based on the ref AF and target AF difference"),
 make_option(c("-oc", "--outputcolor"), action = "store", default = "${outputcolor}", type = 'character',
               help = "Output Plot 2: SNP color based on r-squared values"),
 make_option(c("-s", "--subset"), action = "store", default = 20000, type = 'integer',
 help = "Display [] number of SNPs [Default = 20000]")
 )
+# make_option(c("-o", "--output"), action="store", default = "${output}", type = 'character',
+#               help = "Output Plot: SNP color based on the ref AF and target AF difference"),
 args <- parse_args(OptionParser(option_list = option_list))
 
 # read in info and frequency file of imputed sample
@@ -76,25 +76,25 @@ plot.rsq.colored <- ggplot(imputed , aes(x = ALT_Frq, y = AF, color = Rsq)) +
 
 # generate the plot and color the SNPs based on their ref AF and target AF difference
 # SNP color for AF difference greater than 0.15 is black 
-plot.diff.colored <- ggplot(filter(imputed, diff <= 0.15), 
-                       aes(x = ALT_Frq, y = AF, color = diff)) +
-  geom_point(size = 0.9) + theme_classic() + 
-  scale_x_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 1)) +
-  scale_color_gradient(low = "darkblue", high = "lightblue") +
-  scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 1)) + 
-  labs(x = "Ref Allele Frequency (Uploaded Samples)", 
-       y = "Ref Allele Frequency (Reference Panel)") +
-  theme(legend.position="none") + 
-  geom_text(color = "black", x = 0.2, y = 1.02,
-  label = paste("R-squared threshold:", rsq.thresh, sep = " ")) +
-  geom_text(color = "black", x = 0.2, y = 0.95, 
-            label = paste(nrow(imputed), "SNPs", sep = " ")) +
-  geom_point(data = filter(imputed, diff > 0.15), aes(x = ALT_Frq, y = AF), 
-             shape = 1, color = "black", size = 0.6)
+# plot.diff.colored <- ggplot(filter(imputed, diff <= 0.15),
+#                        aes(x = ALT_Frq, y = AF, color = diff)) +
+#   geom_point(size = 0.9) + theme_classic() +
+#   scale_x_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 1)) +
+#   scale_color_gradient(low = "darkblue", high = "lightblue") +
+#   scale_y_continuous(breaks = seq(0, 1, 0.2), limits = c(0, 1)) +
+#   labs(x = "Ref Allele Frequency (Uploaded Samples)",
+#        y = "Ref Allele Frequency (Reference Panel)") +
+#   theme(legend.position="none") +
+#   geom_text(color = "black", x = 0.2, y = 1.02,
+#   label = paste("R-squared threshold:", rsq.thresh, sep = " ")) +
+#   geom_text(color = "black", x = 0.2, y = 0.95,
+#             label = paste(nrow(imputed), "SNPs", sep = " ")) +
+#   geom_point(data = filter(imputed, diff > 0.15), aes(x = ALT_Frq, y = AF),
+#              shape = 1, color = "black", size = 0.6)
 
 # save both plots
 ggsave(filename = as.character(args[6]), plot = plot.rsq.colored, width = 7, height = 7, units = "in")
-ggsave(filename = as.character(args[5]), plot = plot.diff.colored, width = 7, height = 7, units = "in")
+# ggsave(filename = as.character(args[5]), plot = plot.diff.colored, width = 7, height = 7, units = "in")
 
 
 

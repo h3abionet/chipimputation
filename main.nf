@@ -892,7 +892,7 @@ process plot_freq_comparison {
         info = target_info
         target = target_frq
         frq = ref_frq
-        output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
+        //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
         outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.png"
         template "AF_comparison.R"
 }
