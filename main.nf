@@ -297,6 +297,7 @@ targets_toImpute.into{ targets_toImpute; targets_toImpute_qc }
 process check_mismatch {
     tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
     label "medium"
+    publishDir "${params.outDir}/reports/${target_name}", overwrite: true, mode:'copy', pattern: "*checkRef_*.log*"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(reference_genome) from targets_toImpute_qc
     output:
@@ -350,7 +351,7 @@ check_mismatch_noMis.close()
 check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_2 }
 process generate_chunks {
     tag "generate_chunks_${target_name}_${chrms[0]}_${chrms[-1]}"
-    publishDir "${params.outDir}/reports", overwrite: true, mode:'copy'
+    publishDir "${params.outDir}/reports/${target_name}", overwrite: true, mode:'copy'
     label "small"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chrms from check_mismatch_noMis_2
@@ -372,6 +373,7 @@ check_mismatch_noMis.into{ check_mismatch_noMis; check_mismatch_noMis_1 }
 process target_qc {
     tag "target_qc_${target_name}_${chrms[0]}_${chrms[-1]}"
     label "medium"
+    publishDir "${params.outDir}/qc/${target_name}", overwrite: true, mode:'copy', pattern: "*clean.vcf.gz*"
     input:
         set target_name, file(target_vcfFile), file(mapFile), file(mismatch_warn), file(mismatch_summary), chrms from check_mismatch_noMis_1
     output:
@@ -649,7 +651,7 @@ ref_panels = params.ref_panels.keySet().join('_')
 target_names = params.target_datasets.keySet().join('_')
 combineInfo_all_list.each{ target_name, ref_name, ref_vcf, comb_info ->
     if(!(target_name in target_infos)){
-        target_infos[target_name] = [ target_name, ref_name, []]
+        target_infos[target_name] = [ target_name, ref_panels, []]
     }
     target_infos[target_name][2] << ref_name+"=="+comb_info
     if(!(ref_name in ref_infos)){
@@ -667,10 +669,10 @@ process filter_info_target {
     publishDir "${params.outDir}/reports/${ref_name}", overwrite: true, mode:'copy', pattern: "${comb_info}*"
     label "medium"
     input:
-        set target_name, ref_name, infos from target_infos.values()
+        set target_name, ref_panels, infos from target_infos.values()
     output:
-        set target_name, ref_name, file(well_out) into target_info_Well
-        set target_name, ref_name, file(acc_out) into target_info_Acc
+        set target_name, ref_panels, file(well_out) into target_info_Well
+        set target_name, ref_panels, file(acc_out) into target_info_Acc
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
         comb_info = "${target_name}_${ref_name}_${chrms}.imputed_info"
@@ -902,11 +904,11 @@ Plot frequency of imputed SNPs against SNP frequencies in reference panels
 Plot number of imputed SNPs over the mean r2 for all reference panels
 """
 process plot_r2_SNPcount {
-    tag "plot_r2_SNPcount_${target_name}_${ref_panels}_${chrms}"
+    tag "plot_r2_SNPcount_${target_name}_${ref_name}_${chrms}"
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_name, infos from target_infos.values()
+        set target_name, ref_panels, infos from target_infos.values()
     output:
         set target_name, ref_panels, file(plot_out) into plot_r2_SNPcount
     script:
@@ -926,7 +928,7 @@ process plot_hist_r2_SNPcount {
     publishDir "${params.outDir}/plots/${ref_panels}/", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_name, infos from target_infos.values()
+        set target_name, ref_panels, infos from target_infos.values()
     output:
         set target_name, ref_panels, file(plot_out) into plot_hist_r2_SNPcount
     script:
@@ -946,7 +948,7 @@ process plot_MAF_r2 {
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_name, infos from target_infos.values()
+        set target_name, ref_panels, infos from target_infos.values()
     output:
         set target_name, ref_panels, file(plot_out) into plot_MAF_r2
     script:
