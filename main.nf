@@ -663,17 +663,17 @@ combineInfo_all_list.each{ target_name, ref_name, ref_vcf, comb_info ->
 Filtering all reference panels by maf for a dataset
 """
 process filter_info_target {
-    tag "filter_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy', pattern: "${comb_info}*"
+    tag "filter_${target_name}_${ref_name}_${chrms}"
+    publishDir "${params.outDir}/reports/${ref_name}", overwrite: true, mode:'copy', pattern: "${comb_info}*"
     label "medium"
     input:
         set target_name, ref_name, infos from target_infos.values()
     output:
-        set target_name, ref_panels, file(well_out) into target_info_Well
-        set target_name, ref_panels, file(acc_out) into target_info_Acc
+        set target_name, ref_name, file(well_out) into target_info_Well
+        set target_name, ref_name, file(acc_out) into target_info_Acc
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        comb_info = "${target_name}_${ref_panels}_${chrms}.imputed_info"
+        comb_info = "${target_name}_${ref_name}_${chrms}.imputed_info"
         well_out = "${comb_info}_well_imputed"
         acc_out = "${comb_info}_accuracy"
         infos = infos.join(',')
@@ -687,16 +687,16 @@ Report 1: Well imputed all reference panels by maf for a dataset
 """
 target_info_Well.into{ target_info_Well; target_info_Well_1}
 process report_well_imputed_target {
-    tag "report_wellImputed_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy'
+    tag "report_wellImputed_${target_name}_${ref_name}_${chrms}"
+    publishDir "${params.outDir}/reports/${ref_name}", overwrite: true, mode:'copy'
     label "medium"
     input:
-        set target_name, ref_panels, file(inWell_imputed) from target_info_Well_1
+        set target_name, ref_name, file(inWell_imputed) from target_info_Well_1
     output:
-        set target_name, ref_panels, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_target
+        set target_name, ref_name, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_target
     script:
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        outWell_imputed = "${target_name}_${ref_panels}_${chrms}.imputed_info_report_well_imputed.tsv"
+        outWell_imputed = "${target_name}_${ref_name}_${chrms}.imputed_info_report"
         group = "REF_PANEL"
         template "report_well_imputed.py"
 }
@@ -707,12 +707,12 @@ Plot performance all reference panels by maf for a dataset
 """
 report_well_imputed_target.into{ report_well_imputed_target; report_well_imputed_target_1 }
 process plot_performance_target{
-    tag "plot_performance_dataset_${target_name}_${ref_panels}_${chrms}"
-    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
+    tag "plot_performance_dataset_${target_name}_${ref_name}_${chrms}"
+    publishDir "${params.outDir}/plots/${ref_name}", overwrite: true, mode:'copy'
     input:
-        set target_name, ref_panels, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_target_1
+        set target_name, ref_name, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_target_1
     output:
-        set target_name, ref_panels, file(plot_by_maf) into plot_performance_target
+        set target_name, ref_name, file(plot_by_maf) into plot_performance_target
     script:
         plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.tiff"
         chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
@@ -880,22 +880,22 @@ process plot_r2_SNPpos {
 """
 Plot frequency of imputed SNPs against SNP frequencies in reference panels
 """
-process plot_freq_comparison {
-    tag "plot_freq_comparison_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
-    label "medium"
-    input:
-        set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq_comp
-    output:
-        set target_name, ref_name, file(outputcolor) into plot_freq_comparison
-    script:
-        info = target_info
-        target = target_frq
-        frq = ref_frq
-        //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
-        outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.png"
-        template "AF_comparison.R"
-}
+//process plot_freq_comparison {
+//    tag "plot_freq_comparison_${target_name}_${ref_name}_${chrm}"
+//    publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
+//    label "medium"
+//    input:
+//        set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq_comp
+//    output:
+//        set target_name, ref_name, file(outputcolor) into plot_freq_comparison
+//    script:
+//        info = target_info
+//        target = target_frq
+//        frq = ref_frq
+//        //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
+//        outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.png"
+//        template "AF_comparison.R"
+//}
 
 
 """
