@@ -182,7 +182,7 @@ process check_chromosome {
         set target_name, file(target_vcfFile) from target_datasets
     output:
         set target_name, file(chromFile) into check_chromosome
-        set target_name, file(target_vcfFile), file(mapFile) into mapFile_cha
+        set target_name, file(target_vcfFile), file(mapFile) into mapFile_cha,mapFile_cha_1
     script:
         base = file(target_vcfFile.baseName).baseName
         chromFile = "${base}_chromosomes.txt"
@@ -194,14 +194,13 @@ process check_chromosome {
 }
 
 // Check if specified chromosomes exist in VCF file
-check_chromosome.into{ check_chromosome; check_chromosome1 }
 chromosomes_ = [:]
 chromosomes_['ALL'] = []
 valid_chrms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
 not_chrs = []
 in_chrs = []
 notValid_chrs = []
-check_chromosome1.toSortedList().val.each{ target_name, check_file ->
+check_chromosome.toSortedList().val.each{ target_name, check_file ->
     chromosomes_[target_name] = file(check_file).readLines().unique().collect { it as int }.sort()
     chromosomes_[target_name].each { chrm ->
         if(!(chrm in chromosomes_['ALL'])) {
@@ -245,7 +244,6 @@ if (!(notValid_chrs.isEmpty())){
 }
 ignore_chrms = [:]
 toImpute_chrms = [:]
-mapFile_cha.into{ mapFile_cha; mapFile_cha_1}
 mapFile_cha_1.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
     chromosomes_[target_name].each{ chrm ->
         chrm = chrm.toInteger()
@@ -264,8 +262,7 @@ mapFile_cha_1.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
     }
 }
 targets_toImpute = Channel.create()
-mapFile_cha.into{ mapFile_cha; mapFile_cha_2}
-mapFile_cha_2.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
+mapFile_cha.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
     if(target_name in toImpute_chrms){
         targets_toImpute << [ target_name, target_vcfFile, mapFile, file(params.reference_genome) ]
     }
@@ -292,13 +289,12 @@ params.ref_panels.each { ref ->
 /*
  * STEP 3: QC
 */
-targets_toImpute.into{ targets_toImpute; targets_toImpute_qc }
 process check_mismatch {
     tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
     label "medium"
     publishDir "${params.outDir}/reports/${target_name}", overwrite: true, mode:'copy', pattern: "*checkRef_*.log*"
     input:
-        set target_name, file(target_vcfFile), file(mapFile), file(reference_genome) from targets_toImpute_qc
+        set target_name, file(target_vcfFile), file(mapFile), file(reference_genome) from targets_toImpute
     output:
         set target_name, file(target_vcfFile), file(mapFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
