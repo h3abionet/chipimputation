@@ -176,11 +176,10 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 /*
  * STEP 2 - Check user's provided chromosomes vs those in map file
  */
-target_datasets.into{ target_datasets; target_datasets_check }
 process check_chromosome {
     tag "check_chromosome_${target_name}"
     input:
-        set target_name, file(target_vcfFile) from target_datasets_check
+        set target_name, file(target_vcfFile) from target_datasets
     output:
         set target_name, file(chromFile) into check_chromosome
         set target_name, file(target_vcfFile), file(mapFile) into mapFile_cha
