@@ -261,16 +261,31 @@ mapFile_cha_1.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
         }
     }
 }
-targets_toImpute = Channel.create()
+
+targets_toImpute_list = []
 mapFile_cha.toSortedList().val.each { target_name, target_vcfFile, mapFile ->
     if(target_name in toImpute_chrms){
-        targets_toImpute << [ target_name, target_vcfFile, mapFile, file(params.reference_genome) ]
+        targets_toImpute_list << [ target_name, target_vcfFile, mapFile, file(params.reference_genome) ]
     }
     else{
         System.err.println "|-- WARN- Dataset ${target_name} does not contain the specified chromosome(s) ${chromosomes.join(', ')} and will be ignored."
     }
 }
-targets_toImpute.close()
+targets_toImpute = Channel.from(targets_toImpute_list)
+
+
+//def mapFile_cha_ = { target_name, target_vcfFile, mapFile ->
+//    targets_toImpute_list = []
+//    if(target_name in toImpute_chrms){
+//        targets_toImpute_list << [ target_name, target_vcfFile, mapFile, file(params.reference_genome) ]
+//    }
+//    else{
+//        System.err.println "|-- WARN- Dataset ${target_name} does not contain the specified chromosome(s) ${chromosomes.join(', ')} and will be ignored."
+//    }
+//    return targets_toImpute_list
+//}
+//targets_toImpute = mapFile_cha.collect{ it -> mapFile_cha_(it) }.view()
+
 println "|-- Chromosomes used: ${chromosomes.join(', ')}"
 if(params.chunk){
         println "|-- Chunks to impute: ${(params.chunk.split(',')).join(', ')}"
@@ -290,7 +305,7 @@ params.ref_panels.each { ref ->
  * STEP 3: QC
 */
 process check_mismatch {
-    tag "check_mismatch_${target_name}_${chrms[0]}_${chrms[-1]}"
+    tag "check_mismatch_${target_name}"
     label "medium"
     publishDir "${params.outDir}/reports/${target_name}", overwrite: true, mode:'copy', pattern: "*checkRef_*.log*"
     input:
@@ -299,7 +314,6 @@ process check_mismatch {
         set target_name, file(target_vcfFile), file(mapFile), file("${base}_checkRef_warn.log"), file("${base}_checkRef_summary.log") into check_mismatch
     script:
         base = file(target_vcfFile.baseName).baseName
-        chrms = toImpute_chrms[target_name]
         """
         samtools faidx ${reference_genome}
         nblines=\$(zcat ${target_vcfFile} | wc -l)
@@ -607,92 +621,91 @@ process combineInfo {
         """
 }
 
-//
-//"""
-//Combine all impute info chunks by dataset
-//"""
-//process combineInfo_all {
-//    tag "infoComb_${target_name}_${ref_name}_${chrms}"
-//    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'copy', pattern: '*imputed_info'
-//    label "medium"
-//    input:
-//        set target_name, ref_name, file(ref_vcf), file(info_files) from infoCombine_all.values()
-//    output:
-//        set target_name, ref_name, file(ref_vcf), file(comb_info) into combineInfo_all,combineInfo_all_frq
-//    script:
-//        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-//        comb_info = "${target_name}_${ref_name}_chrs${chrms}.imputed_info"
-//        """
-//        head -n1 ${info_files[0]} > ${comb_info}
-//        tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
-//        """
-//}
-//
-//
-//"""
-//Generating report
-//"""
-//combineInfo_all.into { combineInfo_all; combineInfo_all_1 }
-//combineInfo_all_list = combineInfo_all_1.toSortedList().val
-//target_infos = [:]
-//ref_infos = [:]
-//ref_panels = params.ref_panels.keySet().join('_')
-//target_names = params.target_datasets.keySet().join('_')
-//combineInfo_all_list.each{ target_name, ref_name, ref_vcf, comb_info ->
-//    if(!(target_name in target_infos)){
-//        target_infos[target_name] = [ target_name, ref_panels, []]
-//    }
-//    target_infos[target_name][2] << ref_name+"=="+comb_info
-//    if(!(ref_name in ref_infos)){
-//        ref_infos[ref_name] = [ ref_name, target_name, []]
-//    }
-//    ref_infos[ref_name][2] << target_name+"=="+comb_info
-//}
-//
-//
-//"""
-//Filtering all reference panels by maf for a dataset
-//"""
-//process filter_info_target {
-//    tag "filter_${target_name}_${ref_name}_${chrms}"
-//    publishDir "${params.outDir}/reports/${ref_name}", overwrite: true, mode:'copy', pattern: "${comb_info}*"
-//    label "medium"
-//    input:
-//        set target_name, ref_panels, infos from target_infos.values()
-//    output:
-//        set target_name, ref_panels, file(well_out) into target_info_Well
-//        set target_name, ref_panels, file(acc_out) into target_info_Acc
-//    script:
-//        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-//        comb_info = "${target_name}_${ref_name}_${chrms}.imputed_info"
-//        well_out = "${comb_info}_well_imputed"
-//        acc_out = "${comb_info}_accuracy"
-//        infos = infos.join(',')
-//        impute_info_cutoff = params.impute_info_cutoff
-//        template "filter_info_minimac.py"
-//}
-//
-//
-//"""
-//Report 1: Well imputed all reference panels by maf for a dataset
-//"""
-//target_info_Well.into{ target_info_Well; target_info_Well_1}
-//process report_well_imputed_target {
-//    tag "report_wellImputed_${target_name}_${ref_name}_${chrms}"
-//    publishDir "${params.outDir}/reports/${ref_name}", overwrite: true, mode:'copy'
-//    label "medium"
-//    input:
-//        set target_name, ref_name, file(inWell_imputed) from target_info_Well_1
-//    output:
-//        set target_name, ref_name, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_target
-//    script:
-//        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-//        outWell_imputed = "${target_name}_${ref_name}_${chrms}.imputed_info_report"
-//        group = "REF_PANEL"
-//        template "report_well_imputed.py"
-//}
-//
-//
+
+"""
+Combine all impute info chunks by dataset
+"""
+process combineInfo_all {
+    tag "infoComb_${target_name}_${ref_name}_${chrms}"
+    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'copy', pattern: '*imputed_info'
+    label "medium"
+    input:
+        set target_name, ref_name, file(ref_vcf), file(info_files) from infoCombine_all.values()
+    output:
+        set target_name, ref_name, file(ref_vcf), file(comb_info) into combineInfo_all,combineInfo_all_frq
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        comb_info = "${target_name}_${ref_name}_chrs${chrms}.imputed_info"
+        """
+        head -n1 ${info_files[0]} > ${comb_info}
+        tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
+        """
+}
+
+
+"""
+Generating report
+"""
+combineInfo_all_list = combineInfo_all.toSortedList().val
+target_infos = [:] // Grouping by target
+ref_infos = [:] // Grouping by ref
+ref_panels = params.ref_panels.keySet().join('_')
+target_names = params.target_datasets.keySet().join('_')
+combineInfo_all_list.each{ target_name, ref_name, ref_vcf, comb_info ->
+    if(!(target_name in target_infos)){
+        target_infos[target_name] = [ target_name, ref_panels, []]
+    }
+    target_infos[target_name][2] << ref_name+"=="+comb_info
+    if(!(ref_name in ref_infos)){
+        ref_infos[ref_name] = [ ref_name, target_name, []]
+    }
+    ref_infos[ref_name][2] << target_name+"=="+comb_info
+}
+
+"""
+Filtering all reference panels by maf for a dataset
+"""
+//TODO generate filtered info by reference panels.
+process filter_info_target {
+    tag "filter_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy', pattern: "${comb_info}*"
+    label "medium"
+    input:
+        set target_name, ref_panels, ref_infos from target_infos.values()
+    output:
+        set target_name, ref_panels, file(well_out) into target_info_Well
+        set target_name, ref_panels, file(acc_out) into target_info_Acc
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        comb_info = "${target_name}_${ref_panels}_${chrms}.imputed_info"
+        well_out = "${comb_info}_well_imputed"
+        acc_out = "${comb_info}_accuracy"
+        infos = ref_infos.join(',')
+        impute_info_cutoff = params.impute_info_cutoff
+        template "filter_info_minimac.py"
+}
+
+
+"""
+Report 1: Well imputed all reference panels by maf for a dataset
+"""
+target_info_Well.into{ target_info_Well; target_info_Well_1}
+process report_well_imputed_target {
+    tag "report_wellImputed_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        set target_name, ref_panels, file(inWell_imputed) from target_info_Well_1
+    output:
+        set target_name, ref_panels, file(outWell_imputed), file("${outWell_imputed}_summary.tsv") into report_well_imputed_target
+    script:
+        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+        outWell_imputed = "${target_name}_${ref_panels}_${chrms}.imputed_info_report"
+        group = "REF_PANEL"
+        template "report_well_imputed.py"
+}
+
+
 //"""
 //Plot performance all reference panels by maf for a dataset
 //"""
