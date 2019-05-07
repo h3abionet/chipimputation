@@ -22,9 +22,9 @@ def filter_info(infoFiles, infoCutoff, outWell_imputed, outSNP_acc):
     count = 0
     infoFiles = infoFiles.split(',')
     header = []
-    outWell_imputed_out = open(outWell_imputed, 'w')
-    outWell_imputed_snp_out = open(outWell_imputed + "_snp", 'w')
-    outSNP_accuracy_out = open(outSNP_acc, 'w')
+    outWell_imputed_out = open(outWell_imputed + ".tsv", 'w')
+    outWell_imputed_snp_out = open(outWell_imputed + "_snp.tsv", 'w')
+    outSNP_accuracy_out = open(outSNP_acc + ".tsv", 'w')
     for infoFile in infoFiles:
         infoFile = infoFile.strip().split('==')
         dataset = infoFile[0]

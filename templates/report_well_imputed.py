@@ -14,7 +14,7 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed, group=''):
     :return:
     """
     datas = {}
-    outWell_imputed_out = open(outWell_imputed, 'w')
+    outWell_imputed_out = open(outWell_imputed + ".tsv", 'w')
     outWell_imputed_out_1 = open(outWell_imputed + "_summary.tsv", 'w')
     outWell_imputed_out_1.writelines('\\t'.join(
             [group, '(0,0.001]', '(0.001,0.01]', '(0.01,0.02]', '(0.02,0.05]', '(0.05,0.2]', '(0.2,0.5]',
