@@ -31,6 +31,7 @@ def filter_info(infoFiles, infoCutoff, outWell_imputed, outSNP_acc):
         info = infoFile[1]
         well_imputed[dataset] = []
         SNP_concordance[dataset] = []
+        print info
         for line in open(info):
             data = line.strip().split()
             if "SNP" in line and "Rsq" in line:
@@ -42,6 +43,7 @@ def filter_info(infoFiles, infoCutoff, outWell_imputed, outSNP_acc):
                     outWell_imputed_snp_out.writelines(data[1] + '\\n')
                     outSNP_accuracy_out.writelines(' '.join([dataset] + data) + '\\n')
             else:
+                print info_idx, data
                 if float(data[info_idx]) >= float(infoCutoff):
                     outWell_imputed_out.writelines(' '.join([dataset] + data) + '\\n')
                     outWell_imputed_snp_out.writelines(data[1] + '\\n')

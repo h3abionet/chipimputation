@@ -662,6 +662,7 @@ combineInfo_all_list.each{ target_name, ref_name, ref_vcf, comb_info ->
     ref_infos[ref_name][2] << target_name+"=="+comb_info
 }
 
+
 """
 Filtering all reference panels by maf for a dataset
 """
@@ -785,7 +786,7 @@ process filter_info_ref {
         comb_info = "${ref_name}_${target_names}_${chrms}.imputed_info"
         well_out = "${comb_info}_well_imputed"
         acc_out = "${comb_info}_accuracy"
-        infos = target_infos.join(',')
+        infos = file(target_infos.join(','))
         impute_info_cutoff = params.impute_info_cutoff
         template "filter_info_minimac.py"
 }
@@ -943,7 +944,7 @@ process plot_freq_comparison {
 Plot number of imputed SNPs over the mean r2 for all reference panels
 """
 process plot_r2_SNPcount {
-    tag "plot_r2_SNPcount_${target_name}_${ref_name}_${chrms}"
+    tag "plot_r2_SNPcount_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
     input:
