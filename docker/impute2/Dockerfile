@@ -30,13 +30,6 @@ RUN apt-get update && apt-get install -y \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install bedtools
-RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools-2.28.0.tar.gz && \
-    tar -zxvf bedtools-2.28.0.tar.gz && \
-    cd bedtools2 && \
-    make && \
-    mv bedtools /usr/local/bin/ && \
-    cd .. && rm -r bedtools2
 
 # Install IMPUTE2
 RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
@@ -118,6 +111,14 @@ RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.1
     mv Eagle_v2.4.1/eagle /usr/local/bin/ && \
     rm -rf Eagle_v2.4.1
 
+
+# Install bedtools
+RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools-2.28.0.tar.gz && \
+    tar -zxvf bedtools-2.28.0.tar.gz && \
+    cd bedtools2 && \
+    make && \
+    mv bedtools /usr/local/bin/ && \
+    cd .. && rm -r bedtools2
 
 RUN useradd --create-home --shell /bin/bash ubuntu && \
   chown -R ubuntu:ubuntu /home/ubuntu
