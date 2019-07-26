@@ -66,13 +66,13 @@ RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools
     make install
 
 # install R packages
-#RUN R --slave -e 'install.packages("dplyr", repos="https://cloud.r-project.org/")' && \
-#  R --slave -e 'install.packages("ggplot2", repos="https://cloud.r-project.org/")' && \
-#  R --slave -e 'install.packages("data.table", repos="https://cloud.r-project.org/")' && \
-#  R --slave -e 'install.packages("sm", repos="https://cloud.r-project.org/")' && \
-#  R --slave -e 'install.packages("optparse", repos="https://cloud.r-project.org/")'  && \
-#  R --slave -e 'install.packages("ggsci", repos="https://cloud.r-project.org/")'  && \
-#  R --slave -e 'install.packages("tidyr", repos="https://cloud.r-project.org/")'
+RUN R --slave -e 'install.packages("dplyr", repos="https://cloud.r-project.org/")' && \
+  R --slave -e 'install.packages("ggplot2", repos="https://cloud.r-project.org/")' && \
+  R --slave -e 'install.packages("data.table", repos="https://cloud.r-project.org/")' && \
+  R --slave -e 'install.packages("sm", repos="https://cloud.r-project.org/")' && \
+  R --slave -e 'install.packages("optparse", repos="https://cloud.r-project.org/")'  && \
+  R --slave -e 'install.packages("ggsci", repos="https://cloud.r-project.org/")'  && \
+  R --slave -e 'install.packages("tidyr", repos="https://cloud.r-project.org/")'
 
 
 # Install bcftools
