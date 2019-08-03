@@ -79,7 +79,7 @@ else{
 
 // Validate reference genome
 if(params.reference_genome) {
-    if ((!file(params.reference_genome).exists() && !file(params.reference_genome).isFile()) || (!file("${params.reference_genome}.fai").exists())) {
+    if ((!file(params.reference_genome).exists() && !file(params.reference_genome).isFile())) {
         System.err.println "|-- ERROR: Reference genome file ${params.reference_genome} not found. Please check your config file."
         exit 1
     }
