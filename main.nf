@@ -1074,7 +1074,8 @@ workflow.onComplete {
     // }
 
     // Write summary e-mail HTML to a file
-    def output_d = new File( "${params.outDir}/pipeline_info/" )
+    //def output_d = new File( "${params.outDir}/pipeline_info/" )
+    def output_d = new File( "${params.outDir}/" )
     if( !output_d.exists() ) {
         output_d.mkdirs()
     }
