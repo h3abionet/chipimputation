@@ -69,48 +69,35 @@ Be warned of two important points about this default configuration:
 1. The default profile uses the `local` executor
     * All jobs are run in the login session. If you're using a simple server, this may be fine. If you're using a compute cluster, this is bad as all jobs will run on the head node.
     * See the [nextflow docs](https://www.nextflow.io/docs/latest/executor.html) for information about running with other hardware backends. Most job scheduler systems are natively supported.
-2. Nextflow will expect all software to be installed and available on the `PATH`
+2. Nextflow will expect all software to be installed and available on the `PATH`, unless Docker or Singularity used. 
 
 #### 3.1) Software deps: Docker
 First, install docker on your system: [Docker Installation Instructions](https://docs.docker.com/engine/installation/)
 
-Then, running the pipeline with the option `-profile standard,docker` tells Nextflow to enable Docker for this run. An image containing all of the software requirements will be automatically fetched and used from dockerhub (https://hub.docker.com/r/nfcore/imp).
+Then, running the pipeline with the option `-profile docker` tells Nextflow to enable Docker for this run. An image containing all of the software requirements will be automatically fetched and used from quay.io (https://quay.io/h3abionet_org/imputation_tools).
 
 #### 3.1) Software deps: Singularity
 If you're not able to use Docker then [Singularity](http://singularity.lbl.gov/) is a great alternative.
-The process is very similar: running the pipeline with the option `-profile standard,singularity` tells Nextflow to enable singularity for this run. An image containing all of the software requirements will be automatically fetched and used from singularity hub.
+The process is very similar: running the pipeline with the option `-profile singularity` tells Nextflow to enable Singularity for this run. An image containing all of the software requirements will be automatically fetched and used from quay.io (quay.io/h3abionet_org/imputation_tools).
 
 If running offline with Singularity, you'll need to download and transfer the Singularity image first:
 
 ```bash
-singularity pull --name h3abionet-chipimputation-minimac4.simg shub://h3abionet/chipimputation
+singularity pull --name h3abionet-chipimputation-tools.simg docker://quay.io/h3abionet_org/imputation_tools
 ```
 
 Once transferred, use `-with-singularity` and specify the path to the image file:
 
 ```bash
-nextflow run h3abionet/chipimputation -with-singularity h3abionet-chipimputation-minimac4.simg
+nextflow run h3abionet/chipimputation -with-singularity h3abionet-chipimputation-tools.simg
 ```
 
-Remember to pull updated versions of the singularity image if you update the pipeline.
+Remember to pull updated versions of the Singularity image if you update the pipeline.
 
 
 #### 3.2) Software deps: conda
-If you're not able to use Docker _or_ Singularity, you can instead use conda to manage the software requirements.
+If you're not able to use Docker or Singularity, you can instead use conda to manage the software requirements.
 This is slower and less reproducible than the above, but is still better than having to install all requirements yourself!
 The pipeline ships with a conda environment file and nextflow has built-in support for this.
-To use it first ensure that you have conda installed (we recommend [miniconda](https://conda.io/miniconda.html)), then follow the same pattern as above and use the flag `-profile standard,conda`
-
-
-## Appendices
-
-#### Running on UPPMAX
-To run the pipeline on the [Swedish UPPMAX](https://www.uppmax.uu.se/) clusters (`rackham`, `irma`, `bianca` etc), use the command line flag `-profile uppmax`. This tells Nextflow to submit jobs using the SLURM job executor with Singularity for software dependencies.
-
-Note that you will need to specify your UPPMAX project ID when running a pipeline. To do this, use the command line flag `--project <project_ID>`. The pipeline will exit with an error message if you try to run it pipeline with the default UPPMAX config profile without a project.
-
-**Optional Extra:** To avoid having to specify your project every time you run Nextflow, you can add it to your personal Nextflow config file instead. Add this line to `~/.nextflow/config`:
-
-```nextflow
-params.project = 'project_ID' // eg. b2017123
-```
+To use it first ensure that you have conda installed (we recommend [miniconda](https://conda.io/miniconda.html)), then follow the same pattern as above and use the flag `-profile conda`
+Note that `minimac4` is not available through conda, so a manual installation of `minimac4` might be needed in this case.

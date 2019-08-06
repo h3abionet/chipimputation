@@ -32,6 +32,22 @@ The h3achipimputation pipeline comes with documentation about the pipeline, foun
 4. [Output and how to interpret the results](docs/output.md)
 5. [Troubleshooting](docs/troubleshooting.md)
 
+### Getting started
+
+#### Basic test using test data
+This pipeline itself needs no installation - NextFlow will automatically fetch it from GitHub.
+You can run the pipeline using test data hosted in github with singularity without have to install or change any parameters. 
+```
+nextflow run imputation.nf -profile test,singularity
+```
+- `test` profile will download the testdata from https://github.com/h3abionet/chipimputation_test_data/tree/master/testdata_imputation
+- `singularity` profile will download the singularity image from https://quay.io/h3abionet_org/imputation_tools
+ 
+Check for results in `./output`
+```
+wc -l output/impute_results/*
+```
+
 ### Setup (native cluster)
 
 #### Headnode
@@ -43,29 +59,13 @@ The h3achipimputation pipeline comes with documentation about the pipeline, foun
 
 #### Compute nodes
 
-- The compute nodes need access to shared storage for input, references, output
-- The following commands need to be available in PATH on the compute nodes
-  - Using `singularity` if you are going to use singularity
-  - Otherwise, for a native run, the following tools need to be installed:
-      - `minimac4` from [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4)
-      - `eagle` from [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/)
-      - `vcftools` from [VCFtools](https://vcftools.github.io/index.html)
-      - `bcftools`from [bcftools](https://samtools.github.io/bcftools/bcftools.html)
-      - `bgzip` from [htslib](http://www.htslib.org)
-      - `python2.7`
-      - `R` with the following packages ggplot2, dplyr, data.table, sm, optparse, ggsci
-
-### Getting started
-
-#### Basic test using test data
-You can run the pipeline using test data hosted in github with singularity without have to install or change any parameters. 
-```
-nextflow run imputation.nf -profile test,singularity
-```
-- `test` profile will download the testdata from `https://github.com/h3abionet/chipimputation_test_data/tree/master/testdata_imputation`
-- `singularity` profile will download the singularity image from `docker://quay.io/h3abionet_org/imputation_tools`
- 
-Check for results in `./output`
-```
-wc -l output/impute_results/*
-```
+- The compute nodes need access to shared storage for input, references, output.
+- If you opt to use `singularity` no software installation will be needed.
+- Otherwise, the following commands/softwares need to be available in PATH on the compute nodes
+  - `minimac4` from [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4)
+  - `eagle` from [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/)
+  - `vcftools` from [VCFtools](https://vcftools.github.io/index.html)
+  - `bcftools`from [bcftools](https://samtools.github.io/bcftools/bcftools.html)
+  - `bgzip` from [htslib](http://www.htslib.org)
+  - `python2.7`
+  - `R` with the following packages ggplot2, dplyr, data.table, sm, optparse, ggsci
