@@ -45,35 +45,27 @@ The h3achipimputation pipeline comes with documentation about the pipeline, foun
 
 - The compute nodes need access to shared storage for input, references, output
 - The following commands need to be available in PATH on the compute nodes
-
-  - `minimac4` from [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4)
-  - `eagle` from [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/)
-  - `vcftools` from [VCFtools](https://vcftools.github.io/index.html)
-  - `bcftools`from [bcftools](https://samtools.github.io/bcftools/bcftools.html)
-  - `bgzip` from [htslib](http://www.htslib.org)
-  - `python2.7`
-  - `R` with the following packages ggplot2, dplyr, data.table, sm, optparse, ggsci
+  - Using `singularity` if you are going to use singularity
+  - Otherwise, for a native run, the following tools need to be installed:
+      - `minimac4` from [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4)
+      - `eagle` from [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/)
+      - `vcftools` from [VCFtools](https://vcftools.github.io/index.html)
+      - `bcftools`from [bcftools](https://samtools.github.io/bcftools/bcftools.html)
+      - `bgzip` from [htslib](http://www.htslib.org)
+      - `python2.7`
+      - `R` with the following packages ggplot2, dplyr, data.table, sm, optparse, ggsci
 
 ### Getting started
 
-#### Basic test
- 1. Clone this repo
- 2. Run the "tiny" dataset included
+#### Basic test using test data
+You can run the pipeline using test data hosted in github with singularity without have to install or change any parameters. 
 ```
-nextflow run imputation.nf -c nextflow.test.tiny.config
+nextflow run imputation.nf -profile test,singularity
 ```
- 3. check for results in `outfolder`
+- `test` profile will download the testdata from `https://github.com/h3abionet/chipimputation_test_data/tree/master/testdata_imputation`
+- `singularity` profile will download the singularity image from `docker://quay.io/h3abionet_org/imputation_tools`
+ 
+Check for results in `./output`
 ```
-wc -l output/impute_results/FINAL_VCFS/*
-```
-
-#### Larger dataset
- 1. Download this slightly larger dataset: [small.tar.bz2](https://goo.gl/cYk51U) and extract into the `samples` folder
- 2. Run this "small" dataset with
-```
-nextflow run imputation.nf -c nextflow.test.small.config
-```
- 3. check for results in `outfolder`
-```
-wc -l output/impute_results/FINAL_VCFS/*
+wc -l output/impute_results/*
 ```
