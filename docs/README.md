@@ -2,10 +2,10 @@
 
 The h3achipimputation documentation is split into the following files:
 
-1. [Installation](docs/installation.md)
-2. [Pipeline configuration](docs/configuration/local.md)
-    * [Local installation](docs/configuration/local.md)
-    * [Adding your own system](docs/configuration/adding_your_own.md)
-3. [Running the pipeline](docs/usage.md)
-4. [Output and how to interpret the results](docs/output.md)
-5. [Troubleshooting](docs/troubleshooting.md)
+1. [Installation](installation.md)
+2. [Pipeline configuration](configuration/local.md)
+    * [Local installation](configuration/local.md)
+    * [Adding your own system](configuration/adding_your_own.md)
+3. [Running the pipeline](usage.md)
+4. [Output and how to interpret the results](output.md)
+5. [Troubleshooting](troubleshooting.md)
