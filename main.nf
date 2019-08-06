@@ -21,22 +21,23 @@
 */
 
 // Show help message
-if (params.help){
-    helpMessage()
+if (params.help) {
+  helpMessage()
     exit 0
 }
 
-// Get test data from script folder
+//Get test data from script folder
 //if(workflow.repository) {
-//    if ('test' in workflow.profile.split(',')) {
+  //    if ('test' in workflow.profile.split(',')) {
 //        println workflow.projectDir
 //        println workflow.scriptFile
 //        println workflow.profile
 //
-//    }
+//
+}
 //}
 
-// Configurable variables
+//Configurable variables
 params.name = false
 params.email = false
 params.plaintext_email = false
@@ -46,56 +47,61 @@ output_docs = file("$baseDir/docs/output.md")
 // Has the run name been specified by the user?
 // this has the bonus effect of catching both -name and --name
 custom_runName = params.name
-if( !(workflow.runName ==~ /[a-z]+_[a-z]+/) ){
-    custom_runName = workflow.runName
+if( !(workflow.runName ==~ /[a-z]+_[a-z]+/) ) {
+  custom_runName = workflow.runName
 }
 
-// check if study genotype files exist
+//check if study genotype files exist
 target_datasets = []
 if(params.target_datasets) {
-    params.target_datasets.each { target ->
+  params.target_datasets.each { target ->
         if (!file(target.value).exists() && !file(target.value).isFile()) exit 1, "|-- ERROR: Target VCF file ${target.value} not found. Please check your config file."
         target_datasets << [target.key, file(target.value)]
-    }
 }
-else{
-    params.target_datasets.each { target ->
+}
+
+else {
+  params.target_datasets.each { target ->
         System.err.println "|-- ERROR: Target VCF file ${target.value} not found. Please check your config file."
         exit 1
-    }
+}
 }
 
-// Validate eagle map file for phasing step and create channel if file exists
+//Validate eagle map file for phasing step and create channel if file exists
 if(params.eagle_genetic_map) {
-    if (!file(params.eagle_genetic_map).exists() && !file(params.eagle_genetic_map).isFile()) {
+  if (!file(params.eagle_genetic_map).exists() && !file(params.eagle_genetic_map).isFile()) {
         System.err.println "|-- ERROR: MAP file ${params.eagle_genetic_map} not found. Please check your config file."
         exit 1
-    }
 }
-else{
-    System.err.println "|-- ERROR: MAP file ${params.eagle_genetic_map} not found. Please check your config file."
+}
+
+else {
+  System.err.println "|-- ERROR: MAP file ${params.eagle_genetic_map} not found. Please check your config file."
     exit 1
 }
 
-// Validate reference genome
+//Validate reference genome
 if(params.reference_genome) {
-    if ((!file(params.reference_genome).exists() && !file(params.reference_genome).isFile())) {
+  if ((!file(params.reference_genome).exists() && !file(params.reference_genome).isFile())) {
         System.err.println "|-- ERROR: Reference genome file ${params.reference_genome} not found. Please check your config file."
         exit 1
-    }
 }
-else{
-    System.err.println "|-- ERROR: Reference genome file ${params.reference_genome} not found. Please check your config file."
+}
+
+else {
+  System.err.println "|-- ERROR: Reference genome file ${params.reference_genome} not found. Please check your config file."
     exit 1
 }
 
-// Create channel for the study data from VCF files
+//Create channel for the study data from VCF files
 Channel
         .from(target_datasets)
-        .set{ target_datasets }
+        .set {
+  target_datasets
+}
 
 
-// Header log info
+//Header log info
 log.info """
 =======================================================
 
@@ -115,7 +121,19 @@ summary['Output dir']       = params.outDir
 summary['Working dir']      = workflow.workDir
 summary['Script dir']       = workflow.projectDir
 summary['Current path']     = "$PWD"
-summary['Git info']         = "${workflow.repository} - ${workflow.revision} [${workflow.commitId}]"
+summary['Git info']         = "$ {
+  workflow.repository
+}
+
+- $ {
+  workflow.revision
+}
+
+[$ {
+  workflow.commitId
+}
+
+]"
 summary['Command line']     = workflow.commandLine
 if(workflow.containerEngine) {
     summary['Container Engine'] = workflow.containerEngine
@@ -130,7 +148,11 @@ if(workflow.containerEngine) {
 }
 
 if(params.email) summary['E-mail Address'] = params.email
-log.info summary.collect { k,v -> "${k.padRight(15)}: $v" }.join("\n")
+log.info summary.collect { k,v -> "$ {
+  k.padRight(15)
+}
+
+: $v" }.join("\n")
 log.info "========================================="
 
 
@@ -145,7 +167,9 @@ def create_workflow_summary(summary) {
     plot_type: 'html'
     data: |
         <dl class=\"dl-horizontal\">
-${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style=\"color:#999999;\">N/A</a>'}</samp></dd>" }.join("\n")}
+${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>$ {
+  v ?: '<span style=\"color:#999999;\">N/A</a>'
+}</samp></dd>" }.join("\n")}
         </dl>
     """.stripIndent()
 
@@ -158,8 +182,7 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
  */
 //process get_software_versions {
 //    tag "get_software_versions"
-//    output:
-//        file("software_versions_mqc.yaml") into software_versions_yaml
+//    output: //        file("software_versions_mqc.yaml") into software_versions_yaml
 //    script:
 //        """
 //        echo $params.version > v_pipeline.txt
@@ -170,7 +193,8 @@ ${summary.collect { k,v -> "            <dt>$k</dt><dd><samp>${v ?: '<span style
 //        ${params.plink} --version > v_${params.plink}.txt
 //        scrape_software_versions.py > software_versions_mqc.yaml
 //        """
-//}
+//
+}
 
 
 /*
@@ -580,10 +604,10 @@ impute_target_list.each{ chrm, chunk_start, chunk_end, target_name, ref_name, im
 Combine impute chunks to chromosomes
 """
 process combineImpute {
-    //maxForks 1 // TODO: this is only because bcftools sort is using a common TMPFOLDER
     tag "impComb_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'symlink', pattern: '*imputed.gz'
     label "bigmem"
+
     input:
         set target_name, ref_name, file(ref_vcf), chrm, file(imputed_files) from imputeCombine.values()
     output:
@@ -799,15 +823,18 @@ process report_well_imputed_ref {
     tag "report_wellImputed_${ref_name}_${target_names}_${chrms}"
     publishDir "${params.outDir}/reports/${ref_name}", overwrite: true, mode:'copy'
     label "medium"
+
     input:
-        set ref_name, target_names, file(inWell_imputed) from ref_info_Well
+    set ref_name, target_names, file(inWell_imputed) from ref_info_Well
+
     output:
-        set ref_name, target_names, file("${outWell_imputed}.tsv"), file("${outWell_imputed}_summary.tsv") into report_well_imputed_ref
+    set ref_name, target_names, file("${outWell_imputed}.tsv"), file("${outWell_imputed}_summary.tsv") into report_well_imputed_ref
+
     script:
-        chrms = chromosomes[0]+"-"+chromosomes[-1]
-        outWell_imputed = "${ref_name}_${target_names}_${chrms}.imputed_info_report_well_imputed"
-        group = "DATASET"
-        template "report_well_imputed.py"
+    chrms = chromosomes[0]+"-"+chromosomes[-1]
+    outWell_imputed = "${ref_name}_${target_names}_${chrms}.imputed_info_report_well_imputed"
+    group = "DATASET"
+    template "report_well_imputed.py"
 }
 
 
@@ -817,18 +844,21 @@ Plot performance all targets by maf for a reference panel
 process plot_performance_ref{
     tag "plot_performance_dataset_${ref_name}_${target_names}_${chrms}"
     publishDir "${params.outDir}/plots/${ref_name}", overwrite: true, mode:'copy'
+
     input:
-        set ref_name, target_names, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_ref
+    set ref_name, target_names, file(well_imputed_report), file(well_imputed_report_summary) from report_well_imputed_ref
+
     output:
-        set ref_name, target_names, file(plot_by_maf) into plot_performance_ref
+    set ref_name, target_names, file(plot_by_maf) into plot_performance_ref
+
     script:
-        plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.tiff"
-        chrms = chromosomes[0]+"-"+chromosomes[-1]
-        report = well_imputed_report
-        group = "DATASET"
-        xlab = "MAF bins"
-        ylab = "Number of well imputed SNPs"
-        template "plot_results_by_maf.R"
+    plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+    chrms = chromosomes[0]+"-"+chromosomes[-1]
+    report = well_imputed_report
+    group = "DATASET"
+    xlab = "MAF bins"
+    ylab = "Number of well imputed SNPs"
+    template "plot_results_by_maf.R"
 }
 
 
@@ -839,15 +869,18 @@ process report_accuracy_ref {
     tag "report_acc_${ref_name}_${target_names}_${chrms}"
     publishDir "${params.outDir}/reports/${ref_name}/", overwrite: true, mode:'copy'
     label "medium"
+
     input:
-        set ref_name, target_names, file(inSNP_acc) from ref_info_Acc
+    set ref_name, target_names, file(inSNP_acc) from ref_info_Acc
+
     output:
-        set ref_name, target_names, file(outSNP_acc) into report_SNP_acc_ref
+    set ref_name, target_names, file(outSNP_acc) into report_SNP_acc_ref
+
     script:
-        chrms = chromosomes[0]+"-"+chromosomes[-1]
-        outSNP_acc = "${ref_name}_${target_names}_${chrms}.imputed_info_report_accuracy.tsv"
-        group = "DATASET"
-        template "report_accuracy_by_maf.py"
+    chrms = chromosomes[0]+"-"+chromosomes[-1]
+    outSNP_acc = "${ref_name}_${target_names}_${chrms}.imputed_info_report_accuracy.tsv"
+    group = "DATASET"
+    template "report_accuracy_by_maf.py"
 }
 
 """
@@ -856,18 +889,21 @@ Plot accuracy all reference panels by maf for a dataset
 process plot_accuracy_ref{
     tag "plot_accuracy_dataset_${ref_name}_${target_names}_${chrms}"
     publishDir "${params.outDir}/plots/${ref_name}", overwrite: true, mode:'copy'
+
     input:
-        set ref_name, target_names, file(accuracy_report) from report_SNP_acc_ref
+    set ref_name, target_names, file(accuracy_report) from report_SNP_acc_ref
+
     output:
-        set ref_name, target_names, file(plot_by_maf) into plot_accuracy_ref
+    set ref_name, target_names, file(plot_by_maf) into plot_accuracy_ref
+
     script:
-        plot_by_maf = "${accuracy_report.baseName}_by_maf.tiff"
-        chrms = chromosomes[0]+"-"+chromosomes[-1]
-        report = accuracy_report
-        group = "REF_PANEL"
-        xlab = "MAF bins"
-        ylab = "Concordance rate"
-        template "plot_results_by_maf.R"
+    plot_by_maf = "${accuracy_report.baseName}_by_maf.tiff"
+    chrms = chromosomes[0]+"-"+chromosomes[-1]
+    report = accuracy_report
+    group = "REF_PANEL"
+    xlab = "MAF bins"
+    ylab = "Concordance rate"
+    template "plot_results_by_maf.R"
 }
 
 
@@ -879,22 +915,25 @@ process generate_frequency {
     tag "frq_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/frqs/${ref_name}", overwrite: true, mode:'copy', pattern: '*frq'
     label "medium"
+
     input:
-        set target_name, ref_name, file(ref_vcf), chrm, file(impute_vcf) from combineImpute
+    set target_name, ref_name, file(ref_vcf), chrm, file(impute_vcf) from combineImpute
+
     output:
-        set target_name, ref_name, file(ref_vcf), chrm, file(dataset_frq), file(ref_frq) into frq_dataset,frq_dataset_info
+    set target_name, ref_name, file(ref_vcf), chrm, file(dataset_frq), file(ref_frq) into frq_dataset,frq_dataset_info
+
     script:
-        ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
-        dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
-        """
-        # For datastet
-        echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${dataset_frq}
-        bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${impute_vcf} >> ${dataset_frq}
-        # For the reference panel
-        echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${ref_frq}
-        bcftools +fill-tags ${ref_vcf} -Oz -o ${ref_name}_AF.vcf.gz -- -t AF
-        bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${ref_name}_AF.vcf.gz >> ${ref_frq}
-        """
+    ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
+    dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
+    """
+    # For datastet
+    echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${dataset_frq}
+    bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${impute_vcf} >> ${dataset_frq}
+    # For the reference panel
+    echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${ref_frq}
+    bcftools +fill-tags ${ref_vcf} -Oz -o ${ref_name}_AF.vcf.gz -- -t AF
+    bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${ref_name}_AF.vcf.gz >> ${ref_frq}
+    """
 }
 
 
@@ -907,15 +946,18 @@ process plot_r2_SNPpos {
     tag "plot_r2_SNPpos_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/plots/${ref_name}/r2_SNPpos", overwrite: true, mode:'copy'
     label "medium"
+
     input:
-        set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq
+    set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq
+
     output:
-        set target_name, ref_name, file(output) into plot_r2_SNPpos
+    set target_name, ref_name, file(output) into plot_r2_SNPpos
+
     script:
-        info = target_info
-        target = target_frq
-        output = "${target_name}_${ref_name}_${chrm}_r2_SNPpos.png"
-        template "r2_pos_plot.R"
+    info = target_info
+    target = target_frq
+    output = "${target_name}_${ref_name}_${chrm}_r2_SNPpos.png"
+    template "r2_pos_plot.R"
 }
 
 
@@ -926,17 +968,20 @@ process plot_freq_comparison {
     tag "plot_freq_comparison_${target_name}_${ref_name}_${chrm}"
     publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
     label "medium"
+
     input:
-        set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq_comp
+    set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq_comp
+
     output:
-        set target_name, ref_name, file(outputcolor) into plot_freq_comparison
+    set target_name, ref_name, file(outputcolor) into plot_freq_comparison
+
     script:
-        info = target_info
-        target = target_frq
-        frq = ref_frq
-        //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
-        outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.png"
-        template "AF_comparison.R"
+    info = target_info
+    target = target_frq
+    frq = ref_frq
+    //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
+    outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.png"
+    template "AF_comparison.R"
 }
 
 
@@ -947,16 +992,19 @@ process plot_r2_SNPcount {
     tag "plot_r2_SNPcount_${target_name}_${ref_panels}_${chrms}"
     publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
     label "medium"
+
     input:
-        set target_name, ref_panels, infos from target_infos.values()
+    set target_name, ref_panels, infos from target_infos.values()
+
     output:
-        set target_name, ref_panels, file(plot_out) into plot_r2_SNPcount
+    set target_name, ref_panels, file(plot_out) into plot_r2_SNPcount
+
     script:
-        chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-        plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount.png"
-        infos = infos.join(',')
-        impute_info_cutoff = params.impute_info_cutoff
-        template "r2_Frequency_plot.R"
+    chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
+    plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount.png"
+    infos = infos.join(',')
+    impute_info_cutoff = params.impute_info_cutoff
+    template "r2_Frequency_plot.R"
 }
 
 
