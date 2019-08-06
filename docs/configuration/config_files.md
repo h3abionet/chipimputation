@@ -1,85 +1,10 @@
-# h3achipimputation: Usage
+# Configuration file
 
-## Table of contents
+A basic configuration comes with the pipeline, which runs by default (the `standard` config profile - see [`conf/base.config`](../../conf/base.config)). This means that you only need to configure the specifics for your system and overwrite any defaults that you want to change.  
 
-* [Introduction](#general-nextflow-info)
-* [Running the pipeline](#running-the-pipeline)
-* [Updating the pipeline](#updating-the-pipeline)
-* [Reproducibility](#reproducibility)
-* [Main arguments](#main-arguments)
-    * [`-profile`](#-profile-single-dash)
-        * [`docker`](#docker)
-        * [`standard`](#standard)
-        * [`none`](#none)
-    * [`--reads`](#--reads)
-    * [`--singleEnd`](#--singleend)
-* [Reference Genomes](#reference-genomes)
-    * [`--genome`](#--genome)
-    * [`--fasta`](#--fasta)
-* [Job Resources](#job-resources)
-* [Automatic resubmission](#automatic-resubmission)
-* [Custom resource requests](#custom-resource-requests)
-* [AWS batch specific parameters](#aws-batch-specific-parameters)
-    * [`-awsbatch`](#-awsbatch)
-    * [`--awsqueue`](#--awsqueue)
-    * [`--awsregion`](#--awsregion)
-* [Other command line parameters](#other-command-line-parameters)
-    * [`--outdir`](#--outdir)
-    * [`--email`](#--email)
-    * [`-name`](#-name-single-dash)
-    * [`-resume`](#-resume-single-dash)
-    * [`-c`](#-c-single-dash)
-    * [`--max_memory`](#--max_memory)
-    * [`--max_time`](#--max_time)
-    * [`--max_cpus`](#--max_cpus)
-    * [`--plaintext_emails`](#--plaintext_emails)
-    * [`--sampleLevel`](#--sampleLevel)
-    * [`--multiqc_config`](#--multiqc_config)
+> If you think that there are other people using the pipeline who would benefit from your configuration (eg. other common cluster setups), please let us know. We can add a new configuration and profile which can used by specifying `-profile <name>` when running the pipeline.
 
-
-## General Nextflow info
-Nextflow handles job submissions on SLURM or other environments, and supervises running the jobs. Thus the Nextflow process must run until the pipeline is finished. We recommend that you put the process running in the background through `screen` / `tmux` or similar tool. Alternatively you can run nextflow within a cluster job submitted your job scheduler.
-
-It is recommended to limit the Nextflow Java virtual machines memory. We recommend adding the following line to your environment (typically in `~/.bashrc` or `~./bash_profile`):
-
-```bash
-NXF_OPTS='-Xms1g -Xmx4g'
-```
-
-## Running the pipeline
-The typical command for running the pipeline is as follows:
-
-```bash
-nextflow run h3abionet/chipimputation -r v3 -profile test,singularity
-```
-
-This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
-
-You can now copy the config file from `Script dir` from the test run, which should be something in the NXF_ASSET folder `.nextflow/assets/h3abionet/chipimputation` by doing `cp <Script dir>/test.config .`, which you can change and use a custom config file.
-
-Note that the pipeline will create the following files in your working directory:
-
-```bash
-work            # Directory containing the nextflow working files
-results         # Finished results (configurable, see below)
-.nextflow.log   # Log file from Nextflow
-# Other nextflow hidden files, eg. history of pipeline runs and old logs.
-```
-
-### Updating the pipeline
-When you run the above command, Nextflow automatically pulls the pipeline code from GitHub and stores it as a cached version. When running the pipeline after this, it will always use the cached version if available - even if the pipeline has been updated since. To make sure that you're running the latest version of the pipeline, make sure that you regularly update the cached version of the pipeline:
-
-```bash
-nextflow pull h3abionet/chipimputation
-```
-
-### Reproducibility
-It's a good idea to specify a pipeline version when running the pipeline on your data. This ensures that a specific version of the pipeline code and software are used when you run your pipeline. If you keep using the same tag, you'll be running the same version of the pipeline, even if there have been changes to the code since.
-
-First, go to the [h3abionet/chipimputation releases page](https://github.com/h3abionet/chipimputation/releases) and find the latest version number - numeric only (eg. `1.3.1`). Then specify this when running the pipeline with `-r` (one hyphen) - eg. `-r 1.3.1`.
-
-This version number will be logged in reports when you run the pipeline, so that you'll know what you used when you look back in the future.
-
+If you are the only person to be running this pipeline, you can create your config file as `~/.nextflow/config` and it will be applied every time you run Nextflow. Alternatively, save the file anywhere and reference it when running the pipeline with `-c path/to/config` (see the [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more).
 
 ## Main Arguments
 
@@ -89,24 +14,23 @@ Use this parameter to choose a configuration profile. Profiles can give configur
 * `standard`
     * The default profile, used if `-profile` is not specified at all.
     * Runs locally and expects all software to be installed and available on the `PATH`.
-* `docker`
-    * A generic configuration profile to be used with [Docker](http://docker.com/)
-    * Pulls software from dockerhub: [`nfcore/imp`](http://hub.docker.com/r/nfcore/imp/)
 * `singularity`
     * A generic configuration profile to be used with [Singularity](http://singularity.lbl.gov/)
     * Pulls software from singularity-hub
+* `docker`
+    * A generic configuration profile to be used with [Docker](http://docker.com/)
+    * Pulls software from dockerhub: [`nfcore/imp`](http://hub.docker.com/r/nfcore/imp/)
 * `conda`
     * A generic configuration profile to be used with [conda](https://conda.io/docs/)
     * Pulls most software from [Bioconda](https://bioconda.github.io/)
-* `awsbatch`
-    * A generic configuration profile to be used with AWS Batch.
 * `test`
     * A profile with a complete configuration for automated testing
     * Includes links to test data so needs no other parameters
+    * This will copy the test configuration file into your current directory
 * `none`
     * No configuration at all. Useful if you want to build your own config from scratch and want to avoid loading in the default `base` config profile (not recommended).
 
-### `--reads`
+### `--target_datasets`
 Use this to specify the location of your input FastQ files. For example:
 
 ```bash
