@@ -44,3 +44,8 @@
 #  - nf-core lint ${TRAVIS_BUILD_DIR}
 #  # Run the pipeline with the test profile
 #  - nextflow run ${TRAVIS_BUILD_DIR} -profile test,docker
+
+branches:
+  only:
+  - master
+  - stable
