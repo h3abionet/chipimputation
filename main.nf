@@ -1094,11 +1094,9 @@ workflow.onComplete {
 
     // Copy the test config file to the current directory if test profile
     if ('test' in workflow.profile.split(',')) {
-        println workflow.projectDir
-        println workflow.scriptFile
-        println workflow.profile
-        log.info "${c_purple}[h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
+        log.info "${c_purple} ${workflow.projectDir} [h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
     }
+
 
 }
 
@@ -1144,5 +1142,3 @@ def helpMessage() {
       --project_name                Project name. If not specified, target file name will be used as project name
     """.stripIndent()
 }
-
-// println
