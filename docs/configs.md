@@ -3,9 +3,12 @@
 
 A basic configuration comes with the pipeline, which runs by default (the `standard` config profile - see [`conf/base.config`](../../conf/base.config)). This means that you only need to configure the specifics for your system and overwrite any defaults that you want to change.  
 
-> If you think that there are other people using the pipeline who would benefit from your configuration (eg. other common cluster setups), please let us know. We can add a new configuration and profile which can used by specifying `-profile <name>` when running the pipeline.
+> If you think that there are other people using the pipeline who would benefit from your configuration (eg. other common cluster setups), please let us know. We can add a new configuration and profile which can used by specifying `profile <name>` when running the pipeline.
 
-If you are the only person to be running this pipeline, you can create your config file as `~/.nextflow/config` and it will be applied every time you run Nextflow. Alternatively, save the file anywhere and reference it when running the pipeline with `-c path/to/config` (see the [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more).
+## Creating own config file
+
+To run the pipeline using your own dataset, you will need to create your config file as `your_project.config` and it will be applied every time you run Nextflow. 
+While running the pipeline with the `test` profile, the test configuration file `test.config` will be copied into your output folder (`./output`). Simply update the `test.config` with parameters pertaining to your data and save the file anywhere, and reference it when running the pipeline with `-c path/to/test.config` (see the [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more).
 
 ## Main Arguments
 
@@ -17,19 +20,18 @@ Use this parameter to choose a configuration profile. Profiles can give configur
     * Runs locally and expects all software to be installed and available on the `PATH`.
 * `singularity`
     * A generic configuration profile to be used with [Singularity](http://singularity.lbl.gov/)
-    * Pulls software from singularity-hub
+    * Pulls container quay.io/h3abionet_org/imputation_tools from http://quay.io/h3abionet_org
 * `docker`
     * A generic configuration profile to be used with [Docker](http://docker.com/)
-    * Pulls software from dockerhub: [`nfcore/imp`](http://hub.docker.com/r/nfcore/imp/)
+    * Pulls container quay.io/h3abionet_org/imputation_tools from http://quay.io/h3abionet_org
 * `conda`
     * A generic configuration profile to be used with [conda](https://conda.io/docs/)
     * Pulls most software from [Bioconda](https://bioconda.github.io/)
+    * Note that not all tools needed for this pipeline are available through conda. This is the case of `Minimac4` for instance.
 * `test`
     * A profile with a complete configuration for automated testing
     * Includes links to test data so needs no other parameters
     * This will copy the test configuration file into your current directory
-* `none`
-    * No configuration at all. Useful if you want to build your own config from scratch and want to avoid loading in the default `base` config profile (not recommended).
 
 ### `--target_datasets`
 Use this to specify the location of your input FastQ files. For example:
