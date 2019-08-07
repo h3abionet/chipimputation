@@ -1093,7 +1093,7 @@ workflow.onComplete {
     }
 
     // Copy the test config file to the current directory if test profile
-    if ('test' in workflow.profile.split(',') && ('github' in workflow.repository)) {
+    if ('test' in workflow.profile.split(',') && workflow.repository) {
         log.info "${c_purple} ${workflow.projectDir} [h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
     }
 
