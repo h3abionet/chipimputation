@@ -28,7 +28,7 @@ The h3achipimputation pipeline comes with documentation about the pipeline, foun
 
 1. [Installation](installation.md)
 2. [Pipeline configuration](docs/config_files.md)  
-    2.1. [Configuration files](docs/config_files.md)  
+    2.1. [Configuration files](docs/configs.md)  
     2.2. [Software requirements](docs/soft_requirements.md)  
     2.3. [Other clusters](docs/other_clusters.md)  
 3. [Running the pipeline](usage.md)
