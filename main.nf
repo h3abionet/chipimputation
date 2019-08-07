@@ -23,16 +23,6 @@ if (params.help){
     exit 0
 }
 
-// Get test data from script folder
-//if(workflow.repository) {
-//    if ('test' in workflow.profile.split(',')) {
-//        println workflow.projectDir
-//        println workflow.scriptFile
-//        println workflow.profile
-//
-//    }
-//}
-
 // Configurable variables
 params.name = false
 params.email = false
@@ -999,9 +989,9 @@ process plot_MAF_r2 {
  */
 workflow.onComplete {
     // Set up the e-mail variables
-    def subject = "[nf-core/blank] Successful: $workflow.runName"
+    def subject = "[h3abionet/chipimputation] Successful: $workflow.runName"
     if(!workflow.success){
-        subject = "[nf-core/blank] FAILED: $workflow.runName"
+        subject = "[h3abionet/chipimputation] FAILED: $workflow.runName"
     }
     def email_fields = [:]
     email_fields['version'] = workflow.manifest.version
@@ -1034,12 +1024,12 @@ workflow.onComplete {
         if (workflow.success) {
             mqc_report = multiqc_report.getVal()
             if (mqc_report.getClass() == ArrayList){
-                log.warn "[nf-core/blank] Found multiple reports from process 'multiqc', will use only one"
+                log.warn "[h3abionet/chipimputation] Found multiple reports from process 'multiqc', will use only one"
                 mqc_report = mqc_report[0]
             }
         }
     } catch (all) {
-        log.warn "[nf-core/blank] Could not attach MultiQC report to summary email"
+        log.warn "[h3abionet/chipimputation] Could not attach MultiQC report to summary email"
     }
 
     // Render the TXT template
@@ -1065,11 +1055,11 @@ workflow.onComplete {
     //       if( params.plaintext_email ){ throw GroovyException('Send plaintext e-mail, not HTML') }
     //       // Try to send HTML e-mail using sendmail
     //       [ 'sendmail', '-t' ].execute() << sendmail_html
-    //       log.info "[nf-core/blank] Sent summary e-mail to $params.email (sendmail)"
+    //       log.info "[h3abionet/chipimputation] Sent summary e-mail to $params.email (sendmail)"
     //     } catch (all) {
     //       // Catch failures and try with plaintext
     //       [ 'mail', '-s', subject, params.email ].execute() << email_txt
-    //       log.info "[nf-core/blank] Sent summary e-mail to $params.email (mail)"
+    //       log.info "[h3abionet/chipimputation] Sent summary e-mail to $params.email (mail)"
     //     }
     // }
 
@@ -1096,10 +1086,18 @@ workflow.onComplete {
     }
 
     if(workflow.success){
-        log.info "${c_purple}[nf-core/blank]${c_green} Pipeline completed successfully${c_reset}"
+        log.info "${c_purple}[h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
     } else {
         checkHostname()
-        log.info "${c_purple}[nf-core/blank]${c_red} Pipeline completed with errors${c_reset}"
+        log.info "${c_purple}[h3abionet/chipimputation]${c_red} Pipeline completed with errors${c_reset}"
+    }
+
+    // Copy the test config file to the current directory if test profile
+    if ('test' in workflow.profile.split(',')) {
+        println workflow.projectDir
+        println workflow.scriptFile
+        println workflow.profile
+        log.info "${c_purple}[h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
     }
 
 }
@@ -1132,7 +1130,7 @@ def helpMessage() {
     =========================================
     Usage:
     The typical command for running the pipeline is as follows:
-    nextflow run h3abionet/chipimputation --reads '*_R{1,2}.fastq.gz' -profile standard,docker
+    nextflow run h3abionet/chipimputation -profile standard,docker
     Mandatory arguments (Must be specified in the configuration file, and must be surrounded with quotes):
       --target_datasets             Path to input study data (Can be one ou multiple for multiple runs)
       --genome                      Human reference genome for checking REF mismatch
@@ -1146,3 +1144,5 @@ def helpMessage() {
       --project_name                Project name. If not specified, target file name will be used as project name
     """.stripIndent()
 }
+
+// println

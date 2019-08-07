@@ -4,3 +4,6 @@
 output/*
 results/*
 work/*
+.idea/
+.idea/
+dictionaries/
