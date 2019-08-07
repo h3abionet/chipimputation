@@ -24,25 +24,26 @@ This  workflow which was developed as part of the H3ABioNet Hackathon held in Pr
 ### Documentation
 The h3achipimputation pipeline comes with documentation about the pipeline, found in the `docs/` directory:
 
-1. [Installation](docs/installation.md)
-2. [Pipeline configuration](docs/configuration/local.md)
-    * [Local installation](docs/configuration/local.md)
-    * [Adding your own system](docs/configuration/adding_your_own.md)
-3. [Running the pipeline](docs/usage.md)
-4. [Output and how to interpret the results](docs/output.md)
-5. [Troubleshooting](docs/troubleshooting.md)
+1. [Installation](installation.md)
+2. [Pipeline configuration](configuration/config_files.md)
+    1. [Configuration files](configuration/config_files.md)
+    2. [Software requirements](configuration/soft_requirements.md)
+    3. [Other clusters](configuration/other_clusters.md)
+3. [Running the pipeline](usage.md)
+4. [Output and how to interpret the results](output.md)
+5. [Troubleshooting](troubleshooting.md)
 
 ### Getting started
 
 #### Basic test using test data
 This pipeline itself needs no installation - NextFlow will automatically fetch it from GitHub.
-You can run the pipeline using test data hosted in github with singularity without have to install or change any parameters. 
+You can run the pipeline using test data hosted in github with singularity without have to install or change any parameters.
 ```
 nextflow run imputation.nf -profile test,singularity
 ```
 - `test` profile will download the testdata from https://github.com/h3abionet/chipimputation_test_data/tree/master/testdata_imputation
 - `singularity` profile will download the singularity image from https://quay.io/h3abionet_org/imputation_tools
- 
+
 Check for results in `./output`
 ```
 wc -l output/impute_results/*
