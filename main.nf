@@ -704,7 +704,7 @@ process plot_performance_target{
     output:
     set target_name, ref_panels, file(plot_by_maf) into plot_performance_target
     script:
-    plot_by_maf = "${well_imputed_report.baseName}.tiff"
+    plot_by_maf = "${well_imputed_report.baseName}.png"
     chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
     report = well_imputed_report
     group = "REF_PANEL"
@@ -743,7 +743,7 @@ process plot_accuracy_target{
     output:
     set target_name, ref_panels, file(plot_by_maf) into plot_accuracy_target
     script:
-    plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf.tiff"
+    plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf.png"
     chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
     report = accuracy_report
     group = "REF_PANEL"
@@ -807,7 +807,7 @@ process plot_performance_ref{
     output:
     set ref_name, target_names, file(plot_by_maf) into plot_performance_ref
     script:
-    plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.tiff"
+    plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.png"
     chrms = chromosomes[0]+"-"+chromosomes[-1]
     report = well_imputed_report
     group = "DATASET"
@@ -846,7 +846,7 @@ process plot_accuracy_ref{
     output:
     set ref_name, target_names, file(plot_by_maf) into plot_accuracy_ref
     script:
-    plot_by_maf = "${accuracy_report.baseName}_by_maf.tiff"
+    plot_by_maf = "${accuracy_report.baseName}_by_maf.png"
     chrms = chromosomes[0]+"-"+chromosomes[-1]
     report = accuracy_report
     group = "REF_PANEL"
