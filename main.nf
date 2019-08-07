@@ -1084,20 +1084,18 @@ workflow.onComplete {
         log.info "${c_red}Number of ignored errored process(es) : ${workflow.stats.ignoredCountFmt} ${c_reset}"
         log.info "${c_green}Number of successfully ran process(es) : ${workflow.stats.succeedCountFmt} ${c_reset}"
     }
-
     if(workflow.success){
+        // Copy the test config file to the current directory if test profile
+        if ('test' in workflow.profile.split(',') && workflow.repository) {
+            confi_test = file("${workflow.projectDir}/conf/test.config")
+            confi_test.copyTo("${params.outDir}/test.config")
+            log.info "${confi_test} copied to ${params.outDir}/test.config."
+        }
         log.info "${c_purple}[h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
     } else {
         checkHostname()
         log.info "${c_purple}[h3abionet/chipimputation]${c_red} Pipeline completed with errors${c_reset}"
     }
-
-    // Copy the test config file to the current directory if test profile
-    if ('test' in workflow.profile.split(',') && workflow.repository) {
-        log.info "${c_purple} ${workflow.projectDir} [h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
-    }
-
-
 }
 
 def checkHostname(){
