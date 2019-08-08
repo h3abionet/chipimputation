@@ -1,51 +1,32 @@
-#sudo: required
-#language: java
-#jdk: openjdk8
-#services:
-#  - docker
-#python:
-#  - "2.7"
-#cache: pip
-#matrix:
-#  fast_finish: true
-#
-#before_install:
-#  # PRs made to 'master' branch should always orginate from another repo or the 'dev' branch
-#  - '[ $TRAVIS_PULL_REQUEST = "false" ] || [ $TRAVIS_BRANCH != "master" ] || ([ $TRAVIS_PULL_REQUEST_SLUG = $TRAVIS_REPO_SLUG ] && [ $TRAVIS_PULL_REQUEST_BRANCH = "dev" ])'
-#  # Pull the docker image first so the test doesn't wait for this
-#  - docker pull nfcore/imp
-#  # Fake the tag locally so that the pipeline runs properly
-#  - docker tag nfcore/imp nfcore/imp:latest
-#
-#install:
-#  # Install Nextflow
-#  - mkdir /tmp/nextflow
-#  - cd /tmp/nextflow
-#  - wget -qO- get.nextflow.io | bash
-#  - sudo ln -s /tmp/nextflow/nextflow /usr/local/bin/nextflow
-#  # Install nf-core/tools
-#  - git clone https://github.com/nf-core/tools.git /tmp/nf-core-tools
-#  - cd /tmp/nf-core-tools
-#  - pip install --user -e .
-#  # Reset
-#  - mkdir ${TRAVIS_BUILD_DIR}/tests
-#  - cd ${TRAVIS_BUILD_DIR}/tests
-#
-#addons:
-#  apt:
-#    update: true
-#
-#env:
-#  - NXF_VER=0.30.0 # Specify a minimum NF version that should be tested and work
-#  - NXF_VER='' # Plus: get the latest NF version and check, that it works
-#
-#script:
-#  # Lint the pipeline code
-#  - nf-core lint ${TRAVIS_BUILD_DIR}
-#  # Run the pipeline with the test profile
-#  - nextflow run ${TRAVIS_BUILD_DIR} -profile test,docker
+sudo: required
+language: python
+jdk: openjdk8
+services: docker
+python: '3.6'
+matrix:
+  fast_finish: true
+install:
+  - mkdir /tmp/nextflow
+  - cd /tmp/nextflow
+  - wget -qO- get.nextflow.io | bash
+  - sudo ln -s /tmp/nextflow/nextflow /usr/local/bin/nextflow
+  - pip install --upgrade pip
+  - pip install nf-core
+  - mkdir ${TRAVIS_BUILD_DIR}/tests && cd ${TRAVIS_BUILD_DIR}/tests
+  - sudo apt-get install npm && npm install -g markdownlint-cli
+  - sudo apt-get install libarchive-dev
+  - sudo apt-get install squashfs-tools
+  - mkdir /tmp/singularity
+  - cd /tmp/singularity
+  - wget https://github.com/singularityware/singularity/releases/download/2.5.2/singularity-2.5.2.tar.gz
+  - tar xvf singularity-2.5.2.tar.gz
+  - cd singularity-2.5.2
+  - "./configure --prefix=/usr/local"
+  - make
+  - sudo make install
+env:
+  matrix:
+    - NXF_VER=19.04.1
 
-branches:
-  only:
-  - master
-  - stable
+script:
+  - nextflow run h3abionet/chipimputation -profile test,singularity
