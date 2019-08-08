@@ -33,30 +33,59 @@ Use this parameter to choose a configuration profile. Profiles can give configur
     * Includes links to test data so needs no other parameters
     * This will copy the test configuration file into your current directory
 
-### `--target_datasets`
-Use this to specify the location of your input FastQ files. For example:
+### Target/Study dataset`--target_datasets`
+Use this to specify the location of your input target dataset files in VCF format.  
+Multiple target datasets can be specified in `target_datasets` of format `name = dataset`, however each target dataset will be used separately.  
 
+For example: 
 ```bash
---reads 'path/to/data/sample_*_{1,2}.fastq'
+target_datasets {
+    Study_name1 = "https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/target_testdata.vcf.gz"
+}
 ```
+
+A test data is provided in https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/target_testdata.vcf.gz, which can be used for testing only. 
 
 Please note the following requirements:
+1. This is required by the pipeline
+1. The path must be enclosed in quotes and must exist otherwise the pipeline will stop.
+2. The VCF file can contain a single or multiple chromosomes
 
-1. The path must be enclosed in quotes
-2. The path must have at least one `*` wildcard character
-3. When using the pipeline with paired end data, the path must use `{1,2}` notation to specify read pairs.
+### Reference panels `--ref_panels`
+The pipeline expects uses minimac4 to imputed genotypes. Therefore, minimac3 reference format [m3vcf](https://genome.sph.umich.edu/wiki/M3VCF_Files) generated used [minimac3](https://genome.sph.umich.edu/wiki/Minimac3) is expected to be used.  
+You need to specify both `VCF` and `M3VCF` files for `vcfFile` and `m3vcfFile` respectively in the configuration file before you launch the pipeline. 
+A normal glob pattern, enclosed in quotation marks, can then be used. 
 
-If left unspecified, a default pattern is used: `data/*{1,2}.fastq.gz`
-
-### `--singleEnd`
-By default, the pipeline expects paired-end data. If you have single-end data, you need to specify `--singleEnd` on the command line when you launch the pipeline. A normal glob pattern, enclosed in quotation marks, can then be used for `--reads`. For example:
+For example:
 
 ```bash
---singleEnd --reads '*.fastq'
+ref_panels {
+    RefPanel_name1 {
+      m3vcfFile   = "refPanel_testdata_22_phased.m3vcf.gz"
+      vcfFile     = "refPanel_testdata_22_phased.vcf.gz"
+    }
+  }
 ```
 
-It is not possible to run a mixture of single-end and paired-end files in one run.
+A test data is provided in https://github.com/h3abionet/chipimputation_test_data repo:
+    - `M3VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_`%s`_phased.m3vcf.gz
+    - `VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_`%s`_phased.vcf.gz
+    
+Please note the following requirements:
+1. Both `VCF` and `M3VCF` files must be in chromosomes. String extrapolation of `%` will be used to replace the chromosome
+2. The `VCF` files will be used during phasing by `eagle2` and allele frequency comparison by `bcftools` steps
+3. The `M3VCF` files will be used during imputation step by `minimac4`
+4. The path must be enclosed in quotes and must exist otherwise the pipeline will stop.
 
+Some commonly used reference panels are available for download here from [minimac3 website](https://genome.sph.umich.edu/wiki/Minimac3#Reference_Panels_for_Download) including  `1000 Genomes Phase 1` (version 3) and  `1000 Genomes Phase 3` (version 5).  
+To generate your own `M3VCF` files from `VCF` files using `minimac3`, please follow the instructions on https://genome.sph.umich.edu/wiki/Minimac3_Examples
+```bash
+Minimac3 --refHaps refPanel.vcf \ 
+                --processReference \ 
+                --rounds 0 \ 
+                --prefix testRun
+
+```
 
 ## Reference Genomes
 
