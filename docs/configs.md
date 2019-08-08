@@ -33,72 +33,72 @@ Use this parameter to choose a configuration profile. Profiles can give configur
     * Includes links to test data so needs no other parameters
     * This will copy the test configuration file into your current directory
 
-### `--target_datasets`
-Use this to specify the location of your input FastQ files. For example:
+### Target/Study dataset`--target_datasets`
+Use this to specify the location of your input target dataset files in VCF format.  
+Multiple target datasets can be specified in `target_datasets` of format `name = dataset`, however each target dataset will be used separately.  
 
+The syntax for this : 
 ```bash
---reads 'path/to/data/sample_*_{1,2}.fastq'
-```
-
-Please note the following requirements:
-
-1. The path must be enclosed in quotes
-2. The path must have at least one `*` wildcard character
-3. When using the pipeline with paired end data, the path must use `{1,2}` notation to specify read pairs.
-
-If left unspecified, a default pattern is used: `data/*{1,2}.fastq.gz`
-
-### `--singleEnd`
-By default, the pipeline expects paired-end data. If you have single-end data, you need to specify `--singleEnd` on the command line when you launch the pipeline. A normal glob pattern, enclosed in quotation marks, can then be used for `--reads`. For example:
-
-```bash
---singleEnd --reads '*.fastq'
-```
-
-It is not possible to run a mixture of single-end and paired-end files in one run.
-
-
-## Reference Genomes
-
-The pipeline config files come bundled with paths to the illumina iGenomes reference index files. If running with docker or AWS, the configuration is set up to use the [AWS-iGenomes](https://ewels.github.io/AWS-iGenomes/) resource.
-
-### `--genome` (using iGenomes)
-There are 31 different species supported in the iGenomes references. To run the pipeline, you must specify which to use with the `--genome` flag.
-
-You can find the keys to specify the genomes in the [iGenomes config file](../conf/igenomes.config). Common genomes that are supported are:
-
-* Human
-  * `--genome GRCh37`
-* Mouse
-  * `--genome GRCm38`
-* _Drosophila_
-  * `--genome BDGP6`
-* _S. cerevisiae_
-  * `--genome 'R64-1-1'`
-
-> There are numerous others - check the config file for more.
-
-Note that you can use the same configuration setup to save sets of reference files for your own use, even if they are not part of the iGenomes resource. See the [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for instructions on where to save such a file.
-
-The syntax for this reference configuration is as follows:
-
-```nextflow
-params {
-  genomes {
-    'GRCh37' {
-      fasta   = '<path to the genome fasta file>' // Used if no star index given
-    }
-    // Any number of additional genomes, key is used with --genome
-  }
+target_datasets {
+    Study_name1 = "https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/target_testdata.vcf.gz"
 }
 ```
 
-### `--fasta`
-If you prefer, you can specify the full path to your reference genome when you run the pipeline:
+A test data is provided in https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/target_testdata.vcf.gz, which can be used for testing only. 
 
+Please note the following requirements:
+1. This is required by the pipeline
+1. The path must be enclosed in quotes and must exist otherwise the pipeline will stop.
+2. The VCF file can contain a single or multiple chromosomes
+
+### Reference panels `--ref_panels`
+The pipeline expects uses minimac4 to imputed genotypes. Therefore, minimac3 reference format [m3vcf](https://genome.sph.umich.edu/wiki/M3VCF_Files) generated used [minimac3](https://genome.sph.umich.edu/wiki/Minimac3) is expected to be used.  
+You need to specify both `VCF` and `M3VCF` files for `vcfFile` and `m3vcfFile` respectively in the configuration file before you launch the pipeline. 
+A normal glob pattern, enclosed in quotation marks, can then be used. 
+
+The syntax for this :
 ```bash
---fasta '[path to Fasta reference]'
+ref_panels {
+    RefPanel_name1 {
+      m3vcfFile   = "refPanel_testdata_22_phased.m3vcf.gz"
+      vcfFile     = "refPanel_testdata_22_phased.vcf.gz"
+    }
+  }
 ```
+
+A test data is provided in https://github.com/h3abionet/chipimputation_test_data repo:  
+- `M3VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_%s_phased.m3vcf.gz  
+- `VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_%s_phased.vcf.gz  
+    
+Please note the following requirements:
+1. Both `VCF` and `M3VCF` files must be in chromosomes. String extrapolation of `%s` will be used to replace the chromosome
+2. The `VCF` files will be used during phasing by `eagle2` and allele frequency comparison by `bcftools` steps
+3. The `M3VCF` files will be used during imputation step by `minimac4`
+4. The path must be enclosed in quotes and must exist otherwise the pipeline will stop.
+5. Must be of the same build as the target dataset.
+
+Some commonly used reference panels are available for download here from [minimac3 website](https://genome.sph.umich.edu/wiki/Minimac3#Reference_Panels_for_Download) including  `1000 Genomes Phase 1` (version 3) and  `1000 Genomes Phase 3` (version 5).  
+To generate your own `M3VCF` files from `VCF` files using `minimac3`, please follow the instructions below as described https://genome.sph.umich.edu/wiki/Minimac3_Examples
+```bash
+Minimac3 --refHaps refPanel.vcf \ 
+                --processReference \ 
+                --rounds 0 \ 
+                --prefix testRun
+```
+
+## Reference Genomes --reference_genome
+
+A human reference genome in `fasta` format of the same build as the target dataset is required by the pipeline during the QC step to check the REF mismatch between in the target dataseet.
+This can be downloaded from the [AWS-iGenomes](https://ewels.github.io/AWS-iGenomes/) resource.  
+An test fasta file that can be used with the test dataset is provided on https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/hg19_testdata.fasta.gz
+
+The syntax for this :
+```bash
+reference_genome = hg19_testdata.fasta.gz
+```
+
+## Genetic map for eagle2 --eagle_genetic_map
+A genetic map file is required during phasing phase. A full 
 
 ## Job Resources
 ### Automatic resubmission
@@ -106,13 +106,6 @@ Each step in the pipeline has a default set of requirements for number of CPUs, 
 
 ### Custom resource requests
 Wherever process-specific requirements are set in the pipeline, the default value can be changed by creating a custom config file. See the files in [`conf`](../conf) for examples.
-
-## AWS Batch specific parameters
-Running the pipeline on AWS Batch requires a couple of specific parameters to be set according to your AWS Batch configuration. Please use the `-awsbatch` profile and then specify all of the following parameters.
-### `--awsqueue`
-The JobQueue that you intend to use on AWS Batch.
-### `--awsregion`
-The AWS region to run your job in. Default is set to `eu-west-1` but can be adjusted to your needs.
 
 Please make sure to also set the `-w/--work-dir` and `--outdir` parameters to a S3 storage bucket of your choice - you'll get an error message notifying you if you didn't.
 
