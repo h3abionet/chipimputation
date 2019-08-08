@@ -77,7 +77,7 @@ Please note the following requirements:
 4. The path must be enclosed in quotes and must exist otherwise the pipeline will stop.
 5. Must be of the same build as the target dataset.
 
-Some commonly used reference panels are available for download here from [minimac3 website](https://genome.sph.umich.edu/wiki/Minimac3#Reference_Panels_for_Download) including  `1000 Genomes Phase 1` (version 3) and  `1000 Genomes Phase 3` (version 5).  
+Some commonly used reference panels are available for download from [minimac3 website](https://genome.sph.umich.edu/wiki/Minimac3#Reference_Panels_for_Download) including  `1000 Genomes Phase 1` (version 3) and  `1000 Genomes Phase 3` (version 5).  
 To generate your own `M3VCF` files from `VCF` files using `minimac3`, please follow the instructions below as described https://genome.sph.umich.edu/wiki/Minimac3_Examples
 ```bash
 Minimac3 --refHaps refPanel.vcf \ 
@@ -88,8 +88,8 @@ Minimac3 --refHaps refPanel.vcf \
 
 ## Reference Genomes --reference_genome
 
-A human reference genome in `fasta` format of the same build as the target dataset is required by the pipeline during the QC step to check the REF mismatch between in the target dataseet.
-This can be downloaded from the [AWS-iGenomes](https://ewels.github.io/AWS-iGenomes/) resource.  
+A human reference genome in `fasta` format of the same build as the target dataset is required by the pipeline during the QC step to check the REF mismatch between in the target dataseet.  
+This can be downloaded from the [GATK bundle](ftp.broadinstitute.org/bundle/) resource including the commonly used [human_gk1_b37](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37_decoy.fasta.gz).  
 An test fasta file that can be used with the test dataset is provided on https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/hg19_testdata.fasta.gz
 
 The syntax for this :
@@ -98,7 +98,7 @@ reference_genome = hg19_testdata.fasta.gz
 ```
 
 ## Genetic map for eagle2 --eagle_genetic_map
-A genetic map file is required during phasing phase. A full 
+A genetic map file is required during phasing phase. A full genetic maps can be downloaded  http://data.broadinstitute.org/alkesgroup/Eagle/downloads/tables/.
 
 ## Job Resources
 ### Automatic resubmission
@@ -111,7 +111,7 @@ Please make sure to also set the `-w/--work-dir` and `--outdir` parameters to a 
 
 ## Other command line parameters
 
-### `--outdir`
+### `--outDir`
 The output directory where the results will be saved.
 
 ### `--email`
@@ -119,8 +119,6 @@ Set this parameter to your e-mail address to get a summary e-mail with details o
 
 ### `-name`
 Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
-
-This is used in the MultiQC report (if not default) and in the summary HTML / e-mail (always).
 
 **NB:** Single hyphen (core Nextflow option)
 
@@ -138,10 +136,6 @@ Specify the path to a specific config file (this is a core NextFlow command).
 
 Note - you can use this to override defaults. For example, you can specify a config file using `-c` that contains the following:
 
-```nextflow
-process.$multiqc.module = []
-```
-
 ### `--max_memory`
 Use to set a top-limit for the default memory requirement for each process.
 Should be a string in the format integer-unit. eg. `--max_memory '8.GB'``
@@ -156,6 +150,3 @@ Should be a string in the format integer-unit. eg. `--max_cpus 1`
 
 ### `--plaintext_email`
 Set to receive plain-text e-mails instead of HTML formatted.
-
-### `--multiqc_config`
-Specify a path to a custom MultiQC configuration file.
