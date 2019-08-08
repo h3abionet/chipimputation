@@ -89,7 +89,7 @@ Minimac3 --refHaps refPanel.vcf \
 ## Reference Genomes --reference_genome
 
 A human reference genome in `fasta` format of the same build as the target dataset is required by the pipeline during the QC step to check the REF mismatch between in the target dataseet.  
-This can be downloaded from the [GATK bundle](ftp.broadinstitute.org/bundle/) resource including the commonly used [human_gk1_b37](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37_decoy.fasta.gz).  
+This can be downloaded from the [GATK bundle](ftp.broadinstitute.org/bundle/) resource including the commonly used `human_gk1_b37` -- ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37_decoy.fasta.gz).  
 An test fasta file that can be used with the test dataset is provided on https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/hg19_testdata.fasta.gz
 
 The syntax for this :
