@@ -67,9 +67,9 @@ ref_panels {
   }
 ```
 
-A test data is provided in https://github.com/h3abionet/chipimputation_test_data repo:
-    - `M3VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_`%s`_phased.m3vcf.gz
-    - `VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_`%s`_phased.vcf.gz
+A test data is provided in https://github.com/h3abionet/chipimputation_test_data repo:  
+- `M3VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_`%s`_phased.m3vcf.gz  
+- `VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_`%s`_phased.vcf.gz  
     
 Please note the following requirements:
 1. Both `VCF` and `M3VCF` files must be in chromosomes. String extrapolation of `%` will be used to replace the chromosome
@@ -78,13 +78,12 @@ Please note the following requirements:
 4. The path must be enclosed in quotes and must exist otherwise the pipeline will stop.
 
 Some commonly used reference panels are available for download here from [minimac3 website](https://genome.sph.umich.edu/wiki/Minimac3#Reference_Panels_for_Download) including  `1000 Genomes Phase 1` (version 3) and  `1000 Genomes Phase 3` (version 5).  
-To generate your own `M3VCF` files from `VCF` files using `minimac3`, please follow the instructions on https://genome.sph.umich.edu/wiki/Minimac3_Examples
+To generate your own `M3VCF` files from `VCF` files using `minimac3`, please follow the instructions below as described https://genome.sph.umich.edu/wiki/Minimac3_Examples
 ```bash
 Minimac3 --refHaps refPanel.vcf \ 
                 --processReference \ 
                 --rounds 0 \ 
                 --prefix testRun
-
 ```
 
 ## Reference Genomes
