@@ -912,16 +912,16 @@ process plot_freq_comparison {
     publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
     label "medium"
     input:
-    set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq_comp
+        set target_name, ref_name, chrm, file(target_info), file(target_frq), file(ref_frq) from combineInfo_frq_comp
     output:
-    set target_name, ref_name, file(outputcolor) into plot_freq_comparison
+        set target_name, ref_name, file(outputcolor) into plot_freq_comparison
     script:
-    info = target_info
-    target = target_frq
-    frq = ref_frq
-    //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
-    outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.png"
-    template "AF_comparison.R"
+        info = target_info
+        target = target_frq
+        frq = ref_frq
+        //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
+        outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.png"
+        template "AF_comparison.R"
 }
 
 
@@ -1005,6 +1005,8 @@ workflow.onComplete {
     email_fields['commandLine'] = workflow.commandLine
     email_fields['projectDir'] = workflow.projectDir
     email_fields['summary'] = summary
+    email_fields['params'] = params
+    email_fields['ref_panels'] = ref_panels
     email_fields['summary']['Date Started'] = workflow.start
     email_fields['summary']['Date Completed'] = workflow.complete
     email_fields['summary']['Pipeline script file path'] = workflow.scriptFile

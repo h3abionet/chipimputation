@@ -1,9 +1,0 @@
-.DS_Store
-.nextflow/*
-.nextflow.log*
-output/*
-results/*
-work/*
-.idea/
-.idea/
-dictionaries/

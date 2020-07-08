@@ -1,0 +1,97 @@
+#######################################################################
+#
+# This container provides an installation of tools needed for the chipimputation pipeline.
+#
+# Changelog
+# ---------
+#
+#######################################################################
+
+bootstrap: docker
+From: ubuntu:16.04
+
+%labels
+    Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za", Ayton Meintjes "ayton.meintjes@uct.ac.za"
+
+%help
+    This container provides an installation of tools needed for the chipimputation pipeline
+    on https://github.com/h3abionet/chipimputation
+
+%post
+
+    # Install Basic tools
+    apt-get update && apt-get install -y \
+      autoconf \
+      build-essential \
+      git \
+      libncurses5-dev \
+      pkg-config \
+      unzip \
+      wget curl \
+      python python-dev \
+      libbz2-dev \
+      liblzma-dev \
+      zlib1g-dev \
+      r-base && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+    # install R packages
+    R --slave -e 'install.packages("dplyr", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("ggplot2", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("data.table", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("sm", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("optparse", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("ggsci", repos="https://cloud.r-project.org/")'
+    R --slave -e 'install.packages("tidyr", repos="https://cloud.r-project.org/")'
+
+    # Install minimac4
+    wget http://debian.mirror.ac.za/debian/pool/main/libs/libstatgen/libstatgen0_1.0.14-5_amd64.deb
+    dpkg -i libstatgen0_1.0.14-5_amd64.deb
+    wget http://debian.mirror.ac.za/debian/pool/main/m/minimac4/minimac4_1.0.0-2_amd64.deb
+    dpkg -i minimac4_1.0.0-2_amd64.deb
+
+    # Install PLINK2
+    # there is an undocumented stable url (without the date)
+    wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_latest.zip -O plink.zip && \
+        unzip plink.zip -d /usr/local/bin/ && \
+        rm -f plink.zip
+
+    # Install bcftools
+    wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2 && \
+    tar -xvf bcftools-1.9.tar.bz2 && \
+    cd bcftools-1.9 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf bcftools-1.9*
+
+    # Install htslib
+    wget https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2 && \
+    tar -xvf htslib-1.9.tar.bz2 && \
+    cd htslib-1.9 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf htslib-1.9*
+
+    # Install samtools
+    wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9.tar.bz2 && \
+    tar -xvf samtools-1.9.tar.bz2 && \
+    cd samtools-1.9 && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && rm -rf samtools-1.9*
+
+    # Install Eagle
+    wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.1.tar.gz && \
+        gunzip Eagle_v2.4.1.tar.gz && \
+        tar xvf Eagle_v2.4.1.tar && \
+        mv Eagle_v2.4.1/eagle /usr/local/bin/ && \
+        rm -rf Eagle_v2.4.1
+
+%environment
+    export LANG=en_US.UTF-8
+    export LANGUAGE=en_US:en
+    export LC_ALL=C.UTF-8
