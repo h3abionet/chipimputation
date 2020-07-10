@@ -23,7 +23,7 @@ java -version
 curl -fsSL get.nextflow.io | bash
 
 # Add Nextflow binary to your PATH:
-mkdir -p ~/bin 
+mkdir -p ~/bin
 mv nextflow ~/bin/
 # OR system-wide installation:
 # sudo mv nextflow /usr/local/bin
@@ -66,7 +66,7 @@ Be warned of two important points about this default configuration:
 1. The default profile uses the `local` executor
     * All jobs are run in the login session. If you're using a simple server, this may be fine. If you're using a compute cluster, this is bad as all jobs will run on the head node.
     * See the [nextflow docs](https://www.nextflow.io/docs/latest/executor.html) for information about running with other hardware backends. Most job scheduler systems are natively supported.
-2. Nextflow will expect all software to be installed and available on the `PATH`, unless Docker or Singularity used. 
+2. Nextflow will expect all software to be installed and available on the `PATH`, unless Docker or Singularity used.
 
 #### 3.1) Software deps: Docker
 First, install docker on your system: [Docker Installation Instructions](https://docs.docker.com/engine/installation/)
@@ -91,10 +91,10 @@ nextflow run h3abionet/chipimputation -with-singularity h3abionet-chipimputation
 
 Remember to pull updated versions of the Singularity image if you update the pipeline.
 
-
+<!--
 #### 3.2) Software deps: conda
 If you're not able to use Docker or Singularity, you can instead use conda to manage the software requirements.
 This is slower and less reproducible than the above, but is still better than having to install all requirements yourself!
 The pipeline ships with a conda environment file and nextflow has built-in support for this.
 To use it first ensure that you have conda installed (we recommend [miniconda](https://conda.io/miniconda.html)), then follow the same pattern as above and use the flag `-profile conda`.  
-**Note** that `minimac4` is not available through conda, so a manual installation of `minimac4` might be needed in this case.
+**Note** that `minimac4` is not available through conda, so a manual installation of `minimac4` might be needed in this case. -->
