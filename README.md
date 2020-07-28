@@ -7,11 +7,11 @@
 
 ### Introduction
 Imputation is likely to be run in the context of a GWAS, studying population structure, and admixture studies. It is computationally expensive in comparison to other GWAS steps.
-The basic steps of the pipeline is description in the diagram below:
+The basic steps of the pipeline is described in the diagram below:
 
 ![chipimputation pipeline workflow diagram](https://www.h3abionet.org/images/workflows/snp_imputation_workflow.png)
 
-The workflow is developed using [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A520.04.0-brightgreen.svg)](https://www.nextflow.io/). The imputation is performed using [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4). It identifies regions to be imputed on the basis of an input file in VCF format, split the regions into small chunks, phase each chunk using the phasing tool [Eagle2](https://data.broadinstitute.org/alkesgroup/Eagle/) and produces output in VCF format that can subsequently be used in a [GWAS]() workflow. It also produce basic plots and reports of the imputation process including the imputation performance report, the imputation accuracy, the allele frequency of the imputed vs of the reference panel and other metrics.    
+The workflow is developed using [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A520.04.0-brightgreen.svg)](https://www.nextflow.io/). The imputation is performed using [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4). It identifies regions to be imputed on the basis of an input file in VCF format, split the regions into small chunks, phase each chunk using the phasing tool [Eagle2](https://data.broadinstitute.org/alkesgroup/Eagle/) and produces output in VCF format that can subsequently be used in a [GWAS](https://github.com/h3abionet/h3agwas) workflow. It also produce basic plots and reports of the imputation process including the imputation performance report, the imputation accuracy, the allele frequency of the imputed vs of the reference panel and other metrics.    
 This pipeline comes with docker/singularity containers making installation trivial and results highly reproducible.
 
 This  workflow which was developed as part of the H3ABioNet Hackathon held in Pretoria, SA in 2016. Should want to reference it, please use:  
@@ -23,7 +23,7 @@ We track our open tasks using github's [issues](https://github.com/h3abionet/chi
 The h3achipimputation pipeline comes with documentation about the pipeline, found in the `docs/` directory:
 
 1. [Installation](docs/installation.md)
-2. [Pipeline configuration](docs/config_files.md)  
+2. [Pipeline configuration](docs/configuration/config_files.md)  
     2.1. [Configuration files](docs/configs.md)  
     2.2. [Software requirements](docs/soft_requirements.md)  
     2.3. [Other clusters](docs/other_clusters.md)  
