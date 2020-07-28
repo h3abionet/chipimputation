@@ -2,12 +2,12 @@
 To run the pipeline, several software packages are required. How you satisfy these requirements is essentially up to you and depends on your system.  
 If possible, we _highly_ recommend using either Docker or Singularity.
 
-Please see the [`installation documentation`](../installation.md) for how to run using the below as a one-off. These instructions are about configuring a config file for repeated use.
+Please see the [installation documentation](docs/installation.md) for how to run using the below as a one-off. These instructions are about configuring a config file for repeated use.
 
 ### Docker
 Docker is a great way to run h3abionet/chipimputation, as it manages all software installations and allows the pipeline to be run in an identical software environment across a range of systems.
 
-Nextflow has [excellent integration](https://www.nextflow.io/docs/latest/docker.html) with Docker, and beyond installing the two tools, not much else is required - nextflow will automatically fetch the [nfcore/imp](https://hub.docker.com/r/nfcore/imp/) image that we have created and is hosted at dockerhub at run time.
+Nextflow has [excellent integration](https://www.nextflow.io/docs/latest/docker.html) with Docker, and beyond installing the two tools, not much else is required - nextflow will automatically fetch the [nfcore/imp](https://quay.io/repository/h3abionet_org/imputation_tools?tag=latest&tab=tags) image that we have created and is hosted at dockerhub at run time.
 
 To add docker support to your own config file, add the following:
 

@@ -1,13 +1,13 @@
 # Configuration file
 
 
-A basic configuration comes with the pipeline, which runs by default (the `standard` config profile - see [`conf/base.config`](../../conf/base.config)). This means that you only need to configure the specifics for your system and overwrite any defaults that you want to change.  
+A basic configuration comes with the pipeline, which runs by default (the `standard` config profile - see [`conf/base.config`](conf/base.config). This means that you only need to configure the specifics for your system and overwrite any defaults that you want to change.  
 
 > If you think that there are other people using the pipeline who would benefit from your configuration (eg. other common cluster setups), please let us know. We can add a new configuration and profile which can used by specifying `profile <name>` when running the pipeline.
 
 ## Creating own config file
 
-To run the pipeline using your own dataset, you will need to create your config file as `your_project.config` and it will be applied every time you run Nextflow. 
+To run the pipeline using your own dataset, you will need to create your config file as `your_project.config` and it will be applied every time you run Nextflow.
 While running the pipeline with the `test` profile, the test configuration file `test.config` will be copied into your output folder (`./output`). Simply update the `test.config` with parameters pertaining to your data and save the file anywhere, and reference it when running the pipeline with `-c path/to/test.config` (see the [Nextflow documentation](https://www.nextflow.io/docs/latest/config.html) for more).
 
 ## Main Arguments
@@ -37,14 +37,14 @@ Use this parameter to choose a configuration profile. Profiles can give configur
 Use this to specify the location of your input target dataset files in VCF format.  
 Multiple target datasets can be specified in `target_datasets` of format `name = dataset`, however each target dataset will be used separately.  
 
-The syntax for this : 
+The syntax for this :
 ```bash
 target_datasets {
     Study_name1 = "https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/target_testdata.vcf.gz"
 }
 ```
 
-A test data is provided in https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/target_testdata.vcf.gz, which can be used for testing only. 
+A test data is provided in https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/target_testdata.vcf.gz, which can be used for testing only.
 
 Please note the following requirements:
 1. This is required by the pipeline
@@ -53,8 +53,8 @@ Please note the following requirements:
 
 ### Reference panels `--ref_panels`
 The pipeline expects uses minimac4 to imputed genotypes. Therefore, minimac3 reference format [m3vcf](https://genome.sph.umich.edu/wiki/M3VCF_Files) generated used [minimac3](https://genome.sph.umich.edu/wiki/Minimac3) is expected to be used.  
-You need to specify both `VCF` and `M3VCF` files for `vcfFile` and `m3vcfFile` respectively in the configuration file before you launch the pipeline. 
-A normal glob pattern, enclosed in quotation marks, can then be used. 
+You need to specify both `VCF` and `M3VCF` files for `vcfFile` and `m3vcfFile` respectively in the configuration file before you launch the pipeline.
+A normal glob pattern, enclosed in quotation marks, can then be used.
 
 The syntax for this :
 ```bash
@@ -67,9 +67,9 @@ ref_panels {
 ```
 
 A test data is provided in https://github.com/h3abionet/chipimputation_test_data repo:  
-- `M3VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_%s_phased.m3vcf.gz  
-- `VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_%s_phased.vcf.gz  
-    
+- `M3VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_22_phased.m3vcf.gz  
+- `VCF`: https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/refPanel_testdata_22_phased.vcf.gz  
+
 Please note the following requirements:
 1. Both `VCF` and `M3VCF` files must be in chromosomes. String extrapolation of `%s` will be used to replace the chromosome
 2. The `VCF` files will be used during phasing by `eagle2` and allele frequency comparison by `bcftools` steps
@@ -80,16 +80,16 @@ Please note the following requirements:
 Some commonly used reference panels are available for download from [minimac3 website](https://genome.sph.umich.edu/wiki/Minimac3#Reference_Panels_for_Download) including  `1000 Genomes Phase 1` (version 3) and  `1000 Genomes Phase 3` (version 5).  
 To generate your own `M3VCF` files from `VCF` files using `minimac3`, please follow the instructions below as described https://genome.sph.umich.edu/wiki/Minimac3_Examples
 ```bash
-Minimac3 --refHaps refPanel.vcf \ 
-                --processReference \ 
-                --rounds 0 \ 
+Minimac3 --refHaps refPanel.vcf \
+                --processReference \
+                --rounds 0 \
                 --prefix testRun
 ```
 
 ## Reference Genomes --reference_genome
 
 A human reference genome in `fasta` format of the same build as the target dataset is required by the pipeline during the QC step to check the REF mismatch between in the target dataseet.  
-This can be downloaded from the [GATK bundle](ftp.broadinstitute.org/bundle/) resource including the commonly used `human_gk1_b37` -- ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37_decoy.fasta.gz.  
+This can be downloaded from the [GATK bundle](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/) resource including the commonly used `human_gk1_b37` [genome](ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/b37/human_g1k_v37_decoy.fasta.gz).  
 An test fasta file that can be used with the test dataset is provided on https://github.com/h3abionet/chipimputation_test_data/raw/master/testdata_imputation/hg19_testdata.fasta.gz
 
 The syntax for this :
