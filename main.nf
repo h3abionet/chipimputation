@@ -1050,23 +1050,6 @@ workflow.onComplete {
     def sf = new File("$baseDir/assets/sendmail_template.txt")
     def sendmail_template = engine.createTemplate(sf).make(smail_fields)
     def sendmail_html = sendmail_template.toString()
-
-    // // Send the HTML e-mail
-    // if (params.email) {
-    //     try {
-    //       if( params.plaintext_email ){ throw GroovyException('Send plaintext e-mail, not HTML') }
-    //       // Try to send HTML e-mail using sendmail
-    //       [ 'sendmail', '-t' ].execute() << sendmail_html
-    //       log.info "[h3abionet/chipimputation] Sent summary e-mail to $params.email (sendmail)"
-    //     } catch (all) {
-    //       // Catch failures and try with plaintext
-    //       [ 'mail', '-s', subject, params.email ].execute() << email_txt
-    //       log.info "[h3abionet/chipimputation] Sent summary e-mail to $params.email (mail)"
-    //     }
-    // }
-
-    // Write summary e-mail HTML to a file
-    //def output_d = new File( "${params.outDir}/pipeline_info/" )
     def output_d = new File( "${params.outDir}/" )
     if( !output_d.exists() ) {
         output_d.mkdirs()
@@ -1075,11 +1058,6 @@ workflow.onComplete {
     output_hf.withWriter { w -> w << email_html }
     def output_tf = new File( output_d, "pipeline_report.txt" )
     output_tf.withWriter { w -> w << email_txt }
-
-    c_reset = params.monochrome_logs ? '' : "\033[0m";
-    c_purple = params.monochrome_logs ? '' : "\033[0;35m";
-    c_green = params.monochrome_logs ? '' : "\033[0;32m";
-    c_red = params.monochrome_logs ? '' : "\033[0;31m";
 
     if (workflow.stats.ignoredCountFmt > 0 && workflow.success) {
         log.info "${c_purple}Warning, pipeline completed, but with errored process(es) ${c_reset}"
@@ -1101,10 +1079,6 @@ workflow.onComplete {
 }
 
 def checkHostname(){
-    def c_reset = params.monochrome_logs ? '' : "\033[0m"
-    def c_white = params.monochrome_logs ? '' : "\033[0;37m"
-    def c_red = params.monochrome_logs ? '' : "\033[1;91m"
-    def c_yellow_bold = params.monochrome_logs ? '' : "\033[1;93m"
     if(params.hostnames){
         def hostname = "hostname".execute().text.trim()
         params.hostnames.each { prof, hnames ->

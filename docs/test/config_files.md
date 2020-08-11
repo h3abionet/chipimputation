@@ -124,8 +124,6 @@ Set this parameter to your e-mail address to get a summary e-mail with details o
 ### `-name`
 Name for the pipeline run. If not specified, Nextflow will automatically generate a random mnemonic.
 
-This is used in the MultiQC report (if not default) and in the summary HTML / e-mail (always).
-
 **NB:** Single hyphen (core Nextflow option)
 
 ### `-resume`
