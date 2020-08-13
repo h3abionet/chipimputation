@@ -102,8 +102,8 @@ RUN wget ftp://share.sph.umich.edu/minimac3/Minimac3.v2.0.1.tar.gz  && \
 # Install minimac4
 RUN wget http://debian.mirror.ac.za/debian/pool/main/libs/libstatgen/libstatgen0_1.0.14-5_amd64.deb && \
   dpkg -i libstatgen0_1.0.14-5_amd64.deb && \
-  wget http://debian.mirror.ac.za/debian/pool/main/m/minimac4/minimac4_1.0.0-2_amd64.deb && \
-  dpkg -i minimac4_1.0.0-2_amd64.deb
+  wget https://github.com/statgen/Minimac4/releases/download/v1.0.2/minimac4-1.0.2-Linux.deb && \
+  dpkg -i minimac4-1.0.2-Linux.deb
 
 # Install PLINK2
 # there is an undocumented stable url (without the date)
