@@ -15,18 +15,18 @@ MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
 
 # Install wget
 RUN apt-get update && apt-get install -y \
-    autoconf \
-    build-essential \
-    git \
-    libncurses5-dev \
-    pkg-config \
-    unzip \
-    wget curl \
-    python python-dev \
-    libbz2-dev \
-    liblzma-dev \
-    zlib1g-dev \
-    r-base && \
+  autoconf \
+  build-essential \
+  git \
+  libncurses5-dev \
+  pkg-config \
+  unzip \
+  wget curl \
+  python python-dev \
+  libbz2-dev \
+  liblzma-dev \
+  zlib1g-dev \
+  r-base && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -59,11 +59,11 @@ RUN wget https://github.com/samtools/samtools/releases/download/1.9/samtools-1.9
 
 # Install VCFTools
 RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools-0.1.16.tar.gz && \
-    tar -xvf vcftools-0.1.16.tar.gz && \
-    cd vcftools-0.1.16 && \
-    ./configure && \
-    make && \
-    make install
+  tar -xvf vcftools-0.1.16.tar.gz && \
+  cd vcftools-0.1.16 && \
+  ./configure && \
+  make && \
+  make install
 
 # install R packages
 RUN R --slave -e 'install.packages("dplyr", repos="https://cloud.r-project.org/")' && \
@@ -72,7 +72,9 @@ RUN R --slave -e 'install.packages("dplyr", repos="https://cloud.r-project.org/"
   R --slave -e 'install.packages("sm", repos="https://cloud.r-project.org/")' && \
   R --slave -e 'install.packages("optparse", repos="https://cloud.r-project.org/")'  && \
   R --slave -e 'install.packages("ggsci", repos="https://cloud.r-project.org/")'  && \
-  R --slave -e 'install.packages("tidyr", repos="https://cloud.r-project.org/")'
+  R --slave -e 'install.packages("tidyr", repos="https://cloud.r-project.org/")' && \
+  R --slave -e 'install.packages("reshape2", repos="https://cloud.r-project.org/")' && \
+  R --slave -e 'install.packages("plyr", repos="https://cloud.r-project.org/")'
 
 
 # Install bcftools
@@ -86,11 +88,11 @@ RUN wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9
 
 # Install bedtools
 RUN wget https://github.com/arq5x/bedtools2/releases/download/v2.28.0/bedtools-2.28.0.tar.gz && \
-    tar -zxvf bedtools-2.28.0.tar.gz && \
-    cd bedtools2 && \
-    make && \
-    mv bin/bedtools /usr/local/bin/ && \
-    cd .. && rm -r bedtools2
+  tar -zxvf bedtools-2.28.0.tar.gz && \
+  cd bedtools2 && \
+  make && \
+  mv bin/bedtools /usr/local/bin/ && \
+  cd .. && rm -r bedtools2
 
 # Install minimac3
 RUN wget ftp://share.sph.umich.edu/minimac3/Minimac3.v2.0.1.tar.gz  && \
@@ -113,10 +115,10 @@ RUN wget http://s3.amazonaws.com/plink2-assets/plink2_linux_x86_64_latest.zip -O
 
 # Install Eagle
 RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.1.tar.gz && \
-    gunzip Eagle_v2.4.1.tar.gz && \
-    tar xvf Eagle_v2.4.1.tar && \
-    mv Eagle_v2.4.1/eagle /usr/local/bin/ && \
-    rm -rf Eagle_v2.4.1
+  gunzip Eagle_v2.4.1.tar.gz && \
+  tar xvf Eagle_v2.4.1.tar && \
+  mv Eagle_v2.4.1/eagle /usr/local/bin/ && \
+  rm -rf Eagle_v2.4.1
 
 
 RUN useradd --create-home --shell /bin/bash ubuntu && \
