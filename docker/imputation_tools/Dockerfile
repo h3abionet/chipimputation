@@ -7,11 +7,12 @@
 FROM ubuntu:16.04
 
 # File Author / Maintainer
-MAINTAINER Mamana Mbiyavanga "mamana.mbiyavanga@uct.ac.za"
+LABEL maintenair="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
 
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV PATH /opt/conda/bin:$PATH
 
 ################## BEGIN INSTALLATION ######################
-# Install Basic tools
 
 # Install wget
 RUN apt-get update && apt-get install -y \
@@ -25,11 +26,9 @@ RUN apt-get update && apt-get install -y \
   python python-dev \
   libbz2-dev \
   liblzma-dev \
-  zlib1g-dev \
-  r-base && \
+  zlib1g-dev &&\
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
 
 # Install IMPUTE2
 RUN wget http://mathgen.stats.ox.ac.uk/impute/impute_v2.3.2_x86_64_static.tgz && \
@@ -64,18 +63,6 @@ RUN wget https://github.com/vcftools/vcftools/releases/download/v0.1.16/vcftools
   ./configure && \
   make && \
   make install
-
-# install R packages
-RUN R --slave -e 'install.packages("dplyr", repos="https://cloud.r-project.org/")' && \
-  R --slave -e 'install.packages("ggplot2", repos="https://cloud.r-project.org/")' && \
-  R --slave -e 'install.packages("data.table", repos="https://cloud.r-project.org/")' && \
-  R --slave -e 'install.packages("sm", repos="https://cloud.r-project.org/")' && \
-  R --slave -e 'install.packages("optparse", repos="https://cloud.r-project.org/")'  && \
-  R --slave -e 'install.packages("ggsci", repos="https://cloud.r-project.org/")'  && \
-  R --slave -e 'install.packages("tidyr", repos="https://cloud.r-project.org/")' && \
-  R --slave -e 'install.packages("reshape2", repos="https://cloud.r-project.org/")' && \
-  R --slave -e 'install.packages("plyr", repos="https://cloud.r-project.org/")'
-
 
 # Install bcftools
 RUN wget https://github.com/samtools/bcftools/releases/download/1.9/bcftools-1.9.tar.bz2 && \
@@ -119,6 +106,16 @@ RUN wget https://data.broadinstitute.org/alkesgroup/Eagle/downloads/Eagle_v2.4.1
   tar xvf Eagle_v2.4.1.tar && \
   mv Eagle_v2.4.1/eagle /usr/local/bin/ && \
   rm -rf Eagle_v2.4.1
+
+# Install R and R packages
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+  /bin/bash ~/miniconda.sh -b -p /opt/conda && \
+  rm ~/miniconda.sh && \
+  echo "conda activate base" >> ~/.bashrc
+RUN conda clean --all --yes && \
+  conda install -y -c bioconda r-ggplot2 r-dplyr r-plyr r-tidyr r-data.table r-reshape2 r-optparse r-sm
+RUN conda clean --all --yes && \
+  conda install -y -c conda-forge r-ggsci
 
 
 RUN useradd --create-home --shell /bin/bash ubuntu && \
