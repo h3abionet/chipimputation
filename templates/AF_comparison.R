@@ -35,8 +35,8 @@ help = "Display [] number of SNPs [Default = 20000]")
 args <- parse_args(OptionParser(option_list = option_list))
 
 # read in info and frequency file of imputed sample
-info <- read.table(args\$i, header = T, sep ="\t")
-frq <- read.table(args\$t, header = T, sep = "\t")
+info <- read.table(args\$i, header = T, sep ="\\t")
+frq <- read.table(args\$t, header = T, sep = "\\t")
 
 # modify SNP ID 
 frq <- frq %>% separate("SNP", c("CHR", "Position", "REF", "ALT"), "_")

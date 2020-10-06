@@ -34,7 +34,7 @@ for(panel in inputs){
 i <- 1
 for(file in panels){
   name <- names(panels)[i]
-  panel <- fread(as.character(file), sep = "\t", header = T,select = c("SNP", "MAF","Rsq","Genotyped"))
+  panel <- fread(as.character(file), sep = "\\t", header = T,select = c("SNP", "MAF","Rsq","Genotyped"))
   panel <- panel %>% mutate(R_Panel = paste0(name))
   if(i > 1){
     full <- rbind(full, panel)

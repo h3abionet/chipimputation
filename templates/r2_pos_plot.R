@@ -26,8 +26,8 @@ args <- parse_args(OptionParser(option_list = option_list))
 
 
 # Read in the allele frequency files
-info <- fread(file = as.character(args[1]), sep = "\t", header = T, select = c("SNP", "Rsq", "Genotyped", "MAF", "ALT_Frq"))
-frq <- fread(file = as.character(args[2]), sep = "\t", header = T, select= c("SNP","CHR","POS"))
+info <- fread(file = as.character(args[1]), sep = "\\t", header = T, select = c("SNP", "Rsq", "Genotyped", "MAF", "ALT_Frq"))
+frq <- fread(file = as.character(args[2]), sep = "\\t", header = T, select= c("SNP","CHR","POS"))
 
 # modify SNP ID of frq file
 frq <- frq %>% separate("SNP", c("CHR", "Position", "REF", "ALT"), "_" )
