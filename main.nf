@@ -995,10 +995,10 @@ workflow.onComplete {
             confi_test.copyTo("${params.outDir}/test.config")
             log.info "${confi_test} copied to ${params.outDir}/test.config."
         }
-        log.info "[h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
+        log.info "[h3abionet/chipimputation] Pipeline completed successfully"
     } else {
         checkHostname()
-        log.info "[h3abionet/chipimputation]${c_red} Pipeline completed with errors${c_reset}"
+        log.info "[h3abionet/chipimputation] Pipeline completed with errors"
     }
 }
 
