@@ -988,70 +988,6 @@ process plot_MAF_r2 {
  * Completion e-mail notification
  */
 workflow.onComplete {
-    // Set up the e-mail variables
-    def subject = "[h3abionet/chipimputation] Successful: $workflow.runName"
-    if(!workflow.success){
-        subject = "[h3abionet/chipimputation] FAILED: $workflow.runName"
-    }
-    def email_fields = [:]
-    email_fields['version'] = workflow.manifest.version
-    email_fields['runName'] = custom_runName ?: workflow.runName
-    email_fields['success'] = workflow.success
-    email_fields['dateComplete'] = workflow.complete
-    email_fields['duration'] = workflow.duration
-    email_fields['exitStatus'] = workflow.exitStatus
-    email_fields['errorMessage'] = (workflow.errorMessage ?: 'None')
-    email_fields['errorReport'] = (workflow.errorReport ?: 'None')
-    email_fields['commandLine'] = workflow.commandLine
-    email_fields['projectDir'] = workflow.projectDir
-    email_fields['summary'] = summary
-    email_fields['params'] = params
-    email_fields['ref_panels'] = ref_panels
-    email_fields['summary']['Date Started'] = workflow.start
-    email_fields['summary']['Date Completed'] = workflow.complete
-    email_fields['summary']['Pipeline script file path'] = workflow.scriptFile
-    email_fields['summary']['Pipeline script hash ID'] = workflow.scriptId
-    if(workflow.repository) email_fields['summary']['Pipeline repository Git URL'] = workflow.repository
-    if(workflow.commitId) email_fields['summary']['Pipeline repository Git Commit'] = workflow.commitId
-    if(workflow.revision) email_fields['summary']['Pipeline Git branch/tag'] = workflow.revision
-    if(workflow.container) email_fields['summary']['Docker image'] = workflow.container
-    email_fields['summary']['Nextflow Version'] = workflow.nextflow.version
-    email_fields['summary']['Nextflow Build'] = workflow.nextflow.build
-    email_fields['summary']['Nextflow Compile Timestamp'] = workflow.nextflow.timestamp
-
-    def mqc_report = null
-    
-
-    // Render the TXT template
-    def engine = new groovy.text.GStringTemplateEngine()
-    def tf = new File("$baseDir/assets/email_template.txt")
-    def txt_template = engine.createTemplate(tf).make(email_fields)
-    def email_txt = txt_template.toString()
-
-    // Render the HTML template
-    def hf = new File("$baseDir/assets/email_template.html")
-    def html_template = engine.createTemplate(hf).make(email_fields)
-    def email_html = html_template.toString()
-
-    // Render the sendmail template
-    // def smail_fields = [ email: params.email, subject: subject, email_txt: email_txt, email_html: email_html, baseDir: "$baseDir", mqcFile: mqc_report/*, mqcMaxSize: params.maxMultiqcEmailFileSize.toBytes() */]
-    def sf = new File("$baseDir/assets/sendmail_template.txt")
-    def sendmail_template = engine.createTemplate(sf).make(smail_fields)
-    def sendmail_html = sendmail_template.toString()
-    def output_d = new File( "${params.outDir}/" )
-    if( !output_d.exists() ) {
-        output_d.mkdirs()
-    }
-    def output_hf = new File( output_d, "pipeline_report.html" )
-    output_hf.withWriter { w -> w << email_html }
-    def output_tf = new File( output_d, "pipeline_report.txt" )
-    output_tf.withWriter { w -> w << email_txt }
-
-    // if (workflow.stats.ignoredCountFmt > 0 && workflow.success) {
-    //     log.info "${c_purple}Warning, pipeline completed, but with errored process(es) ${c_reset}"
-    //     log.info "${c_red}Number of ignored errored process(es) : ${workflow.stats.ignoredCountFmt} ${c_reset}"
-    //     log.info "${c_green}Number of successfully ran process(es) : ${workflow.stats.succeedCountFmt} ${c_reset}"
-    // }
     if(workflow.success){
         // Copy the test config file to the current directory if test profile
         if ('test' in workflow.profile.split(',') && workflow.repository) {
@@ -1059,10 +995,10 @@ workflow.onComplete {
             confi_test.copyTo("${params.outDir}/test.config")
             log.info "${confi_test} copied to ${params.outDir}/test.config."
         }
-        log.info "${c_purple}[h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
+        log.info "[h3abionet/chipimputation]${c_green} Pipeline completed successfully${c_reset}"
     } else {
         checkHostname()
-        log.info "${c_purple}[h3abionet/chipimputation]${c_red} Pipeline completed with errors${c_reset}"
+        log.info "[h3abionet/chipimputation]${c_red} Pipeline completed with errors${c_reset}"
     }
 }
 
