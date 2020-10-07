@@ -34,7 +34,6 @@
     * [`--max_cpus`](#--max_cpus)
     * [`--plaintext_emails`](#--plaintext_emails)
     * [`--sampleLevel`](#--sampleLevel)
-    * [`--multiqc_config`](#--multiqc_config)
 
 
 ## General Nextflow info
@@ -216,10 +215,6 @@ Specify the path to a specific config file (this is a core NextFlow command).
 
 Note - you can use this to override defaults. For example, you can specify a config file using `-c` that contains the following:
 
-```nextflow
-process.$multiqc.module = []
-```
-
 ### `--max_memory`
 Use to set a top-limit for the default memory requirement for each process.
 Should be a string in the format integer-unit. eg. `--max_memory '8.GB'``
@@ -234,6 +229,3 @@ Should be a string in the format integer-unit. eg. `--max_cpus 1`
 
 ### `--plaintext_email`
 Set to receive plain-text e-mails instead of HTML formatted.
-
-### `--multiqc_config`
-Specify a path to a custom MultiQC configuration file.

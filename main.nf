@@ -1019,20 +1019,8 @@ workflow.onComplete {
     email_fields['summary']['Nextflow Build'] = workflow.nextflow.build
     email_fields['summary']['Nextflow Compile Timestamp'] = workflow.nextflow.timestamp
 
-    // TODO nf-core: If not using MultiQC, strip out this code (including params.maxMultiqcEmailFileSize)
-    // On success try attach the multiqc report
     def mqc_report = null
-    try {
-        if (workflow.success) {
-            mqc_report = multiqc_report.getVal()
-            if (mqc_report.getClass() == ArrayList){
-                log.warn "[h3abionet/chipimputation] Found multiple reports from process 'multiqc', will use only one"
-                mqc_report = mqc_report[0]
-            }
-        }
-    } catch (all) {
-        log.warn "[h3abionet/chipimputation] Could not attach MultiQC report to summary email"
-    }
+    
 
     // Render the TXT template
     def engine = new groovy.text.GStringTemplateEngine()
@@ -1046,7 +1034,7 @@ workflow.onComplete {
     def email_html = html_template.toString()
 
     // Render the sendmail template
-    def smail_fields = [ email: params.email, subject: subject, email_txt: email_txt, email_html: email_html, baseDir: "$baseDir", mqcFile: mqc_report/*, mqcMaxSize: params.maxMultiqcEmailFileSize.toBytes() */]
+    // def smail_fields = [ email: params.email, subject: subject, email_txt: email_txt, email_html: email_html, baseDir: "$baseDir", mqcFile: mqc_report/*, mqcMaxSize: params.maxMultiqcEmailFileSize.toBytes() */]
     def sf = new File("$baseDir/assets/sendmail_template.txt")
     def sendmail_template = engine.createTemplate(sf).make(smail_fields)
     def sendmail_html = sendmail_template.toString()
@@ -1059,11 +1047,11 @@ workflow.onComplete {
     def output_tf = new File( output_d, "pipeline_report.txt" )
     output_tf.withWriter { w -> w << email_txt }
 
-    if (workflow.stats.ignoredCountFmt > 0 && workflow.success) {
-        log.info "${c_purple}Warning, pipeline completed, but with errored process(es) ${c_reset}"
-        log.info "${c_red}Number of ignored errored process(es) : ${workflow.stats.ignoredCountFmt} ${c_reset}"
-        log.info "${c_green}Number of successfully ran process(es) : ${workflow.stats.succeedCountFmt} ${c_reset}"
-    }
+    // if (workflow.stats.ignoredCountFmt > 0 && workflow.success) {
+    //     log.info "${c_purple}Warning, pipeline completed, but with errored process(es) ${c_reset}"
+    //     log.info "${c_red}Number of ignored errored process(es) : ${workflow.stats.ignoredCountFmt} ${c_reset}"
+    //     log.info "${c_green}Number of successfully ran process(es) : ${workflow.stats.succeedCountFmt} ${c_reset}"
+    // }
     if(workflow.success){
         // Copy the test config file to the current directory if test profile
         if ('test' in workflow.profile.split(',') && workflow.repository) {
