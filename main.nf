@@ -704,7 +704,7 @@ process plot_performance_target{
     output:
     set target_name, ref_panels, file(plot_by_maf) into plot_performance_target
     script:
-    plot_by_maf = "${well_imputed_report.baseName}.png"
+    plot_by_maf = "${well_imputed_report.baseName}.pdf"
     chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
     report = well_imputed_report
     group = "REF_PANEL"
@@ -743,7 +743,7 @@ process plot_accuracy_target{
     output:
     set target_name, ref_panels, file(plot_by_maf) into plot_accuracy_target
     script:
-    plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf.png"
+    plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf.pdf"
     chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
     report = accuracy_report
     group = "REF_PANEL"
@@ -807,7 +807,7 @@ process plot_performance_ref{
     output:
     set ref_name, target_names, file(plot_by_maf) into plot_performance_ref
     script:
-    plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.png"
+    plot_by_maf = "${well_imputed_report.baseName}_performance_by_maf.pdf"
     chrms = chromosomes[0]+"-"+chromosomes[-1]
     report = well_imputed_report
     group = "DATASET"
@@ -846,7 +846,7 @@ process plot_accuracy_ref{
     output:
     set ref_name, target_names, file(plot_by_maf) into plot_accuracy_ref
     script:
-    plot_by_maf = "${accuracy_report.baseName}_by_maf.png"
+    plot_by_maf = "${accuracy_report.baseName}_by_maf.pdf"
     chrms = chromosomes[0]+"-"+chromosomes[-1]
     report = accuracy_report
     group = "REF_PANEL"
@@ -899,7 +899,7 @@ process plot_r2_SNPpos {
     script:
     info = target_info
     target = target_frq
-    output = "${target_name}_${ref_name}_${chrm}_r2_SNPpos.png"
+    output = "${target_name}_${ref_name}_${chrm}_r2_SNPpos.pdf"
     template "r2_pos_plot.R"
 }
 
@@ -919,8 +919,8 @@ process plot_freq_comparison {
         info = target_info
         target = target_frq
         frq = ref_frq
-        //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.png"
-        outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.png"
+        //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.pdf"
+        outputcolor = "${target_name}_${ref_name}_${chrm}_freq_comparison_color.pdf"
         template "AF_comparison.R"
 }
 
@@ -938,7 +938,7 @@ process plot_r2_SNPcount {
     set target_name, ref_panels, file(plot_out) into plot_r2_SNPcount
     script:
     chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-    plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount.png"
+    plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount.pdf"
     infos = infos.join(',')
     impute_info_cutoff = params.impute_info_cutoff
     template "r2_Frequency_plot.R"
@@ -958,7 +958,7 @@ process plot_hist_r2_SNPcount {
     set target_name, ref_panels, file(plot_out) into plot_hist_r2_SNPcount
     script:
     chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-    plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount_hist.png"
+    plot_out = "${target_name}_${ref_panels}_${chrms}_r2_SNPcount_hist.pdf"
     infos = infos.join(',')
     impute_info_cutoff = params.impute_info_cutoff
     template "r2_Frequency_plot_histogram.R"
@@ -978,7 +978,7 @@ process plot_MAF_r2 {
     set target_name, ref_panels, file(plot_out) into plot_MAF_r2
     script:
     chrms = chromosomes_[target_name][0]+"-"+chromosomes_[target_name][-1]
-    plot_out = "${target_name}_${ref_panels}_${chrms}_MAF_r2.png"
+    plot_out = "${target_name}_${ref_panels}_${chrms}_MAF_r2.pdf"
     infos = infos.join(',')
     impute_info_cutoff = params.impute_info_cutoff
     template "Frequency_r2_MAF_plot.R"
