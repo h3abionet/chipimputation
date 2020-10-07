@@ -865,19 +865,19 @@ process generate_frequency {
     publishDir "${params.outDir}/frqs/${ref_name}", overwrite: true, mode:'copy', pattern: '*frq'
     label "medium"
     input:
-    set target_name, ref_name, file(ref_vcf), chrm, file(impute_vcf) from combineImpute
+        set target_name, ref_name, file(ref_vcf), chrm, file(impute_vcf) from combineImpute
     output:
-    set target_name, ref_name, file(ref_vcf), chrm, file(dataset_frq), file(ref_frq) into frq_dataset,frq_dataset_info
+        set target_name, ref_name, file(ref_vcf), chrm, file(dataset_frq), file(ref_frq) into frq_dataset,frq_dataset_info
     script:
-    ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
-    dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
-    """
+        ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
+        dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
+        """
         # For datastet
         echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${dataset_frq}
-        bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${impute_vcf} >> ${dataset_frq}
+        bcftools view -m2 -M2 -v snps ${impute_vcf} | bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' >> ${dataset_frq}
         # For the reference panel
         echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${ref_frq}
-        bcftools +fill-tags ${ref_vcf} -Oz -o ${ref_name}_AF.vcf.gz -- -t AF
+        bcftools view -m2 -M2 -v snps ${ref_vcf} | bcftools +fill-tags -Oz -o ${ref_name}_AF.vcf.gz -- -t AF
         bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${ref_name}_AF.vcf.gz >> ${ref_frq}
         """
 }
