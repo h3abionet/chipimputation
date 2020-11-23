@@ -37,8 +37,8 @@ def chunk_split(map_file, output, chunk_size, chrms='', chunk=''):
             for pos in myPos[chrm]:
                 start_ = pos
                 end_ = start_ + chunk_size - 1
-                if end_ >= max_:
-                    end_ = max_
+                if end_ >= max_[chrm]:
+                    end_ = max_[chrm]
                 out.writelines(','.join([str(chrm), str(start_), str(end_)]) + '\\n')
     else:
         chunks = chunk.split(',')
