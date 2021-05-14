@@ -117,6 +117,11 @@ RUN conda clean --all --yes && \
 RUN conda clean --all --yes && \
   conda install -y -c conda-forge r-ggsci
 
+RUN conda update conda && \
+  conda clean --all --yes && \
+  conda install -y -c bioconda snpeff=4.3 snpsift
+
+
 
 RUN useradd --create-home --shell /bin/bash ubuntu && \
   chown -R ubuntu:ubuntu /home/ubuntu
