@@ -13,14 +13,14 @@ def chunk_split(map_file, output, chunk_size, chrms='', chunk=''):
     datas = {}
     out = open(output, 'w')
     for dat in data:
-        chrm = int(dat[0])
+        chrm = dat[0]
         myPos = int(dat[1])
         if chrm not in datas:
             datas[chrm] = []
         datas[chrm].append(myPos)
     data = {}
     if chrms != '':
-        chrms = sorted([int(it) for it in set(chrms.split(','))])
+        chrms = sorted([it for it in set(chrms.split(','))])
     else:
         chrms = sorted(datas)
 
@@ -55,7 +55,7 @@ def chunk_split(map_file, output, chunk_size, chrms='', chunk=''):
                         start_ = pos
                         end_ = start_ + chunk_size - 1
                         for chrm in myPos:
-                            if int(chrm_) == int(chrm):
+                            if str(chrm_) == str(chrm):
                                 if start_ >= min_[chrm] and start_ <= max_[chrm]:
                                     if (end_ >= chunk_end) or (chunk_end - end_ + 1 <= chunk_size):
                                         out.writelines(str(chrm) + "," + str(start_) + "," + str(chunk_end) + "\\n")
