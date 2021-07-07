@@ -81,7 +81,7 @@ Combine impute chunks to chromosomes
 """
 process combineImpute {
     tag "impComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'symlink', pattern: '*imputed.gz'
+    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'symlink', pattern: '*imputed.vcf.gz'
     label "bigmem"
     
     input:
