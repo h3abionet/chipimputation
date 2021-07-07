@@ -79,7 +79,13 @@ workflow preprocess {
             params.ref_panels.each{ ref_name, ref_m3vcf, ref_vcf ->
                 vcf = sprintf(ref_vcf, chrm)
                 m3vcf = sprintf(ref_m3vcf, chrm)
-                check_files([m3vcf, vcf])
+                if(vcf.endsWith("vcf.gz")){
+                    vcf_idx = "${vcf}.tbi" 
+                }
+                else if(vcf.endsWith("bcf")){
+                    vcf_idx = "${vcf}.csi" 
+                }
+                check_files([ m3vcf, vcf, vcf_idx ])
             }
         }
 
@@ -186,8 +192,8 @@ workflow {
             else if(vcf.endsWith("bcf")){
                 vcf_idx = "${vcf}.csi" 
             }
-            check_files([ m3vcf, vcf, vcf_idx ])
-            return [ [ chrm, ref_name, file(m3vcf), file(vcf), file(vcf_idx), file(params.eagle_genetic_map), start, end, dataset, dataset, file(dataset_vcf)] ]}
+            return [ [ chrm, ref_name, file(m3vcf), file(vcf), file(vcf_idx), file(params.eagle_genetic_map), start, end, dataset, dataset, file(dataset_vcf)] ]
+        }
     phasing(phasing_data)
 
     //// Imputation
