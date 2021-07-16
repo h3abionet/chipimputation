@@ -119,7 +119,7 @@ RUN conda clean --all --yes && \
 
 RUN conda update conda && \
   conda clean --all --yes && \
-  conda install -y -c bioconda snpeff=4.3 snpsift crossmal
+  conda install -y -c bioconda snpeff=4.3 snpsift crossmap
 
 
 RUN useradd --create-home --shell /bin/bash ubuntu && \
