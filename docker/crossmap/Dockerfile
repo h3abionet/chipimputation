@@ -1,10 +1,10 @@
 ############################################################
 # Dockerfile to build Genotype imputation
-# Based on Ubuntu 16.04
+# Based on Ubuntu 20.04
 ############################################################
 
 # Set the base image to Ubuntu
-FROM ubuntu:16.04
+FROM ubuntu:20.04
 
 # File Author / Maintainer
 LABEL maintenair="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
@@ -26,11 +26,11 @@ RUN apt-get update && apt-get install -y \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
+RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
   /bin/bash ~/miniconda.sh -b -p /opt/conda && \
   rm ~/miniconda.sh && \
   echo "conda activate base" >> ~/.bashrc
-  
+
 RUN conda update conda && \
   conda clean --all --yes && \
   conda install -y -c bioconda crossmap
