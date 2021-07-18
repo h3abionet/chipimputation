@@ -14,13 +14,10 @@ ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ################## BEGIN INSTALLATION ######################
 
 # Install wget
-RUN apt-get update && apt-get install -y \
-  python3.8 &&\
+RUN apt-get update &&  \
+  apt-get install -y python3.8 python3-pip && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-RUN apt-get update -y && \ 
-  apt-get install python3-pip -y
 
 RUN pip3 install CrossMap
 
