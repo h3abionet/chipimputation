@@ -19,7 +19,7 @@ RUN apt-get update && apt-get install -y \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN apt-get update && \ 
+RUN apt-get update -y && \ 
   apt-get install python3-pip
 
 RUN pip3 install CrossMap
