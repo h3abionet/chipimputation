@@ -15,13 +15,7 @@ ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # Install wget
 RUN apt-get update && apt-get install -y \
-  autoconf \
-  build-essential \
-  git \
-  pkg-config \
-  unzip \
-  wget curl \
-  python python-dev &&\
+  python3.8 &&\
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
