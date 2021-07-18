@@ -10,7 +10,6 @@ FROM ubuntu:20.04
 LABEL maintenair="Mamana Mbiyavanga mamana.mbiyavanga@uct.ac.za"
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
-ENV PATH /opt/conda/bin:$PATH
 
 ################## BEGIN INSTALLATION ######################
 
@@ -26,14 +25,10 @@ RUN apt-get update && apt-get install -y \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda2-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
-  /bin/bash ~/miniconda.sh -b -p /opt/conda && \
-  rm ~/miniconda.sh && \
-  echo "conda activate base" >> ~/.bashrc
+RUN apt-get update && \ 
+  apt-get install python3-pip
 
-RUN conda update conda && \
-  conda clean --all --yes && \
-  conda install -y -c bioconda crossmap
+RUN pip3 install CrossMap
 
 
 RUN useradd --create-home --shell /bin/bash ubuntu && \
