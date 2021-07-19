@@ -21,9 +21,26 @@ RUN apt-get update &&  \
 
 RUN pip3 install CrossMap
 
-
 RUN useradd --create-home --shell /bin/bash ubuntu && \
   chown -R ubuntu:ubuntu /home/ubuntu
+
+# Install htslib
+RUN wget https://github.com/samtools/htslib/releases/download/1.9/htslib-1.9.tar.bz2 && \
+  tar -xvf htslib-1.9.tar.bz2 && \
+  cd htslib-1.9 && \
+  ./configure --prefix=/usr/local && \
+  make && \
+  make install && \
+  cd .. && rm -rf htslib-1.9*
+
+# Install bcftools
+RUN wget https://github.com/samtools/bcftools/releases/download/1.13/bcftools-1.13.tar.bz2 && \
+  tar -xvf bcftools-1.13.tar.bz2 && \
+  cd bcftools-1.13 && \
+  ./configure --prefix=/usr/local && \
+  make && \
+  make install && \
+  cd .. && rm -rf bcftools-1.13*
 
 USER ubuntu
 
