@@ -3,15 +3,15 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--infoFiles", help="")
-parser.add_argument("--outWell_imputed", help="")
-parser.add_argument("--outSNP_acc", help="")
-parser.add_argument("--infoCutoff", help="")
+parser.add_argument("--infoFiles", default="${ref_infos}", help="")
+parser.add_argument("--datasets", default="${datasets}", help="")
+parser.add_argument("--out_prefix", default="${out_prefix}", help="")
+parser.add_argument("--infoCutoff", default="${impute_info_cutoff}", help="")
 
 args = parser.parse_args()
 
 
-def filter_info(infoFiles, infoCutoff, outWell_imputed, outSNP_acc):
+def filter_info(infoFiles, datasets, infoCutoff, out_prefix):
     """
     Return:
         well_imputed: certainy >= 1
@@ -21,29 +21,28 @@ def filter_info(infoFiles, infoCutoff, outWell_imputed, outSNP_acc):
     SNP_concordance = {}
     count = 0
     infoFiles = infoFiles.split(',')
+    datasets = datasets.split(',')
     header = []
-    outWell_imputed_out = open(outWell_imputed + ".tsv", 'w')
-    outWell_imputed_snp_out = open(outWell_imputed + "_snp.tsv", 'w')
-    outSNP_accuracy_out = open(outSNP_acc + ".tsv", 'w')
+    outWell_imputed_out = open(out_prefix + "_well_imputed.tsv", 'w')
+    outWell_imputed_snp_out = open(out_prefix + "_well_imputed_snp.tsv", 'w')
+    outSNP_accuracy_out = open(out_prefix + "_accuracy.tsv", 'w')
     for infoFile in infoFiles:
-        infoFile = infoFile.strip().split('==')
-        dataset = infoFile[0]
-        info = infoFile[1]
+        dataset = datasets[infoFiles.index(infoFile)]
         well_imputed[dataset] = []
         SNP_concordance[dataset] = []
-        print info
-        for line in open(info):
+        # print infoFile
+        for line in open(infoFile):
             data = line.strip().split()
             if "SNP" in line and "Rsq" in line:
                 if len(header) == 0:
                     header = data
                     info_idx = header.index("Rsq")
                     conc_idx = header.index("EmpRsq")
-                    outWell_imputed_out.writelines(' '.join([dataset] + data) + '\\n')
+                    outWell_imputed_out.writelines(' '.join(["GROUPS"] + data) + '\\n')
                     outWell_imputed_snp_out.writelines(data[1] + '\\n')
-                    outSNP_accuracy_out.writelines(' '.join([dataset] + data) + '\\n')
+                    outSNP_accuracy_out.writelines(' '.join(["GROUPS"] + data) + '\\n')
             else:
-                print info_idx, data
+                # print info_idx, data
                 if float(data[info_idx]) >= float(infoCutoff):
                     outWell_imputed_out.writelines(' '.join([dataset] + data) + '\\n')
                     outWell_imputed_snp_out.writelines(data[1] + '\\n')
@@ -54,11 +53,6 @@ def filter_info(infoFiles, infoCutoff, outWell_imputed, outSNP_acc):
     outWell_imputed_snp_out.close()
     outSNP_accuracy_out.close()
 
-
-args.infoFiles = "${infos}"
-args.infoCutoff = "${impute_info_cutoff}"
-args.outWell_imputed = "${well_out}"
-args.outSNP_acc = "${acc_out}"
 if args.infoFiles and args.infoCutoff:
-    filter_info(args.infoFiles, args.infoCutoff, args.outWell_imputed, args.outSNP_acc)
+    filter_info(args.infoFiles, args.datasets, args.infoCutoff, args.out_prefix)
 

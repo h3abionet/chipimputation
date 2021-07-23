@@ -30,7 +30,7 @@ def check_files(file_list) {
     }
 }
 
-def check_chromosome_vcf(dataset, dataset_vcf, chrom_file, chrms){
+def check_chromosome_vcf(dataset, dataset_vcf, map_file, chrms){
     """
     Check if specified chromosomes exist in VCF file
     """
@@ -40,7 +40,7 @@ def check_chromosome_vcf(dataset, dataset_vcf, chrom_file, chrms){
     not_chrs = []
     in_chrs = []
     notValid_chrs = []
-    chromosomes_[dataset] = file(chrom_file).readLines().collect{ it.split('\t')[0] }//.unique().sort()
+    chromosomes_[dataset] = file(map_file).readLines().collect{ it.split('\t')[0] }//.unique().sort()
     chromosomes_[dataset].each { chrm ->
         chrm = chrm.trim()
         // if(!(chrm in chromosomes_['ALL'])) { //todo not working
@@ -72,7 +72,7 @@ def check_chromosome_vcf(dataset, dataset_vcf, chrom_file, chrms){
             log.info "|-- WARN- Chromosome(s) ${not_chrs.join(', ')} not in target datasets and will be ignored."
         }
     }
-    return [ dataset, file(dataset_vcf), in_chrs ]
+    return [ dataset, file(dataset_vcf), map_file, in_chrs ]
 }
 
 

@@ -4,8 +4,8 @@ nextflow.enable.dsl=2
 include { get_chromosome; fill_tags_vcf; check_chromosome; check_files; check_chromosome_vcf; check_mismatch; no_mismatch ; qc_dupl; split_multi_allelic; filter_min_ac; target_qc as target_qc; target_qc as target_qc1; qc_site_missingness as qc_site_missingness1; qc_site_missingness as qc_site_missingness2; sites_only ; combine_vcfs ; combine_infos; combine_csvs as combine_freqs; combine_vcfs_chrm; } from './modules/qc' 
 include { vcf_map_simple; extract_site_from_vcf; generate_chunks_vcf; split_target_to_chunk; vcf_map; vcf_freq; info_freq; fill_tags_VCF; sort_vcf ; get_vcf_sites; extract_pop } from './modules/subset_vcf'
 include { phasing_eagle } from './modules/phasing'
-include { impute_minimac4; impute_minimac4_1; combineImpute; combineInfo } from './modules/impute'
-include { filter_info; report_site_by_maf; plot_freq_comparison } from './modules/report'
+include { impute_minimac4; impute_minimac4_1; combineImpute; combineInfo; filter_info_by_target } from './modules/impute'
+include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target } from './modules/report'
 
 // Header log info
 def intro(){
@@ -69,13 +69,14 @@ workflow preprocess {
             check_files([params.reference_genome, "${params.reference_genome}.fai"])
         }
 
-        //// Check chromosome
-        get_chromosome( target_datasets )
-        data_chrms = get_chromosome.out.map{ dataset, dataset_vcf, chrom_file -> check_chromosome_vcf(dataset, dataset_vcf, chrom_file, params.chromosomes) }
-        chromosomes = data_chrms.map{ dataset, dataset_vcf, chrms -> chrms }
+        // //// Check chromosome
+        // get_chromosome( target_datasets )
+        // chromosomes = get_chromosome.out
+        //     .map{ dataset, dataset_vcf, map_file -> check_chromosome_vcf(dataset, dataset_vcf, map_file, params.chromosomes) }
+        //     .map{ dataset, dataset_vcf, map_file, chrms -> chrms.unique() }
         
         //// check if reference panel files exist
-        chromosomes.map{ chrm ->
+        params.chromosomes.split(',').each{ chrm ->
             params.ref_panels.each{ ref_name, ref_m3vcf, ref_vcf ->
                 vcf = sprintf(ref_vcf, chrm)
                 m3vcf = sprintf(ref_m3vcf, chrm)
@@ -97,16 +98,21 @@ workflow preprocess {
         filter_min_ac(fill_tags_vcf.out.map{ dataset, chrm, start, end, vcf -> [ dataset, chrm, start, end, file(vcf), " --min-ac ${params.min_ac} --max-alleles ${params.max_alleles} --min-alleles ${params.min_alleles} -v snps "  ] })
 
     emit:
-        chrms = chromosomes
+        // chrms = chromosomes
         dataset_qc = filter_min_ac.out
-        get_chromosome = get_chromosome.out
+        // get_chromosome = get_chromosome.out
 }
 
 workflow subset{
     take: data
     
     main:
-        generate_chunks_vcf(data.map{ dataset, chrm, start, end, vcf, map_file -> [ dataset, file(vcf), file(map_file), params.chunk_size ] })
+        get_chromosome( data.map{ dataset, chrm, start, end, vcf, map_file -> [ dataset, file(vcf) ] } )
+        data_chrms = get_chromosome.out
+            .map{ dataset, dataset_vcf, map_file -> check_chromosome_vcf(dataset, dataset_vcf, map_file, params.chromosomes) }
+            .map{ dataset, dataset_vcf, map_file, chrms -> [ dataset, file(dataset_vcf), file(map_file), chrms.unique().join(',') ] }
+        
+        generate_chunks_vcf(data_chrms.map{ dataset, vcf, map_file, chrms -> [ dataset, file(vcf), file(map_file), chrms, params.chunk_size ] })
         chunks_datas = generate_chunks_vcf.out.flatMap{ dataset, vcf, chunk_file ->
             datas = []
             chunks = file(chunk_file).text.split()
@@ -155,20 +161,35 @@ workflow postprocess{
         data
             .groupTuple( by:[0,3,4,7] )
         // Create a dataflow instance of all impute results
-        imputeCombine = data
-            .groupTuple( by:[0,3,4,7] )
+        imputeCombine = data.view()
+            .groupTuple( by:[0,3,4,7] ) // combine by chrom, dataset, refpanel, chip
             .map{ chrm, starts, ends, dataset, ref_name, imputed_vcfs, imputed_infos, tagName -> [ dataset, ref_name, chrm, imputed_vcfs  ] }
         infoCombine = data
-            .groupTuple( by:[0,3,4,7] )
+            .groupTuple( by:[0,3,4,7] ) // combine by chrom, dataset, refpanel, chip
             .map{ chrm, starts, ends, dataset, ref_name, imputed_vcfs, imputed_infos, tagName -> [ dataset, ref_name, chrm, imputed_infos  ] }
         
         combineImpute( imputeCombine )
         combineInfo( infoCombine )
 
+        filter_info_by_target(combineInfo.out.groupTuple(by:0).map{ target_name, ref_panels, chrms, ref_infos -> [ target_name, ref_panels.join(','), chrms.join(','), ref_infos.join(',') ] })
+
     emit:
-        data
-        // qc_data = qc_site_missingness.out
+        impute = combineImpute.out
+        info = combineInfo.out
+        qc_info = filter_info_by_target.out
 }
+
+workflow reporting{
+    take: data
+    
+    main:
+        report_well_imputed_by_target(data)
+        plot_performance_target( report_well_imputed_by_target.out )
+
+    emit: 
+        data
+}
+
 
 workflow {
 
@@ -177,7 +198,7 @@ workflow {
     //// Data preparation
     preprocess(params.target_datasets)
     
-    //// Data chunking
+    // //// Data chunking
     subset(preprocess.out.dataset_qc)
 
     //// Phasing
@@ -201,5 +222,8 @@ workflow {
 
     //// Post processing
     postprocess(impute.out.chunks_imputed)
+    
+    //// Reporting
+    reporting(postprocess.out.qc_info.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]})
 
 }

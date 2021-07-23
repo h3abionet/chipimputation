@@ -3,19 +3,21 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--outWell_imputed", help="")
-parser.add_argument("--inWell_imputed", help="")
+parser.add_argument("--out_prefix", help="",
+                    default="${out_prefix}")
+parser.add_argument("--inWell_imputed", help="", default="${inWell_imputed}")
+parser.add_argument("--group", help="", default="${group}")
 
 args = parser.parse_args()
 
 
-def well_imputed_by_maf(inWell_imputed, outWell_imputed, group=''):
+def well_imputed_by_maf(inWell_imputed, out_prefix, group=''):
     """
     :return:
     """
     datas = {}
-    outWell_imputed_out = open(outWell_imputed + ".tsv", 'w')
-    outWell_imputed_out_1 = open(outWell_imputed + "_summary.tsv", 'w')
+    outWell_imputed_out = open(out_prefix + ".tsv", 'w')
+    outWell_imputed_out_1 = open(out_prefix + "_summary.tsv", 'w')
     outWell_imputed_out_1.writelines('\\t'.join(
             [group, '(0,0.001]', '(0.001,0.01]', '(0.01,0.02]', '(0.02,0.05]', '(0.05,0.2]', '(0.2,0.5]',
              'TOTAL']) + '\\n')
@@ -25,7 +27,7 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed, group=''):
     for line in info_datas:
         data = line.strip().split()
         dataset = data[0]
-        if dataset not in datas:
+        if "SNP" not in line and dataset not in datas:
             datas[dataset] = {}
             datas[dataset]['extreme_rare'] = []
             datas[dataset]['moderate_rare'] = []
@@ -60,7 +62,7 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed, group=''):
                 datas[dataset]['total'] += 1
 
     try:
-        datasets = [str(it) for it in sorted([int(it) for it in datas])]
+        datasets = [ str(it) for it in sorted([int(it) for it in datas]) ]
     except:
         datasets = sorted(datas)
     for dataset in datasets:
@@ -118,8 +120,5 @@ def well_imputed_by_maf(inWell_imputed, outWell_imputed, group=''):
     outWell_imputed_out.close()
 
 
-args.inWell_imputed = "${inWell_imputed}"
-args.outWell_imputed = "${outWell_imputed}"
-args.group = "${group}"
-if args.inWell_imputed and args.outWell_imputed:
-    well_imputed_by_maf(args.inWell_imputed, args.outWell_imputed, args.group)
+if args.inWell_imputed and args.out_prefix:
+    well_imputed_by_maf(args.inWell_imputed, args.out_prefix, args.group)

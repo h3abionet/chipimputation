@@ -182,12 +182,12 @@ process generate_chunks_vcf {
     label "small"
 
     input:
-        tuple val(target_name), file(vcf), file(mapFile), val(chunk_size)
+        tuple val(target_name), file(vcf), file(mapFile), val(chrms), val(chunk_size)
     output:
         tuple val(target_name), file(vcf), file(chunkFile)
     script:
         if(params.chunk){ chunk = params.chunk } else{ chunk='' }
-        chromosomes = ''
+        chromosomes = chrms
         chunkFile = "chunks.txt"
         template "generate_chunks.py"
 }

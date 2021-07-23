@@ -26,7 +26,7 @@ def acc_by_maf(inSNP_acc, outSNP_acc, group=''):
     for line in info_datas:
         data = line.strip().split()
         dataset = data[0]
-        if dataset not in datas:
+        if "SNP" not in line and dataset not in datas:
             datas[dataset] = {}
             datas[dataset]['extreme_rare'] = []
             datas[dataset]['moderate_rare'] = []

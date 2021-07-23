@@ -81,7 +81,7 @@ Combine impute chunks to chromosomes
 """
 process combineImpute {
     tag "impComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'copy', pattern: '*imputed.vcf.gz'
+    publishDir "${params.outDir}/imputed/${ref_name}/${target_name}", overwrite: true, mode:'copy', pattern: '*imputed.vcf.gz'
     label "bigmem"
     
     input:
@@ -102,7 +102,7 @@ Combine impute info chunks to chromosomes
 """
 process combineInfo {
     tag "infoComb_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/imputed/${ref_name}", overwrite: true, mode:'copy', pattern: '*imputed_info'
+    publishDir "${params.outDir}/imputed/${ref_name}/${target_name}", overwrite: true, mode:'copy', pattern: '*imputed_info'
     label "medium"
     
     input:
@@ -116,3 +116,29 @@ process combineInfo {
         tail -q -n +2 ${info_files.join(' ')} >> ${comb_info}
         """
 }
+
+"""
+Filtering all reference panels by maf for a dataset
+"""
+//TODO generate filtered info by reference panels.
+process filter_info_by_target {
+    tag "filter_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy', pattern: "${comb_info}*"
+    label "medium"
+    
+    input:
+        tuple val(target_name), val(ref_panels), val(chrms), val(ref_infos) //from target_infos.values()
+    
+    output:
+        tuple val(target_name), val(ref_panels), file("${out_prefix}_well_imputed.tsv"), file("${out_prefix}_accuracy.tsv")  //into target_info_Well
+        // set target_name, ref_panels, file("${acc_out}.tsv") //into target_info_Acc,target_info_Acc_1
+    
+    script:
+        chrms = chrms.split(',')[0]+"-"+chrms.split(',')[-1]
+        out_prefix = "${target_name}_${ref_panels.split(',').join('-')}_${chrms}.imputed_info"
+        ref_infos = ref_infos
+        datasets = ref_panels
+        impute_info_cutoff = params.impute_info_cutoff
+        template "filter_info_minimac.py"
+}
+

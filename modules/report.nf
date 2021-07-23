@@ -55,6 +55,28 @@ process report_site_by_maf {
         template "report_well_imputed.py"
 }
 
+"""
+Report 1: Generate a file of well imputed snps by maf for a dataset (key) for all reference panels (datasets/refpanels)
+"""
+//TODO do this by chromosomes for each dataset
+process report_well_imputed_by_target {
+    tag "report_wellImputed_${target_name}_${ref_panels.split(',').join('-')}"
+    publishDir "${params.outDir}/reports/${ref_panels}", overwrite: true, mode:'copy'
+    label "medium"
+    
+    input:
+        tuple val(target_name), val(ref_panels), file(inWell_imputed)
+    
+    output:
+        tuple val(target_name), val(ref_panels), file("${out_prefix}.tsv"), file("${out_prefix}_summary.tsv")
+    
+    script:
+        out_prefix = "${inWell_imputed.baseName}.imputed_info_performance_by_maf_report"
+        // outWell_imputed = "${target_name}_${ref_panels}_${chrms}.imputed_info_performance_by_maf_report"
+        group = "REF_PANEL"
+        template "report_well_imputed.py"
+}
+
 
 process plot_freq_comparison {
     tag "plot_freq_comparison_${dataset_name}_${ref_name}"
@@ -73,3 +95,55 @@ process plot_freq_comparison {
         template "AF_comparison.R"
 }
 
+"""
+Plot performance all reference panels by maf for a dataset
+"""
+process plot_performance_target{
+    tag "plot_performance_dataset_${target_name}_${ref_panels}_${chrms}"
+    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
+    
+    input:
+        tuple val(target_name), val(ref_panels), file(well_imputed_report), file(well_imputed_report_summary), val(group)
+    output:
+        tuple val(target_name), val(ref_panels), file(plot_by_maf)
+    script:
+        plot_by_maf = "${well_imputed_report.baseName}.pdf"
+        report = well_imputed_report
+        xlab = "MAF bins"
+        ylab = "Number of well imputed SNPs"
+        template "plot_results_by_maf.R"
+}
+
+"""
+Repor 2: Accuracy all reference panels by maf for a dataset
+"""
+process report_accuracy_target {
+    tag "report_acc_${target_name}_${ref_panels}"
+    publishDir "${params.outDir}/reports/${ref_panels}/", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        tuple val(target_name), val(ref_panels), file(inSNP_acc), val(group)
+    output:
+        tuple val(target_name), val(ref_panels), file(outSNP_acc), val(group)
+    script:
+        outSNP_acc = "${inSNP_acc.baseName}.imputed_info_report_accuracy.tsv"
+        template "report_accuracy_by_maf.py"
+}
+
+"""
+Plot accuracy all reference panels by maf for a dataset
+"""
+process plot_accuracy_target{
+    tag "plot_accuracy_dataset_${target_name}_${ref_panels}"
+    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
+    input:
+        tuple val(target_name), val(ref_panels), file(accuracy_report), val(group)
+    output:
+        tuple val(target_name), val(ref_panels), file(plot_by_maf)
+    script:
+        plot_by_maf = "${accuracy_report.baseName}_accuracy_by_maf.pdf"
+        report = accuracy_report
+        xlab = "MAF bins"
+        ylab = "Concordance rate"
+        template "plot_results_by_maf.R"
+}
