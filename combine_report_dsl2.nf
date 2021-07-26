@@ -61,8 +61,11 @@ workflow report_by_ref{
         report_well_imputed_by_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]} )
         
         //// Plot performance all targets by maf for a reference panel
-        plot_performance_target( report_well_imputed_by_target.out.map{ target_name, ref_panels, wellInfo, wellInfo_summary -> [ target_name, ref_panels, file(wellInfo), file(wellInfo_summary), 'DATASETS' ]} ).view()
+        plot_performance_target( report_well_imputed_by_target.out.map{ target_name, ref_panels, wellInfo, wellInfo_summary -> [ target_name, ref_panels, file(wellInfo), file(wellInfo_summary), 'DATASETS' ]} )
 
+        //// Accuracy/Concordance
+        report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'DATASETS' ]} )
+        plot_accuracy_target ( report_accuracy_target.out )
     emit:
         data
 }
@@ -77,7 +80,7 @@ workflow report_by_dataset{
         imputeCombine_ref = data
                 .groupTuple( by:[0] )
                 .map{ dataset, refpanels, vcfs, imputed_vcfs, imputed_infos -> [ dataset, refpanels.join(','), '', imputed_infos.join(',') ] }
-        filter_info_by_target( imputeCombine_ref ).view()
+        filter_info_by_target( imputeCombine_ref )
 
         ///// Number of well immputed snps
         /// change to group_by_maf
@@ -86,8 +89,8 @@ workflow report_by_dataset{
         plot_performance_target( report_well_imputed_by_target.out.map{ target_name, ref_panels, wellInfo, wellInfo_summary -> [ target_name, ref_panels, file(wellInfo), file(wellInfo_summary), 'REFERENCE_PANELS' ]} )
 
         //// Accuracy/Concordance
-        report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'REFERENCE_PANELS' ]} ).view()
-        plot_accuracy_target ( report_accuracy_target.out ).view()
+        report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'REFERENCE_PANELS' ]} )
+        plot_accuracy_target ( report_accuracy_target.out )
     emit:
         data
 }
@@ -103,7 +106,7 @@ workflow{
     target_datasets = Channel.from(target_datasets)
 
     //// Report by Ref
-    // report_by_ref( target_datasets )
+    report_by_ref( target_datasets )
 
     //// Report by datasets
     report_by_dataset( target_datasets )
