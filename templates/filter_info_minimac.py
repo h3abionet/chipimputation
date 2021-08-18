@@ -43,7 +43,7 @@ def filter_info(infoFiles, datasets, infoCutoff, out_prefix):
                     outSNP_accuracy_out.writelines(' '.join(["GROUPS"] + data) + '\\n')
             else:
                 # print info_idx, data
-                if float(data[info_idx]) >= float(infoCutoff):
+                if data[info_idx] >= infoCutoff:
                     outWell_imputed_out.writelines(' '.join([dataset] + data) + '\\n')
                     outWell_imputed_snp_out.writelines(data[1] + '\\n')
                 if data[conc_idx] != '-':
