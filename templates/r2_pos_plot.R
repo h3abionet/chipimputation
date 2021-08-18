@@ -18,7 +18,7 @@ make_option(c("-t", "--target"), action = "store", default = "${target}", type =
 help = "Target .frq file"),
 make_option(c("-o", "--output"), action = "store", default = "${output}", type = 'character',
 help = "Output .png file"),
-make_option(c("-m", "--maf"), action="store", default = NA, type = 'character',
+make_option(c("-m", "--maf"), action="store", default = "${}", type = 'character',
 help = "Minor allele frequency threshold in %")
 )
 
