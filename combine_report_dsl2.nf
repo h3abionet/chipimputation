@@ -134,7 +134,8 @@ workflow{
 
     // Plot number of imputed SNPs over the mean r2 for all reference panels
     combineInfo_frq = target_datasets.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, info]}
-    combineInfo_frq_ = combineInfo_frq.combine(generate_frequency.out, by:[0,1])
-    plot_r2_SNPpos(combineInfo_frq_)
+    .combine(generate_frequency.out, by:[0,1])
+    // combineInfo_frq.view()
+    plot_r2_SNPpos(combineInfo_frq)
 
 }
