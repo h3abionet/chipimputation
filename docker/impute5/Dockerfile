@@ -34,7 +34,9 @@ RUN apt-get update && apt-get install -y \
 ## Install IMPUTE5
 RUN wget https://www.dropbox.com/sh/mwnceyhir8yze2j/AAD2VrkZze6ZLrcGX-jok4KRa/impute5_v1.1.5.zip && \
   unzip impute5_v1.1.5.zip && \
-  mv impute5_v1.1.5/imp5Chunker_1.1.5_static impute5_v1.1.5/imp5Converter_1.1.5_static impute5_v1.1.5/impute5_1.1.5_static /usr/local/bin/ && \
+  mv impute5_v1.1.5/imp5Chunker_1.1.5_static /usr/local/bin/impute5Chunker && \
+  mv impute5_v1.1.5/imp5Converter_1.1.5_static /usr/local/bin/impute5Converter && \
+  mv impute5_v1.1.5/impute5_1.1.5_static /usr/local/bin/impute5 && \
   chmod a+x /usr/local/bin/imp5Chunker_1.1.5_static /usr/local/bin/imp5Converter_1.1.5_static /usr/local/bin/impute5_1.1.5_static && \
   rm -rf impute5_v1.1.5*
 
