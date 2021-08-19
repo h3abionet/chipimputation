@@ -3,10 +3,7 @@ nextflow.enable.dsl=2
 
 include { check_files } from './modules/qc' 
 include { filter_info_by_target } from './modules/impute'
-include { filter_info; report_site_by_maf; plot_freq_comparison; 
-report_well_imputed_by_target; plot_performance_target; 
-report_accuracy_target; plot_accuracy_target; generate_frequency;
-plot_r2_SNPpos; plot_r2_SNPcount; plot_hist_r2_SNPcount; plot_MAF_r2 } from './modules/report'
+include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target; report_accuracy_target; plot_accuracy_target } from './modules/report'
 
 
 // Header log info
@@ -64,11 +61,8 @@ workflow report_by_ref{
         report_well_imputed_by_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]} )
         
         //// Plot performance all targets by maf for a reference panel
-        plot_performance_target( report_well_imputed_by_target.out.map{ target_name, ref_panels, wellInfo, wellInfo_summary -> [ target_name, ref_panels, file(wellInfo), file(wellInfo_summary), 'DATASETS' ]} )
+        plot_performance_target( report_well_imputed_by_target.out.map{ target_name, ref_panels, wellInfo, wellInfo_summary -> [ target_name, ref_panels, file(wellInfo), file(wellInfo_summary), 'DATASETS' ]} ).view()
 
-        //// Accuracy/Concordance
-        report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'DATASETS' ]} )
-        plot_accuracy_target ( report_accuracy_target.out )
     emit:
         data
 }
@@ -83,31 +77,17 @@ workflow report_by_dataset{
         imputeCombine_ref = data
                 .groupTuple( by:[0] )
                 .map{ dataset, refpanels, vcfs, imputed_vcfs, imputed_infos -> [ dataset, refpanels.join(','), '', imputed_infos.join(',') ] }
-        filter_info_by_target( imputeCombine_ref )
+        filter_info_by_target( imputeCombine_ref ).view()
 
-        ///// Number of well imputed snps
+        ///// Number of well immputed snps
         /// change to group_by_maf
         report_well_imputed_by_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]} )
         /// Plot performance all targets by maf for a reference panel
         plot_performance_target( report_well_imputed_by_target.out.map{ target_name, ref_panels, wellInfo, wellInfo_summary -> [ target_name, ref_panels, file(wellInfo), file(wellInfo_summary), 'REFERENCE_PANELS' ]} )
 
         //// Accuracy/Concordance
-        report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'REFERENCE_PANELS' ]} )
-        plot_accuracy_target ( report_accuracy_target.out )
-
-        // Plot number of imputed SNPs over the mean r2 for all reference panels
-        input = imputeCombine_ref
-        .map{ dataset, refpanels, chrm, infos -> [dataset, refpanels, infos]}
-
-        // Plot number of imputed SNPs over the mean r2 for all reference panels
-        plot_r2_SNPcount(input)
-
-        // Plot histograms of number of imputed SNPs over the mean r2 for all reference panels
-        plot_hist_r2_SNPcount(input)
-
-        // Plot MAF of imputed SNPs over r2 for all references
-        plot_MAF_r2(input)
-
+        report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'REFERENCE_PANELS' ]} ).view()
+        plot_accuracy_target ( report_accuracy_target.out ).view()
     emit:
         data
 }
@@ -121,20 +101,11 @@ workflow{
             target_datasets << [dataset, refpanel, file(vcf), file(imputed), file(info) ]
         }
     target_datasets = Channel.from(target_datasets)
+
     //// Report by Ref
-    report_by_ref( target_datasets )
+    // report_by_ref( target_datasets )
 
     //// Report by datasets
     report_by_dataset( target_datasets )
-
-    // Generate dataset frequencies
-    input = target_datasets.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, impute_vcf]}
-    // input.view()
-    generate_frequency(input)
-
-    // Plot number of imputed SNPs over the mean r2 for all reference panels
-    combineInfo_frq = target_datasets.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, info]}
-    combineInfo_frq_ = combineInfo_frq.combine(generate_frequency.out, by:[0,1])
-    plot_r2_SNPpos(combineInfo_frq_)
 
 }
