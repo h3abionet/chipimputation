@@ -27,9 +27,9 @@ process phasing_eagle {
     tag "phase_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "verylarge"
     input:
-        tuple val(chrm), val(ref_name), file(ref_m3vcf), file(ref_vcf), file(ref_vcf_idx), file(eagle_genetic_map), val(chunk_start), val(chunk_end), val(target_name), val(tagName), file(target_vcf_chunk)
+        tuple val(chrm), val(ref_name), file(ref_m3vcf), file(imp5_idx), file(ref_vcf), file(ref_vcf_idx), file(eagle_genetic_map), val(chunk_start), val(chunk_end), val(target_name), val(tagName), file(target_vcf_chunk)
     output:
-        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file("${file_out}.vcf.gz"), val(ref_name), file(ref_vcf), file(ref_m3vcf), val(tagName)
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file("${file_out}.vcf.gz"), file("${file_out}.vcf.gz.tbi"), val(ref_name), file(ref_vcf), file(ref_m3vcf), file(imp5_idx), val(tagName)
     script:
         file_out = "${file(target_vcf_chunk.baseName).baseName}_${ref_name}_phased"
         base = "${file(target_vcf_chunk.baseName).baseName}"
@@ -47,6 +47,7 @@ process phasing_eagle {
             --bpEnd=${chunk_end} \
             --bpFlanking=${params.buffer_size} \
             --outPrefix=${file_out} 2>&1 | tee ${file_out}.log
+        tabix ${file_out}.vcf.gz
         """
 }
 

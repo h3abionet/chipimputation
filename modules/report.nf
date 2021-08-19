@@ -1,5 +1,5 @@
 #!/usr/bin/env nextflow
-nextflow.enable.dsl=2
+nextflow.preview.dsl=2
 
 /*
 ========================================================================================
@@ -77,6 +77,24 @@ process report_well_imputed_by_target {
         template "report_well_imputed.py"
 }
 
+
+process plot_freq_comparison {
+    tag "plot_freq_comparison_${dataset_name}_${ref_name}"
+    // publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
+    label "bigmem"
+    input:
+        tuple val(dataset_name), val(ref_name), file(dataset_info), file(dataset_frq), file(ref_frq)
+    output:
+        tuple val(dataset_name), val(ref_name), file(outputcolor)
+    script:
+        info = dataset_info
+        target = dataset_frq
+        frq = ref_frq
+        //output = "${dataset_name}_${ref_name}_${chrm}_freq_comparison.png"
+        outputcolor = "${dataset_name}_${ref_name}_freq_comparison_color.png"
+        template "AF_comparison.R"
+}
+
 """
 Plot performance all reference panels by maf for a dataset
 """
@@ -128,113 +146,4 @@ process plot_accuracy_target{
         xlab = "MAF bins"
         ylab = "Concordance rate"
         template "plot_results_by_maf.R"
-}
-
-
-"""
-Step: generate allele frequency
-"""
-process generate_frequency {
-    tag "frq_${target_name}_${ref_name}"
-    publishDir "${params.outDir}/frqs/${ref_name}", overwrite: true, mode:'copy', pattern: '*frq'
-    label "medium"
-    input:
-        tuple val(target_name), val(ref_name), file(impute_vcf)
-    output:
-        tuple val(target_name), val(ref_name), file(dataset_frq)
-    script:
-        dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
-        """
-        # For datastet
-        echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${dataset_frq}
-        bcftools view -m2 -M2 -v snps ${impute_vcf} | bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' >> ${dataset_frq}
-        
-        """
-}
-
-"""
-Plot number of imputed SNPs over the mean r2 for all reference panels
-"""
-process plot_r2_SNPpos {
-    tag "plot_r2_SNPpos_${target_name}_${ref_name}_${chrm}"
-    publishDir "${params.outDir}/plots/${ref_name}", overwrite: true, mode:'copy'
-    label "medium"
-    input:
-    tuple val(target_name), val(ref_name), file(target_info), file(target_frq)
-    output:
-    tuple val(target_name), val(ref_name), file(output)
-    script:
-    info = target_info
-    target = target_frq
-    output = "${target_name}_${ref_name}_r2_SNPpos.pdf"
-    template "r2_pos_plot.R"
-}
-
-process plot_freq_comparison {
-    tag "plot_freq_comparison_${dataset_name}_${ref_name}"
-    // publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
-    label "bigmem"
-    input:
-        tuple val(dataset_name), val(ref_name), file(dataset_info), file(dataset_frq), file(ref_frq)
-    output:
-        tuple val(dataset_name), val(ref_name), file(outputcolor)
-    script:
-        info = dataset_info
-        target = dataset_frq
-        frq = ref_frq
-        //output = "${dataset_name}_${ref_name}_${chrm}_freq_comparison.png"
-        outputcolor = "${dataset_name}_${ref_name}_freq_comparison_color.png"
-        template "AF_comparison.R"
-
-}        
-
-"""
-Plot number of imputed SNPs over the mean r2 for all reference panels
-"""
-process plot_r2_SNPcount {
-    tag "plot_r2_SNPcount_${target_name}_${ref_panels}"
-    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
-    label "medium"
-    input:
-        tuple val(target_name), val(ref_panels), val(infos)
-    output:
-        tuple val(target_name), val(ref_panels), file(plot_out) 
-    script:
-    plot_out = "${target_name}_${ref_panels}_r2_SNPcount.pdf"
-    impute_info_cutoff = params.impute_info_cutoff
-    template "r2_Frequency_plot.R"
-}
-
-"""
-Plot histograms of number of imputed SNPs over the mean r2 for all reference panels
-"""
-process plot_hist_r2_SNPcount {
-    tag "plot_hist_r2_SNPcount_${target_name}_${ref_panels}"
-    publishDir "${params.outDir}/plots/${ref_panels}/", overwrite: true, mode:'copy'
-    label "medium"
-    input:
-        tuple val(target_name), val(ref_panels), val(infos)
-    output:
-        tuple val(target_name), val(ref_panels), file(plot_out)
-    script:
-    plot_out = "${target_name}_${ref_panels}_r2_SNPcount_hist.pdf"
-    impute_info_cutoff = params.impute_info_cutoff
-    template "r2_Frequency_plot_histogram.R"
-}
-
-"""
-Plot MAF of imputed SNPs over r2 for all references
-"""
-process plot_MAF_r2 {
-    tag "plot_MAF_r2_${target_name}_${ref_panels}"
-    publishDir "${params.outDir}/plots/${ref_panels}", overwrite: true, mode:'copy'
-    label "medium"
-    input:
-        tuple val(target_name), val(ref_panels), val(infos) 
-    output:
-        tuple val(target_name), val(ref_panels), file(plot_out) 
-    script:
-    plot_out = "${target_name}_${ref_panels}_MAF_r2.pdf"
-    impute_info_cutoff = params.impute_info_cutoff
-    template "Frequency_r2_MAF_plot.R"
 }

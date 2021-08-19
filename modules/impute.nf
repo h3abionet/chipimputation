@@ -45,6 +45,25 @@ process impute_minimac4 {
         """
 }
 
+process impute5 {
+    tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
+    label "bigmem_impute5"
+    input:
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_imp5), file(ref_imp5_idx), val(tagName), file(impute5_genetic_map)
+    output:
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(impute5_out), val(tagName)
+    shell:
+        impute5_out = "${file(target_phased_vcf.baseName).baseName}_${tagName}_${chrm}_${chunk_start}-${chunk_end}.vcf.gz"
+        """
+        impute5_1.1.5_static \
+            --h ${ref_imp5} \
+            --m ${impute5_genetic_map} \
+            --g ${target_phased_vcf} \
+            --r ${chrm}:${chunk_start}-${chunk_end} \
+            --o ${impute5_out}
+        """
+}
+
 process impute_minimac4_1 {
     tag "imp_${target_name1}_${chrm1}:${chunk_start1}-${chunk_end1}_${ref_name1}_${tagName1}"
     label "bigmem"
