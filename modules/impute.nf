@@ -47,6 +47,7 @@ process impute_minimac4 {
 
 process impute5 {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
+    publishDir "${params.outDir}/imputed/impute5/${ref_name}", overwrite: true, mode:'copy',  pattern: '*vcf.gz
     label "bigmem_impute5"
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_imp5), file(ref_imp5_idx), val(tagName), file(impute5_genetic_map)
