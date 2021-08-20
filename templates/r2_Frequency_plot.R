@@ -14,26 +14,24 @@ library(ggsci)
 option_list <- list(
   make_option(c("-i", "--infos"), action="store", default = "${infos}", type = 'character',
               help = "Imputation .info file of each reference panel"),
-  make_option(c("-i", "--names"), action="store", default = "${names}", type = 'character',
-              help = "Dataset/ref_panel names of each dataset/reference panel"),
+  make_option(c("-r", "--ref"), action="store", default = "${ref_panels}", type = 'character',
+              help = "Imputation .info file of each reference panel"),
   make_option(c("-o", "--output"), action="store", default = "${plot_out}", type = 'character',
               help = "Output .png file")
 )
 args <- parse_args(OptionParser(option_list = option_list))
 
 # read in info files of both reference panels
-infos_input <- as.character(args[1]) ### info files
-names_input <- as.character(args[2]) ## Names
-infos <- unlist(strsplit(infos_input,","))
-names <- unlist(strsplit(names_input,","))
+input <- as.character(args[1])
+inputs <- unlist(strsplit(input,","))
+inp <- as.character(args[2])
+inputed <- unlist(strsplit(inp,","))
 
 panels <- list()
-for(name in names){
-  # file <- unlist(strsplit(panel, "=="))[2]
-  # name <- unlist(strsplit(panel, "=="))[1]
-  idx_name <-  ... # Get the index of name in names
-  file <- infos[idx_name]
-  panels[paste0(name)] <- file
+for(n in inputed){
+  idx_name <- which(inputed==n)  # Get the index of name in names
+  file <- inputs[idx_name]
+  panels[paste0(n)] <- file
 }
 
 # read in .info files of each reference panel and merge them together in one table
