@@ -65,6 +65,26 @@ process impute5 {
         """
 }
 
+process generate_impute5_info {
+    tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}"
+    publishDir "${params.outDir}/imputed/impute5/${ref_name}", overwrite: true, mode:'copy'
+    input:
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(impute5_out)
+    output:
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file("${generate_info}.txt")
+    shell:
+        generate_info = "${target_name}_${chrm}_${chunk_start}-${chunk_end}"
+        """
+        bcftools annotate --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' ${impute5_out} > ${generate_info}.vcf.gz
+        bcftools query -f '%ID\\t%REF\\t%FIRST_ALT\\t%INFO/AF\\t%INFO/INFO\\n' ${generate_info}.vcf.gz > noheader_${generate_info}.txt
+        (echo -e "SNP\\tREF(0)\\tALT(1)\\tALT_Frq\\tRsq"; cat noheader_${generate_info}.txt ) > ${generate_info}.txt
+        rm  ${generate_info}.vcf.gz 
+        rm noheader_${generate_info}.txt
+        """
+
+}
+
+
 process impute_minimac4_1 {
     tag "imp_${target_name1}_${chrm1}:${chunk_start1}-${chunk_end1}_${ref_name1}_${tagName1}"
     label "bigmem"
