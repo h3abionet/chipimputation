@@ -3,7 +3,10 @@ nextflow.enable.dsl=2
 
 include { check_files } from './modules/qc' 
 include { filter_info_by_target } from './modules/impute'
-include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target; report_accuracy_target; plot_accuracy_target } from './modules/report'
+include { filter_info; report_site_by_maf; plot_freq_comparison; 
+report_well_imputed_by_target; plot_performance_target; 
+report_accuracy_target; plot_accuracy_target; generate_frequency;
+plot_r2_SNPpos; plot_r2_SNPcount; plot_hist_r2_SNPcount; plot_MAF_r2 } from './modules/report'
 
 
 // Header log info

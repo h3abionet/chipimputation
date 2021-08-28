@@ -14,7 +14,7 @@ library(ggsci)
 option_list <- list(
   make_option(c("-i", "--infos"), action="store", default = "${infos}", type = 'character',
               help = "Imputation .info file of each reference panel"),
-  make_option(c("-r", "--ref"), action="store", default = "${ref_panels}", type = 'character',
+  make_option(c("-i", "--ref"), action="store", default = "${ref_panels}", type = 'character',
               help = "Imputation .info file of each reference panel"),
   make_option(c("-o", "--output"), action="store", default = "${plot_out}", type = 'character',
               help = "Output .png file")
@@ -33,12 +33,14 @@ for(n in inputed){
   file <- inputs[idx_name]
   panels[paste0(n)] <- file
 }
+panels
 
 # read in .info files of each reference panel and merge them together in one table
 i <- 1
 for(file in panels){
-  name <- names(panels)[i]
-  panel <- fread(as.character(file), sep = "\\t", header = T,select = c("SNP", "MAF","Rsq","Genotyped"))
+  name <- inputed[i]
+  panel <- fread(as.character(file), sep = "\t", header = T, select = c("SNP", "MAF","Rsq","Genotyped"),
+                 stringsAsFactors=F)
   panel <- panel %>% mutate(R_Panel = paste0(name))
   if(i > 1){
     full <- rbind(full, panel)
@@ -65,4 +67,4 @@ r2_frequency_plot <- ggplot(Imputed, aes(x = Rsq_mean, y = N, color = R_Panel)) 
   theme(legend.position = "bottom")
 
 # save plot as .png file 
-ggsave(filename = as.character(args[2]) ,plot = r2_frequency_plot, width = 8, height = 5, units = "in")
+ggsave(filename = as.character(args[3]) ,plot = r2_frequency_plot, width = 8, height = 5, units = "in")

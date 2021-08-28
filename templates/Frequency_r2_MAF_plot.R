@@ -23,7 +23,7 @@ library(ggsci)
 option_list <- list(
   make_option(c("-i", "--infos"), action="store", default = "${infos}", type = 'character',
               help = "Imputation .info file of each reference panel"),
-  make_option(c("-r", "--ref"), action="store", default = "${ref_panels}", type = 'character',
+  make_option(c("-i", "--ref"), action="store", default = "${ref_panels}", type = 'character',
               help = "Imputation .info file of each reference panel"),
   make_option(c("-o", "--output"), action="store", default = "${plot_out}", type = 'character',
               help = "Output .png file")
@@ -85,4 +85,4 @@ p <- ggplot(Imputed, aes(x = MAF, color = R_Panel)) +
     theme_bw()
 
 # save plot as .png file
-ggsave(file = as.character(args[2]) ,plot = p, width = 8, height = 5, units = "in")
+ggsave(file = as.character(args[3]) ,plot = p, width = 8, height = 5, units = "in")

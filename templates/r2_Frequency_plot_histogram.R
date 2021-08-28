@@ -62,4 +62,4 @@ r2_frequency_plot <- ggplot(Imputed, aes(x = as.numeric(Rsq), fill = R_Panel)) +
   theme(legend.position = "bottom")
 
 # save plot as .png file 
-ggsave(filename = as.character(args[2]), plot = r2_frequency_plot, width = 8, height = 5, units = "in")
+ggsave(filename = as.character(args[3]), plot = r2_frequency_plot, width = 8, height = 5, units = "in")
