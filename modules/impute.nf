@@ -76,12 +76,11 @@ process generate_impute5_info {
         generate_info = "${target_name}_${chrm}_${chunk_start}-${chunk_end}"
         """
         bcftools annotate --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' ${impute5_out} > ${generate_info}.vcf.gz
-        bcftools query -f '%ID\\t%REF\\t%FIRST_ALT\\t%INFO/AF\\t%INFO/INFO\\n' ${generate_info}.vcf.gz > noheader_${generate_info}.txt
-        (echo -e "SNP\\tREF(0)\\tALT(1)\\tALT_Frq\\tRsq"; cat noheader_${generate_info}.txt ) > ${generate_info}.txt
-        rm  ${generate_info}.vcf.gz 
-        rm noheader_${generate_info}.txt
+        bcftools query -f '%ID\\t%REF\\t%FIRST_ALT\\t%INFO/AF\\t%INFO/AF\\t%INFO/INFO\\t%INFO/IMP\\n' ${generate_info}.vcf.gz > noheader_${generate_info}_draft.txt
+        (echo -e "SNP\\tREF(0)\\tALT(1)\\tALT_Frq\\tMAF\\tRsq\\tGenotyped"; cat noheader_${generate_info}_draft.txt ) > ${generate_info}_test.txt
+        awk 'BEGIN{ OFS="\\t" } { if (\$7=="."){ \$7="Genotyped" } print }' ${generate_info}_test.txt > ${generate_info}_replaced.txt
+        awk 'BEGIN{ OFS="\\t" } { if (\$7==1){ \$7="Imputed" } print }' ${generate_info}_replaced.txt > ${generate_info}.txt
         """
-
 }
 
 
