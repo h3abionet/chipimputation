@@ -21,22 +21,26 @@ library(ggsci)
 
 # Takes paths to Input .info file and Output .png file as options
 option_list <- list(
-make_option(c("-i", "--info"), action = "store", default = "${infos}", type = 'character',
-        help = "Imputation .info files as a list"),
-    make_option(c("-o", "--output"), action="store", default = "${plot_out}", type = 'character',
-        help = "Output .png file")
+  make_option(c("-i", "--infos"), action="store", default = "${infos}", type = 'character',
+              help = "Imputation .info file of each reference panel"),
+  make_option(c("-i", "--ref"), action="store", default = "${ref_panels}", type = 'character',
+              help = "Imputation .info file of each reference panel"),
+  make_option(c("-o", "--output"), action="store", default = "${plot_out}", type = 'character',
+              help = "Output .png file")
 )
 args <- parse_args(OptionParser(option_list = option_list))
 
-# extract .info filepath and reference panel name out of inputs
+# read in info files of both reference panels
 input <- as.character(args[1])
 inputs <- unlist(strsplit(input,","))
+inp <- as.character(args[2])
+inputed <- unlist(strsplit(inp,","))
 
 panels <- list()
-for(panel in inputs){
-    file <- unlist(strsplit(panel, "=="))[2]
-    name <- unlist(strsplit(panel, "=="))[1]
-    panels[paste0(name)] <- file
+for(n in inputed){
+  idx_name <- which(inputed==n)  # Get the index of name in names
+  file <- inputs[idx_name]
+  panels[paste0(n)] <- file
 }
 
 # read in .info files of each reference panel and merge them together in one table
@@ -81,4 +85,4 @@ p <- ggplot(Imputed, aes(x = MAF, color = R_Panel)) +
     theme_bw()
 
 # save plot as .png file
-ggsave(file = as.character(args[2]) ,plot = p, width = 8, height = 5, units = "in")
+ggsave(file = as.character(args[3]) ,plot = p, width = 8, height = 5, units = "in")
