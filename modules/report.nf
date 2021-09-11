@@ -238,3 +238,16 @@ process plot_MAF_r2 {
     impute_info_cutoff = params.impute_info_cutoff
     template "Frequency_r2_MAF_plot.R"
 }
+
+process average_r2 {
+    tag "average_r2_${target_name}_${ref_panels}"
+    publishDir "${params.outDir}/rsquared/${ref_panels}", overwrite: true, mode:'copy'
+  
+    input:
+        tuple val(target_name), val(ref_panels), val(file_infos) 
+    output:
+        tuple val(target_name), val(ref_panels), file(meanr2_out) 
+    script:
+    meanr2_out = "${target_name}_${ref_panels}"
+    template "average_r2.R"
+}

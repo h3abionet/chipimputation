@@ -3,7 +3,7 @@ nextflow.enable.dsl=2
 
 include { get_chromosome; fill_tags_vcf; check_chromosome; check_files; check_chromosome_vcf; check_mismatch; no_mismatch ; qc_dupl; split_multi_allelic; filter_min_ac; target_qc as target_qc; target_qc as target_qc1; qc_site_missingness as qc_site_missingness1; qc_site_missingness as qc_site_missingness2; sites_only ; combine_vcfs ; combine_infos; combine_csvs as combine_freqs; combine_vcfs_chrm; } from './modules/qc' 
 include { vcf_map_simple; extract_site_from_vcf; generate_chunks_vcf; split_target_to_chunk; vcf_map; vcf_freq; info_freq; fill_tags_VCF; sort_vcf ; get_vcf_sites; extract_pop } from './modules/subset_vcf'
-include { phasing_eagle } from './modules/phasing'
+include { minimac4_phasing_eagle } from './modules/phasing'
 include { impute_minimac4; impute_minimac4_1; combineImpute; combineInfo; filter_info_by_target } from './modules/impute'
 include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target } from './modules/report'
 
@@ -135,10 +135,10 @@ workflow phasing{
     take: data
     
     main:
-        phasing_eagle(data)
+        minimac4_phasing_eagle(data)
 
     emit: 
-        chunks_phased = phasing_eagle.out
+        chunks_phased = minimac4_phasing_eagle.out
 }
 
 workflow impute{
@@ -218,12 +218,13 @@ workflow {
     phasing(phasing_data)
 
     //// Imputation
+    // phasing.out.chunks_phased.view()
     impute(phasing.out.chunks_phased)
 
     //// Post processing
-    postprocess(impute.out.chunks_imputed)
+    // postprocess(impute.out.chunks_imputed)
     
     //// Reporting
-    reporting(postprocess.out.qc_info.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]})
+    // reporting(postprocess.out.qc_info.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]})
 
 }

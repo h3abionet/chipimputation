@@ -46,7 +46,7 @@ Imputed <- filter(Imputed, Rsq != "-" | !is.na(Rsq))
 Genotyped <- filter(full, Genotyped == "Genotyped")
 
 # display only  ~ 50,000 Imputed SNPs in the r2 - position plot
-N <- ifelse(nrow(Imputed)> 50000, as.integer(nrow(Imputed)/50000, 1))
+N <- ifelse(nrow(Imputed)> 50000, as.integer(nrow(Imputed)/50000), 1)
 Imputed <- Imputed[seq(1, nrow(Imputed),N),]
 
 # display only ~ 1,000 Genotyped SNPs as ticks

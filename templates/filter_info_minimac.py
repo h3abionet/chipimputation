@@ -30,6 +30,8 @@ def filter_info(infoFiles, datasets, infoCutoff, out_prefix):
         dataset = datasets[infoFiles.index(infoFile)]
         well_imputed[dataset] = []
         SNP_concordance[dataset] = []
+        conc_idx = 0
+        concord=False
         # print infoFile
         for line in open(infoFile):
             data = line.strip().split()
@@ -37,16 +39,18 @@ def filter_info(infoFiles, datasets, infoCutoff, out_prefix):
                 if len(header) == 0:
                     header = data
                     info_idx = header.index("Rsq")
-                    conc_idx = header.index("EmpRsq")
                     outWell_imputed_out.writelines(' '.join(["GROUPS"] + data) + '\\n')
                     outWell_imputed_snp_out.writelines(data[1] + '\\n')
-                    outSNP_accuracy_out.writelines(' '.join(["GROUPS"] + data) + '\\n')
+                    if "EmpRsq" in header:
+                        concord=True
+                        conc_idx = header.index("EmpRsq")
+                        outSNP_accuracy_out.writelines(' '.join(["GROUPS"] + data) + '\\n')    
             else:
                 # print info_idx, data
-                if data[info_idx] != '-' and float(data[info_idx]) >= float(infoCutoff):
+                if data[info_idx] != '-' and 'NA' and float(data[info_idx]) >= float(infoCutoff):
                     outWell_imputed_out.writelines(' '.join([dataset] + data) + '\\n')
                     outWell_imputed_snp_out.writelines(data[1] + '\\n')
-                if data[conc_idx] != '-':
+                if data[conc_idx] != '-' and concord:
                     outSNP_accuracy_out.writelines(' '.join([dataset] + data) + '\\n')
                 count += 1
     outWell_imputed_out.close()

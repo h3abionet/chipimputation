@@ -6,7 +6,8 @@ include { filter_info_by_target } from './modules/impute'
 include { filter_info; report_site_by_maf; plot_freq_comparison; 
 report_well_imputed_by_target; plot_performance_target; 
 report_accuracy_target; plot_accuracy_target; generate_frequency;
-plot_r2_SNPpos; plot_r2_SNPcount; plot_hist_r2_SNPcount; plot_MAF_r2 } from './modules/report'
+plot_r2_SNPpos; plot_r2_SNPcount; plot_hist_r2_SNPcount; plot_MAF_r2; 
+average_r2 } from './modules/report'
 
 
 // Header log info
@@ -138,4 +139,8 @@ workflow{
     // combineInfo_frq.view()
     plot_r2_SNPpos(combineInfo_frq)
 
+    // compute for average rsquared values
+
+    rsquared_input = target_datasets.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, info]}
+    average_r2(rsquared_input)
 }

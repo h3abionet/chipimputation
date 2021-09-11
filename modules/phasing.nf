@@ -23,7 +23,35 @@ if (params.help){
     exit 0
 }
 
-process phasing_eagle {
+process minimac4_phasing_eagle {
+    tag "phase_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
+    label "verylarge"
+    input:
+        tuple val(chrm), val(ref_name), file(ref_m3vcf), file(ref_vcf), file(ref_vcf_idx), file(eagle_genetic_map), val(chunk_start), val(chunk_end), val(target_name), val(tagName), file(target_vcf_chunk)
+    output:
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file("${file_out}.vcf.gz"), file("${file_out}.vcf.gz.tbi"), val(ref_name), file(ref_vcf), file(ref_m3vcf), val(tagName)
+    script:
+        file_out = "${file(target_vcf_chunk.baseName).baseName}_${ref_name}_phased"
+        base = "${file(target_vcf_chunk.baseName).baseName}"
+        """
+        tabix ${target_vcf_chunk}
+        eagle \
+            --numThreads=${task.cpus} \
+            --vcfTarget=${target_vcf_chunk} \
+            --geneticMapFile=${eagle_genetic_map} \
+            --vcfRef=${ref_vcf} \
+            --vcfOutFormat=z \
+            --noImpMissing \
+            --chrom=${chrm} \
+            --bpStart=${chunk_start} \
+            --bpEnd=${chunk_end} \
+            --bpFlanking=${params.buffer_size} \
+            --outPrefix=${file_out} 2>&1 | tee ${file_out}.log
+        tabix ${file_out}.vcf.gz
+        """
+}
+
+process impute5_phasing_eagle {
     tag "phase_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "verylarge"
     input:
