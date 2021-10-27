@@ -27,7 +27,7 @@ process impute_minimac4 {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "bigmem"
     input:
-        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), val(ref_name), file(ref_vcf), file(ref_m3vcf), val(tagName)
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_m3vcf), val(tagName)
     output:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file("${base}_imputed.dose.vcf.gz"), file("${base}_imputed.info"), val(tagName)
     shell:
@@ -75,7 +75,7 @@ process generate_impute5_info {
     shell:
         generate_info = "${target_name}_${chrm}_${chunk_start}-${chunk_end}"
         """
-        bcftools annotate --set-id '%CHROM\\_%POS\\_%REF\\_%FIRST_ALT' ${impute5_out} > ${generate_info}.vcf.gz
+        bcftools annotate --set-id '%CHROM\\:%POS\\:%REF\\:%FIRST_ALT' ${impute5_out} > ${generate_info}.vcf.gz
         bcftools query -f '%ID\\t%REF\\t%FIRST_ALT\\t%INFO/AF\\t%INFO/AF\\t%INFO/INFO\\t%INFO/IMP\\n' ${generate_info}.vcf.gz > noheader_${generate_info}_draft.txt
         (echo -e "SNP\\tREF(0)\\tALT(1)\\tALT_Frq\\tMAF\\tRsq\\tGenotyped"; cat noheader_${generate_info}_draft.txt ) > ${generate_info}_test.txt
         awk 'BEGIN{ OFS="\\t" } { if (\$7=="."){ \$7="Genotyped" } print }' ${generate_info}_test.txt > ${generate_info}_replaced.txt
