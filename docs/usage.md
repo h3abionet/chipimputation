@@ -40,6 +40,15 @@ NXF_OPTS='-Xms1g -Xmx4g'
 ```
 
 ## Running the pipeline
+Note that once the pipeline has been run, it will create the following files in your working directory:
+
+```bash
+work            # Directory containing the nextflow working files
+results         # Finished results (configurable, see below)
+.nextflow.log   # Log file from Nextflow
+# Other nextflow hidden files, eg. history of pipeline runs and old logs.
+```
+### Running the pipeline with test the test config file
 The typical command for running the pipeline is as follows:
 
 ```bash
@@ -48,15 +57,13 @@ nextflow run h3abionet/chipimputation -profile test,singularity
 
 This will launch the pipeline with the `docker` configuration profile. See below for more information about profiles.
 
+### Running the pipeline with your own config file
+
 You can now copy the config file from `Script dir` from the test run, which should be something in the NXF_ASSET folder `.nextflow/assets/h3abionet/chipimputation` by doing `cp <Script dir>/test.config .`, which you can change and use a custom config file.
 
-Note that the pipeline will create the following files in your working directory:
-
+Once you have edited the config file, run the command below.
 ```bash
-work            # Directory containing the nextflow working files
-results         # Finished results (configurable, see below)
-.nextflow.log   # Log file from Nextflow
-# Other nextflow hidden files, eg. history of pipeline runs and old logs.
+nextflow run h3abionet/chipimputation -c "name of your config file" -profile singularity
 ```
 
 ### Updating the pipeline
