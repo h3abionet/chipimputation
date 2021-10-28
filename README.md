@@ -28,8 +28,8 @@ The h3achipimputation pipeline comes with documentation about the pipeline, foun
     2.2. [Software requirements](docs/soft_requirements.md)  
     2.3. [Other clusters](docs/other_clusters.md)  
 3. [Running the pipeline with test data](docs/usage.md)
-4. [Running the pipeline with your own config]()
-5. [Running on local machine or cluster]()
+4. [Running the pipeline with your own config](docs/usage.md)
+5. [Running on local machine or cluster](docs/other_clusters.md)
 6. [Running docker and singularity]()
 7. [Output and how to interpret the results](docs/output.md)
 <!-- 5. [Troubleshooting](troubleshooting.md) -->
