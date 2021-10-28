@@ -12,8 +12,11 @@ Nextflow has [excellent integration](https://www.nextflow.io/docs/latest/docker.
 To add docker support to your own config file, add the following:
 
 ```nextflow
-docker.enabled = true
-process.container = "nfcore/imp"
+profiles {
+    docker {
+        docker.enabled = true
+        process.container = "nfcore/imp"
+}
 ```
 Note that the dockerhub organisation name annoyingly can't have a hyphen, so is `nfcore` and not `nf-core`.
 
@@ -45,8 +48,11 @@ singularity pull --name nf-core-imp.simg shub://h3abionet/chipimputation
 Then transfer this file and point the config file to the image:
 
 ```nextflow
-singularity.enabled = true
-process.container = "/path/to/nf-core-imp.simg"
+profiles {
+    singularity {
+        singularity.enabled = true
+        process.container = "/path/to/nf-core-imp.simg"
+}
 ```
 
 The pipeline can then be run using the command
