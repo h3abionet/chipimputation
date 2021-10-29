@@ -12,13 +12,19 @@ Nextflow has [excellent integration](https://www.nextflow.io/docs/latest/docker.
 To add docker support to your own config file, add the following:
 
 ```nextflow
-docker.enabled = true
-process.container = "nfcore/imp"
+profiles {
+    docker {
+        docker.enabled = true
+        process.container = "nfcore/imp"
+}
 ```
-
 Note that the dockerhub organisation name annoyingly can't have a hyphen, so is `nfcore` and not `nf-core`.
 
+You can now run the pipeline using the command:
 
+```bash
+ nextflow run h3abionet/chipimputation -profile docker
+```
 ### Singularity image
 Many HPC environments are not able to run Docker due to security issues.
 [Singularity](http://singularity.lbl.gov/) is a tool designed to run on such HPC systems which is very similar to Docker.
@@ -42,10 +48,18 @@ singularity pull --name nf-core-imp.simg shub://h3abionet/chipimputation
 Then transfer this file and point the config file to the image:
 
 ```nextflow
-singularity.enabled = true
-process.container = "/path/to/nf-core-imp.simg"
+profiles {
+    singularity {
+        singularity.enabled = true
+        process.container = "/path/to/nf-core-imp.simg"
+}
 ```
 
+The pipeline can then be run using the command
+
+```bash
+ nextflow run h3abionet/chipimputation -profile singularity
+```
 ### Conda
 If you're not able to use Docker or Singularity, you can instead use conda to manage the software requirements.
 To use conda in your own config file, add the following:
