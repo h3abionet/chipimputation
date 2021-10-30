@@ -129,13 +129,24 @@ workflow{
     report_by_dataset( target_datasets )
 
     // Generate dataset frequencies
-    input = target_datasets.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, impute_vcf]}
-    // input.view()
+    inp = Channel.fromList(params.ref)
+    input = target_datasets
+    .map{ target_name, ref_name, vcf, impute_vcf, info ->[  ref_name, target_name, file(impute_vcf)]}
+    .combine(inp, by:0)
+    .map{ ref_name, target_name, impute_vcf, ref_vcf -> [target_name, ref_name, file(impute_vcf), file(ref_vcf)]}
     generate_frequency(input)
 
-    // Plot number of imputed SNPs over the mean r2 for all reference panels
-    combineInfo_frq = target_datasets.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, info]}
+    // Plot frequency Comparison
+    freq_comp = target_datasets.map {target_name, ref_name, vcf, impute_vcf, info -> 
+    [target_name, ref_name, info]}
     .combine(generate_frequency.out, by:[0,1])
+    plot_freq_comparison(freq_comp)
+
+    // Plot number of imputed SNPs over the mean r2 for all reference panels
+    combineInfo_frq = target_datasets.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, info, params.maf_thresh]}
+    .combine(generate_frequency.out, by:[0,1])
+    .map { target_name, ref_name, info, maf_thresh, target_frq, ref_frq -> 
+    [target_name, ref_name, info, maf_thresh, target_frq]}
     // combineInfo_frq.view()
     plot_r2_SNPpos(combineInfo_frq)
 
