@@ -39,6 +39,7 @@ def filter_info(infoFiles, datasets, infoCutoff, out_prefix):
                 if len(header) == 0:
                     header = data
                     info_idx = header.index("Rsq")
+                    maf_idx = header.index("MAF")
                     outWell_imputed_out.writelines(' '.join(["GROUPS"] + data) + '\\n')
                     outWell_imputed_snp_out.writelines(data[1] + '\\n')
                     if "EmpRsq" in header:
@@ -47,12 +48,14 @@ def filter_info(infoFiles, datasets, infoCutoff, out_prefix):
                         outSNP_accuracy_out.writelines(' '.join(["GROUPS"] + data) + '\\n')    
             else:
                 # print info_idx, data
-                if data[info_idx] != '-' and 'NA' and float(data[info_idx]) >= float(infoCutoff):
-                    outWell_imputed_out.writelines(' '.join([dataset] + data) + '\\n')
-                    outWell_imputed_snp_out.writelines(data[1] + '\\n')
-                if data[conc_idx] != '-' and concord:
-                    outSNP_accuracy_out.writelines(' '.join([dataset] + data) + '\\n')
-                count += 1
+                maf = float(data[maf_idx])
+                if maf >= 0.0:
+                    if data[info_idx] != '-' and 'NA' and float(data[info_idx]) >= float(infoCutoff):
+                        outWell_imputed_out.writelines(' '.join([dataset] + data) + '\\n')
+                        outWell_imputed_snp_out.writelines(data[1] + '\\n')
+                    if data[conc_idx] != '-' and concord:
+                        outSNP_accuracy_out.writelines(' '.join([dataset] + data) + '\\n')
+                    count += 1
     outWell_imputed_out.close()
     outWell_imputed_snp_out.close()
     outSNP_accuracy_out.close()
