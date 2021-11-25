@@ -18,13 +18,14 @@ make_option(c("-t", "--target"), action = "store", default = "${target}", type =
 help = "Target .frq file"),
 make_option(c("-o", "--output"), action = "store", default = "${output}", type = 'character',
 help = "Output .png file"),
-make_option(c("-m", "--maf"), action="store", default = "${}", type = 'character',
+make_option(c("-m", "--maf"), action="store", default = "${maf_thresh}", type = 'character',
 help = "Minor allele frequency threshold in %")
 )
 
 args <- parse_args(OptionParser(option_list = option_list))
 
 
+maf_thresh <- 0
 # Read in the allele frequency files
 info <- fread(file = as.character(args[1]), sep = "\\t", header = T, select = c("SNP", "Rsq", "Genotyped", "MAF", "ALT_Frq"))
 frq <- fread(file = as.character(args[2]), sep = "\\t", header = T, select= c("SNP","CHR","POS"))
@@ -54,8 +55,10 @@ N2 <- ifelse(nrow(Genotyped)>1000, as.integer(nrow(Genotyped)/1000), 1)
 Genotyped <- Genotyped[seq(1, nrow(Genotyped),N2),]
 
 # filter out MAF below a given value
-AF_thresh <- ifelse(!is.na(args[4]) & args[4] > 0, args[4]/100, 0)
+AF_thresh <- ifelse(!is.na(maf_thresh) & maf_thresh > 0, maf_thresh/100, 0)
+# AF_thresh
 Imputed <- filter(Imputed, MAF > AF_thresh & MAF != 0)
+# Imputed
 
 # categorize MAF levels: extreme rare, moderate rare, rare, moderate, common, extreme common
 Imputed <- mutate(Imputed, MAF2 = MAF)
@@ -67,13 +70,14 @@ Imputed\$MAF2[Imputed\$MAF2 > 0.02 & Imputed\$MAF2 <= 0.05]<- "moderate (0.02,0.
 Imputed\$MAF2[Imputed\$MAF2 > 0.05 & Imputed\$MAF2 <= 0.2]<- "common (0.05,0.2]"
 Imputed\$MAF2[Imputed\$MAF2 > 0.2 & Imputed\$MAF2 <= 0.5]<- "extreme common (0.2,0.5]"
 
+head(Imputed)
 # plot rsquared vs. SNP_position
-r2_position_plot <- ggplot(data = Imputed, aes(x = POS, y = Rsq, color = MAF2)) +
-    geom_point() +
+r2_position_plot <- ggplot(data = Imputed, aes(x = POS, y = Rsq)) +
+    geom_point(aes(colour = MAF2)) +
     labs(x = "Position [bp]", y = "Imputation accuracy (r-squared)") +
-    scale_y_continuous(breaks = seq(0, 1, 0.2)) + scale_x_continuous(labels = scales::comma) +
+    scale_y_discrete(breaks = seq(0, 1, 0.2)) + #scale_x_continuous(labels = scales::comma) +
     facet_grid(~CHR) + theme_classic() +
-    geom_hline(aes(yintercept = 0.3), colour = "red", show.legend = F) +
+    geom_hline(aes(yintercept = 0.3, colour = "red"), show.legend = F) +
     scale_color_discrete(breaks = c("extreme rare (0,0.001]","moderate rare (0.001,0.01]","rare (0.01,0.02]",
     "moderate (0.02,0.05]","common (0.05,0.2]","extreme common (0.2,0.5]")) +
     geom_rug(data=Genotyped, aes(x = POS), inherit.aes = F)

@@ -26,6 +26,8 @@ if (params.help){
 process impute_minimac4 {
     tag "imp_${target_name}_${chrm}:${chunk_start}-${chunk_end}_${ref_name}_${tagName}"
     label "bigmem"
+    publishDir "${params.outDir}/imputed/${ref_name}/${target_name}", overwrite: true, mode:'copy'
+
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_m3vcf), val(tagName)
     output:

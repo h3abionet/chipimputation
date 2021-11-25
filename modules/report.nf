@@ -23,6 +23,9 @@ if (params.help){
     exit 0
 }
 
+// process quality_control
+//     tag "perform QC on the imputed files"
+
 process filter_info {
     tag "filter_${dataset_name}_${tagName}_${ref_panels.join('-')}"
     label "bigmem"
@@ -130,7 +133,6 @@ process plot_accuracy_target{
         template "plot_results_by_maf.R"
 }
 
-
 """
 Step: generate allele frequency
 """
@@ -139,15 +141,22 @@ process generate_frequency {
     publishDir "${params.outDir}/frqs/${ref_name}", overwrite: true, mode:'copy', pattern: '*frq'
     label "medium"
     input:
-        tuple val(target_name), val(ref_name), file(impute_vcf)
+        tuple val(target_name), val(ref_name), file(impute_vcf),  file(ref_vcf)
     output:
-        tuple val(target_name), val(ref_name), file(dataset_frq)
+        tuple val(target_name), val(ref_name), file(dataset_frq), file(ref_frq)
     script:
         dataset_frq = "${file(impute_vcf.baseName).baseName}.frq"
+        ref_frq = "${file(ref_vcf.baseName).baseName}.frq"
+        
         """
         # For datastet
         echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${dataset_frq}
         bcftools view -m2 -M2 -v snps ${impute_vcf} | bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' >> ${dataset_frq}
+        
+        # For the reference panel
+        echo -e 'CHR\tPOS\tSNP\tREF\tALT\tAF' > ${ref_frq}
+        bcftools view -m2 -M2 -v snps ${ref_vcf} | bcftools +fill-tags -Oz -o ${ref_name}_AF.vcf.gz -- -t AF
+        bcftools query -f '%CHROM\t%POS\t%CHROM\\_%POS\\_%REF\\_%ALT\t%REF\t%ALT\t%INFO/AF\\n' ${ref_name}_AF.vcf.gz >> ${ref_frq}
         
         """
 }
@@ -160,7 +169,7 @@ process plot_r2_SNPpos {
     publishDir "${params.outDir}/plots/${ref_name}", overwrite: true, mode:'copy'
     label "medium"
     input:
-    tuple val(target_name), val(ref_name), file(target_info), file(target_frq)
+    tuple val(target_name), val(ref_name), file(target_info), val(maf_thresh), file(target_frq)
     output:
     tuple val(target_name), val(ref_name), file(output)
     script:
@@ -170,23 +179,27 @@ process plot_r2_SNPpos {
     template "r2_pos_plot.R"
 }
 
-process plot_freq_comparison {
-    tag "plot_freq_comparison_${dataset_name}_${ref_name}"
-    // publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
-    label "bigmem"
-    input:
-        tuple val(dataset_name), val(ref_name), file(dataset_info), file(dataset_frq), file(ref_frq)
-    output:
-        tuple val(dataset_name), val(ref_name), file(outputcolor)
-    script:
-        info = dataset_info
-        target = dataset_frq
-        frq = ref_frq
-        //output = "${dataset_name}_${ref_name}_${chrm}_freq_comparison.png"
-        outputcolor = "${dataset_name}_${ref_name}_freq_comparison_color.png"
-        template "AF_comparison.R"
 
-}        
+"""
+Plot frequency of imputed SNPs against SNP frequencies in reference panels
+"""
+process plot_freq_comparison {
+    tag "plot_freq_comparison_${target_name}_${ref_name}"
+    publishDir "${params.outDir}/plots/${ref_name}/freq_comparison", overwrite: true, mode:'copy'
+    label "medium"
+    input:
+        tuple val(target_name), val(ref_name), file(target_info), file(target_frq), file(ref_frq) 
+    output:
+        tuple val(target_name), val(ref_name), file(outputcolor)
+    script:
+        info = target_info
+        target = target_frq
+        frq = ref_frq
+        //output = "${target_name}_${ref_name}_${chrm}_freq_comparison.pdf"
+        outputcolor = "${target_name}_${ref_name}_freq_comparison_color.pdf"
+        template "AF_comparison.R"
+}
+       
 
 """
 Plot number of imputed SNPs over the mean r2 for all reference panels
