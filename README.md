@@ -37,7 +37,7 @@ Check for results in `./output`
 
 ### Start running your own analysis
 
-You can now copy the `test.config` file from the `conf` folder by doing `cp <conf dir>/test.config .`, which you can change and use a custom config file.
+Copy the `test.config` file from the `conf` folder by doing `cp <conf dir>/test.config .` and edit it to suit the path to where your files are stored.
 
 Once you have edited the config file, run the command below.
 
