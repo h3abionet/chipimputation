@@ -68,12 +68,12 @@ Be warned of two important points about this default configuration:
     * See the [nextflow docs](https://www.nextflow.io/docs/latest/executor.html) for information about running with other hardware backends. Most job scheduler systems are natively supported.
 2. Nextflow will expect all software to be installed and available on the `PATH`, unless Docker or Singularity used.
 
-#### 3.1) Software deps: Docker
+### 3.1) Software deps: Docker
 First, install docker on your system: [Docker Installation Instructions](https://docs.docker.com/engine/installation/)
 
 Then, running the pipeline with the option `-profile docker` tells Nextflow to enable Docker for this run. An image containing all of the software requirements will be automatically fetched and used from quay.io (https://quay.io/h3abionet_org/imputation_tools).
 
-#### 3.1) Software deps: Singularity
+### 3.2) Software deps: Singularity
 If you're not able to use Docker then [Singularity](http://singularity.lbl.gov/) is a great alternative.
 The process is very similar: running the pipeline with the option `-profile singularity` tells Nextflow to enable Singularity for this run. An image containing all of the software requirements will be automatically fetched and used from quay.io (quay.io/h3abionet_org/imputation_tools).
 
@@ -91,10 +91,32 @@ nextflow run h3abionet/chipimputation -with-singularity h3abionet-chipimputation
 
 Remember to pull updated versions of the Singularity image if you update the pipeline.
 
-<!--
-#### 3.2) Software deps: conda
+### 3.3) Software deps: conda
 If you're not able to use Docker or Singularity, you can instead use conda to manage the software requirements.
 This is slower and less reproducible than the above, but is still better than having to install all requirements yourself!
 The pipeline ships with a conda environment file and nextflow has built-in support for this.
 To use it first ensure that you have conda installed (we recommend [miniconda](https://conda.io/miniconda.html)), then follow the same pattern as above and use the flag `-profile conda`.  
-**Note** that `minimac4` is not available through conda, so a manual installation of `minimac4` might be needed in this case. -->
+**Note** that `minimac4` is not available through conda, so a manual installation of `minimac4` might be needed in this case.
+
+
+## 4) Setup (native cluster)
+
+### 4.1) Headnode
+  - [Nextflow](https://www.nextflow.io/) (can be installed as local user)
+   - NXF_HOME needs to be set, and must be in the PATH
+   - Note that we've experienced problems running Nextflow when NXF_HOME is on an NFS mount.
+   - The Nextflow script also needs to be invoked in a non-NFS folder
+  - Java 1.8+
+
+### 4.2) Compute nodes
+
+- The compute nodes need access to shared storage for input, references, output.
+- If you opt to use `singularity` no software installation will be needed.
+- Otherwise, the following commands/softwares need to be available in PATH on the compute nodes
+  - `minimac4` from [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4)
+  - `eagle` from [Eagle](https://data.broadinstitute.org/alkesgroup/Eagle/)
+  - `vcftools` from [vcftools](https://vcftools.github.io/index.html)
+  - `bcftools`from [bcftools](https://samtools.github.io/bcftools/bcftools.html)
+  - `bgzip` from [htslib](http://www.htslib.org)
+  - `python2.7`
+  - `R` with the following packages ggplot2, dplyr, data.table, sm, optparse, ggsci
