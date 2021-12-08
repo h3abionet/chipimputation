@@ -63,7 +63,6 @@ This is found in the `docs/` directory:
 4. [Running the pipeline with your own config](docs/usage.md)
 5. [Running on local machine or cluster](docs/other_clusters.md)
 6. [Running docker and singularity](docs/soft_requirements.md)
-7. [Output and how to interpret the results](docs/output.md)
 
 
 ## Support
