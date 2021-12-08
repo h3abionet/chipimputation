@@ -11,7 +11,7 @@ The basic steps of the pipeline is described in the diagram below:
 
 ![chipimputation pipeline workflow diagram](https://www.h3abionet.org/images/workflows/snp_imputation_workflow.png)
 
-* The workflow is developed using [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A520.04.0-brightgreen.svg)](https://www.nextflow.io/). The imputation is performed using [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4). 
+* The workflow is developed using [![Nextflow](https://img.shields.io/badge/nextflow-%E2%89%A520.04.0-brightgreen.svg)](https://www.nextflow.io/) and imputation performed using [Minimac4](https://genome.sph.umich.edu/wiki/Minimac4). 
 * It identifies regions to be imputed on the basis of an input file in VCF format, split the regions into small chunks, phase each chunk using the phasing tool [Eagle2](https://data.broadinstitute.org/alkesgroup/Eagle/) and produces output in VCF format that can subsequently be used in a [GWAS](https://github.com/h3abionet/h3agwas) workflow.
 * It also produce basic plots and reports of the imputation process including the imputation performance report, the imputation accuracy, the allele frequency of the imputed vs of the reference panel and other metrics.    
 
