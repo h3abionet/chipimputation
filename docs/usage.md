@@ -48,7 +48,7 @@ results         # Finished results (configurable, see below)
 .nextflow.log   # Log file from Nextflow
 # Other nextflow hidden files, eg. history of pipeline runs and old logs.
 ```
-### Running the pipeline with test the test config file
+### Running the pipeline with the test config file
 The typical command for running the pipeline is as follows:
 
 ```bash
