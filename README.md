@@ -5,7 +5,7 @@
 [![Docker](https://img.shields.io/badge/docker%20registry-Quay.io-red)](https://quay.io/h3abionet_org/imputation_tools)
 [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B%20%20%E2%97%8B%20%20%E2%97%8B-orange)](https://fair-software.eu)
 
-### Introduction
+## Introduction
 Imputation is likely to be run in the context of a GWAS, studying population structure, and admixture studies. It is computationally expensive in comparison to other GWAS steps.
 The basic steps of the pipeline is described in the diagram below:
 
@@ -16,9 +16,10 @@ The basic steps of the pipeline is described in the diagram below:
 **This pipeline comes with docker/singularity containers making installation trivial and results highly reproducible.**
 
 
-### Getting started
 
-#### Basic test using test data
+## Getting started
+
+### Running the pipeline with test dataset
 This pipeline itself needs no installation - NextFlow will automatically fetch it from GitHub.
 You can run the pipeline using test data hosted in github with singularity without have to install or change any parameters.
 ```
@@ -30,7 +31,7 @@ nextflow run h3abionet/chipimputation/main.nf -profile test,singularity
 Check for results in `./output`
 
 
-#### Running the pipeline with your own config file
+### Start running your own analysis
 
 You can now copy the `test.config` file from the `conf` folder by doing `cp <conf dir>/test.config .`, which you can change and use a custom config file.
 
@@ -42,7 +43,7 @@ nextflow run h3abionet/chipimputation -c "name of your config file" -profile sin
 Check for results in `./output`
 
 
-### Documentation
+## Documentation
 The h3achipimputation pipeline comes with detailed documentation about the pipeline.
 This is found in the `docs/` directory:
 
@@ -58,10 +59,10 @@ This is found in the `docs/` directory:
 7. [Output and how to interpret the results](docs/output.md)
 
 
-### Support
+## Support
 We track our open tasks using github's [issues](https://github.com/h3abionet/chipimputation/issues)
 
 
-### Citation
+## Citation
 This  workflow which was developed as part of the H3ABioNet Hackathon held in Pretoria, SA in 2016. Should want to reference it, please use:  
 >Baichoo S, Souilmi Y, Panji S, Botha G, Meintjes A, Hazelhurst S, Bendou H, Beste E, Mpangase PT, Souiai O, Alghali M, Yi L, O'Connor BD, Crusoe M, Armstrong D, Aron S, Joubert F, Ahmed AE, Mbiyavanga M, Heusden PV, Magosi LE, Zermeno J, Mainzer LS, Fadlelmola FM, Jongeneel CV, Mulder N. Developing reproducible bioinformatics analysis workflows for heterogeneous computing environments to support African genomics. BMC Bioinformatics. 2018 Nov 29;19(1):457. doi: 10.1186/s12859-018-2446-1. PubMed PMID: 30486782; PubMed Central PMCID: [PMC6264621](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6264621/).
