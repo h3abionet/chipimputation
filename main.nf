@@ -5,7 +5,10 @@ include { get_chromosome; fill_tags_vcf; check_chromosome; check_files; check_ch
 include { vcf_map_simple; extract_site_from_vcf; generate_chunks_vcf; split_target_to_chunk; vcf_map; vcf_freq; info_freq; fill_tags_VCF; sort_vcf ; get_vcf_sites; extract_pop } from './modules/subset_vcf'
 include { minimac4_phasing_eagle } from './modules/phasing'
 include { impute_minimac4; impute_minimac4_1; combineImpute; combineInfo; filter_info_by_target } from './modules/impute'
-include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target } from './modules/report'
+include { filter_info; report_site_by_maf; plot_freq_comparison; report_well_imputed_by_target; plot_performance_target; 
+report_accuracy_target; plot_accuracy_target; generate_frequency; plot_r2_SNPpos; plot_r2_SNPcount; plot_hist_r2_SNPcount; plot_MAF_r2; 
+average_r2 } from './modules/report'
+
 
 // Header log info
 def intro(){
@@ -152,44 +155,68 @@ workflow impute{
         chunks_imputed = impute_minimac4.out
 }
 
-
-workflow postprocess{
-    take: 
-        data
+workflow report_by_ref{
+    take: data
 
     main:
-        data
-            .groupTuple( by:[0,3,4,7] )
-        // Create a dataflow instance of all impute results
-        imputeCombine = data.view()
-            .groupTuple( by:[0,3,4,7] ) // combine by chrom, dataset, refpanel, chip
-            .map{ chrm, starts, ends, dataset, ref_name, imputed_vcfs, imputed_infos, tagName -> [ dataset, ref_name, chrm, imputed_vcfs  ] }
-        infoCombine = data
-            .groupTuple( by:[0,3,4,7] ) // combine by chrom, dataset, refpanel, chip
-            .map{ chrm, starts, ends, dataset, ref_name, imputed_vcfs, imputed_infos, tagName -> [ dataset, ref_name, chrm, imputed_infos  ] }
-        
-        combineImpute( imputeCombine )
-        combineInfo( infoCombine )
+        /// /// By Refecene panel
+        // combine by chrom, dataset, refpanel
+        imputeCombine_ref = data
+                .groupTuple( by:[1] )
+                .map{ datasets, refpanel, vcfs, imputed_vcfs, imputed_infos -> [ refpanel, datasets.join(','), '', imputed_infos.join(',') ] }
+        filter_info_by_target( imputeCombine_ref )
 
-        filter_info_by_target(combineInfo.out.groupTuple(by:0).map{ target_name, ref_panels, chrms, ref_infos -> [ target_name, ref_panels.join(','), chrms.join(','), ref_infos.join(',') ] })
+        /// change to group_by_maf
+        report_well_imputed_by_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]} )
+        
+        //// Plot performance all targets by maf for a reference panel
+        plot_performance_target( report_well_imputed_by_target.out.map{ target_name, ref_panels, wellInfo, wellInfo_summary -> [ target_name, ref_panels, file(wellInfo), file(wellInfo_summary), 'DATASETS' ]} )
+
+        //// Accuracy/Concordance
+        report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'DATASETS' ]} )
+        plot_accuracy_target ( report_accuracy_target.out )
+    emit:
+        data
+}
+
+workflow report_by_dataset{
+    take: data
+
+    main:
+        /// /// By Dataset
+        // combine by chrom, dataset, refpanel
+        
+        imputeCombine_ref = data
+                .groupTuple( by:[0] )
+                .map{ dataset, refpanels, vcfs, imputed_vcfs, imputed_infos -> [ dataset, refpanels.join(','), '', imputed_infos.join(',') ] }
+        filter_info_by_target( imputeCombine_ref )
+
+        ///// Number of well imputed snps
+        /// change to group_by_maf
+        report_well_imputed_by_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]} )
+        /// Plot performance all targets by maf for a reference panel
+        plot_performance_target( report_well_imputed_by_target.out.map{ target_name, ref_panels, wellInfo, wellInfo_summary -> [ target_name, ref_panels, file(wellInfo), file(wellInfo_summary), 'REFERENCE_PANELS' ]} )
+
+        //// Accuracy/Concordance
+        report_accuracy_target( filter_info_by_target.out.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(accInfo), 'REFERENCE_PANELS' ]} )
+        plot_accuracy_target ( report_accuracy_target.out )
+
+        // Plot number of imputed SNPs over the mean r2 for all reference panels
+        input = imputeCombine_ref
+        .map{ dataset, refpanels, chrm, infos -> [dataset, refpanels, infos]}
+
+        // Plot number of imputed SNPs over the mean r2 for all reference panels
+        plot_r2_SNPcount(input)
+
+        // Plot histograms of number of imputed SNPs over the mean r2 for all reference panels
+        plot_hist_r2_SNPcount(input)
+
+        // Plot MAF of imputed SNPs over r2 for all references
+        plot_MAF_r2(input)
 
     emit:
-        impute = combineImpute.out
-        info = combineInfo.out
-        qc_info = filter_info_by_target.out
-}
-
-workflow reporting{
-    take: data
-    
-    main:
-        report_well_imputed_by_target(data)
-        plot_performance_target( report_well_imputed_by_target.out )
-
-    emit: 
         data
 }
-
 
 workflow {
 
@@ -220,11 +247,44 @@ workflow {
     //// Imputation
     // phasing.out.chunks_phased.view()
     impute(phasing.out.chunks_phased)
-
-    //// Post processing
-    // postprocess(impute.out.chunks_imputed)
     
-    //// Reporting
-    // reporting(postprocess.out.qc_info.map{ target_name, ref_panels, wellInfo, accInfo -> [ target_name, ref_panels, file(wellInfo) ]})
+    // Reporting
+    // impute.out.chunks_imputed.view()
+    impute_data = impute.out.chunks_imputed
+                .map{chr, fwd, rev, test_data, ref, imputed_vcf, 
+                imputed_info, tst_data -> [test_data, ref, imputed_vcf, imputed_info]}
+                .combine(params.target_datasets, by:0)
+                .map {test_data, ref, imputed_vcf, imputed_info, orig_vcf 
+                -> [test_data, ref, orig_vcf, imputed_vcf, imputed_info]}
 
+    // //// Report by Reference
+    report_by_ref( impute_data )
+
+    // //// Report by datasets
+    report_by_dataset( impute_data )
+
+    // // Generate dataset frequencies
+    inp = Channel.fromList(params.ref_panels).map{ref, m3vcf, vcf -> [ref, vcf]}
+    input = impute_data
+    .map{ target_name, ref_name, vcf, impute_vcf, info ->[  ref_name, target_name, file(impute_vcf)]}
+    .combine(inp, by:0)
+    .map{ ref_name, target_name, impute_vcf, ref_vcf -> [target_name, ref_name, file(impute_vcf), file(ref_vcf)]}
+    generate_frequency(input)
+
+    // // Plot frequency Comparison
+    freq_comp = impute_data.map {target_name, ref_name, vcf, impute_vcf, info -> 
+    [target_name, ref_name, info]}
+    .combine(generate_frequency.out, by:[0,1])
+    plot_freq_comparison(freq_comp)
+
+    // // Plot number of imputed SNPs over the mean r2 for all reference panels
+    combineInfo_frq = impute_data.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, info, params.maf_thresh]}
+    .combine(generate_frequency.out, by:[0,1])
+    .map { target_name, ref_name, info, maf_thresh, target_frq, ref_frq -> 
+    [target_name, ref_name, info, maf_thresh, target_frq]}
+    plot_r2_SNPpos(combineInfo_frq)
+
+    // // compute for average rsquared values
+    rsquared_input = impute_data.map{ target_name, ref_name, vcf, impute_vcf, info ->[ target_name, ref_name, info]}
+    average_r2(rsquared_input)
 }
