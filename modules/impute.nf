@@ -31,9 +31,11 @@ process impute_minimac4 {
     input:
         tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), file(target_phased_vcf), file(target_phased_vcf_tbi), val(ref_name), file(ref_vcf), file(ref_m3vcf), val(tagName)
     output:
-        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file("${base}_imputed.dose.vcf.gz"), file("${base}_imputed.info"), val(tagName)
+        tuple val(chrm), val(chunk_start), val(chunk_end), val(target_name), val(ref_name), file(imputed_vcf), file(indexed_vcf), file("${base}_imputed.info"), val(tagName)
     shell:
         base = "${file(target_phased_vcf.baseName).baseName}_${tagName}_${chrm}_${chunk_start}-${chunk_end}"
+        imputed_vcf = "${base}_imputed.dose.vcf.gz"
+        indexed_vcf = "${base}_imputed.dose.vcf.gz.tbi"
         """
         minimac4 \
             --refHaps ${ref_m3vcf} \
@@ -43,7 +45,8 @@ process impute_minimac4 {
             --minRatio ${params.minRatio} \
             --chr ${chrm} --start ${chunk_start} --end ${chunk_end} --window ${params.buffer_size} \
             --prefix ${base}_imputed \
-            --cpus ${task.cpus}
+            --cpus ${task.cpus} 
+        tabix ${imputed_vcf}
         """
 }
 
@@ -119,6 +122,7 @@ process impute_minimac4_1 {
 
 """
 Combine impute chunks to chromosomes
+bcftools +fill-tags -- -t AC,AN,AF,MAF | \
 """
 process combineImpute {
     tag "impComb_${target_name}_${ref_name}_${chrm}"
@@ -126,14 +130,13 @@ process combineImpute {
     label "bigmem"
     
     input:
-        tuple val(target_name), val(ref_name), val(chrm), val(imputed_files)
+        tuple val(target_name), val(ref_name), val(chrm), file(imputed_files), file(indexed_files)
     output:
         tuple val(target_name), val(ref_name), val(chrm), file(comb_impute)// into combineImpute
     script:
         comb_impute = "${target_name}_${ref_name}_chr${chrm}.imputed.vcf.gz"
         """
-        bcftools concat ${imputed_files.join(' ')} | \
-        bcftools +fill-tags -- -t AC,AN,AF,MAF | \
+        bcftools concat -a ${imputed_files.join(' ')} | \
         bcftools sort -T . -Oz -o ${comb_impute}
         """
 }
