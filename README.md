@@ -34,6 +34,11 @@ nextflow run h3abionet/chipimputation/main.nf -profile test,singularity
 
 Check for results in `./output`
 
+In case you are running the outdated version, run the code below prior to executing the pipeline.
+
+```
+nextflow pull h3abionet/chipimputation
+```
 
 ### Start running your own analysis
 
